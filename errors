@@ -1,0 +1,14 @@
+Opening file error
+Toolbar's Configuration file doesn't exist
+Format error in the configuration file of the toolbar
+Error in the image extension, problem in creating toolbar
+The icon doesn't exist in icon directory, problem in creating toolbar
+Problem with scoping for a method in toolbar's configuration file
+The file text doesn't exist in higlight directory and you are not allowed to create it 
+Saving file error, verify if you allowed
+Close tab
+This file has been modified. Do you want save it?
+Only integer, please
+This is not valid resource file
+The text you entered was not found in this searching direction
+You must restart wxKonTEXT for apply the changes
