@@ -35,6 +35,7 @@
 
 import dna
 from copy import deepcopy
+import pyperclip
 
 
 class gbobject():
@@ -182,9 +183,29 @@ class gbobject():
 			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
+
+
 			
-	
-	
+
+
+	def reverse_complement_clipboard(self):	
+		'''Reverse-complements the DNA and all features in clipboard'''
+		self.clipboard['dna'] = dna.reversecomplement(self.clipboard['dna']) #change dna sequence
+		pyperclip.copy(self.clipboard['dna'])	
+		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
+			if self.clipboard['features'][i]['complement'] == True: self.clipboard['features'][i]['complement'] = False
+			elif self.clipboard['features'][i]['complement'] == False: self.clipboard['features'][i]['complement'] = True
+
+			for n in range(len(self.clipboard['features'][i]['location'])):
+				start, finish = self.get_location(self.clipboard['features'][i]['location'][n])
+				featurelength = finish - start    #how much sequence in feature?
+				trail = len(self.clipboard['dna']) - finish     # how much sequence after feature?
+
+				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -finish+(trail+featurelength+1), 'f')	
+				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -start+trail+1, 's')
+			self.clipboard['features'][i]['location'].reverse() #reverse order of list elements				
+
+
 	def add_empty_feature(self):
 		"""Function adds a feature to allgbfeatures"""
 		feature = {}
@@ -194,19 +215,20 @@ class gbobject():
 		feature['complement'] = False
 		self.gbfile['features'].append(feature) #change append to sth that works for dicts
 
-
 	
 	def identify_feature(self, feature):
 		'''Used to find the position of a feature in the gbfile data structure'''
 		featureID = feature['feature']
 		featuretype = feature['key']
-		
+		location = feature['location']
 		if len(self.gbfile['features']) == 0:
 			return False
 		else:
 			for i in range(len(self.gbfile['features'])):
 				if self.gbfile['features'][i]['qualifiers'][0].split('=')[1] == featureID and self.gbfile['features'][i]['key'] == featuretype:		
 					return i	
+
+
 	def paste_feature(self, feature, insertlocation):
 		'''Paste feature from clipboard into an existing genbankfile'''
 		#adjust the clipboard location to the insert location and append
@@ -263,11 +285,12 @@ class gbobject():
 				self.gbfile['features'][i]['qualifiers'][0] = '/label='+newfeatureid
 
 
-
 	def copy(self, copystart, copyend):
-		'''Copy all the features for a certain selection'''
+		'''Copy DNA and all the features for a certain selection'''
+		self.clipboard = {}
+		self.clipboard['dna'] = self.get_dna()[copystart:copyend] #copy to internal clipboard
+		self.clipboard['features'] = []
 		allgbfeatures_templist = deepcopy(self.gbfile['features'])
-		featurelist = []
 
 		for i in range(len(self.gbfile['features'])): #checks to match dna change
 	
@@ -279,12 +302,29 @@ class gbobject():
 				n = len(self.gbfile['features'][i]['location'])-1
 				finish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
 				
-			if copystart<start<=finish<=copyend: #if change encompasses whole feature, delete
-				featurelist.append(allgbfeatures_templist[i])
+			if copystart<start<=finish<=copyend: #if change encompasses whole feature
+				self.clipboard['features'].append(allgbfeatures_templist[i])
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -copystart, 'b')
-					featurelist[-1]['location'][n] = newlocation
-		return featurelist
+					self.clipboard['features'][-1]['location'][n] = newlocation
+	
+
+	def paste(self, pastestart):
+		'''Makes an insertion and updates dna and features'''
+		temp_clipboard = deepcopy(self.clipboard) #creates a deep copy which is needed to copy nested lists
+		
+		if temp_clipboard['dna'] != pyperclip.paste(): #if internal and system clipboard is not same then system clipboard takes presidence
+			print('internal clipboard override')
+			temp_clipboard['dna'] = pyperclip.paste()
+
+		DNA = str(temp_clipboard['dna'])
+		self.changegbsequence(pastestart+1, pastestart+1, 'i', DNA) #change dna sequence	
+
+		for i in range(len(temp_clipboard['features'])): #add features from clipboard
+			self.paste_feature(temp_clipboard['features'][i], pastestart)
+
+#		if len(self.gb.allgbfeatures) > 1: #make sure that all features have unique names
+#			self.check_for_unique_feature_names(self.gb.allgbfeatures)	
 
 
 	def remove_location(self, index, number):
@@ -292,6 +332,7 @@ class gbobject():
 		del self.gbfile['features'][index]['location'][number]
 		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
 			del self.gbfile['features'][index] 
+
 
 	def add_or_subtract_to_locations(self, location, changenumber, option):
 		'''Given a single location and a number, it adds or subtracts that number to the location'''						
@@ -318,11 +359,6 @@ class gbobject():
 		else:
 			print('Error, wrong option in add_or_subtract_to_locations')	
 
-		if start > finish: 
-			print('start', start)
-			print('finish', finish)
-			print('Error, start cannot be larger than finish')
-		
 		#now add brackets back
 		if len(brackets) == 0: pass					
 		elif brackets[0] == '<': start = '<' + start

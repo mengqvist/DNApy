@@ -32,12 +32,12 @@
 
 
 
-#core issues!!
-#change all feature modification functions...
+#TODO
 #fix gb so that new file can be made using just dna
-#fix header
-#rig catg keys so that when keys are pressed the dna actually goes into the file
-
+#fix header parsing
+#rig catg keys so that when keys are pressed the dna actually goes into the file (and backspace and del keys too)
+#when loading file, ask whether it should be cleaned from ApEinfo tags and those from vectorNTI
+#clean up functions, organize them and take away everything that is not needed
 
 
 
@@ -413,7 +413,14 @@ Put Table here
 		'''t'''
 		cutstart, cutend = self.gbviewer.GetSelection()
 		if cutstart != -2 and cutend != -2: #must be a selection
-			self.reverse_complement_selection(cutstart, cutend) #call cut function
+
+			#make changes
+			self.Copy("")
+			self.delete_selection()
+			self.gb.reverse_complement_clipboard()		
+			self.gb.paste(cutstart)
+			
+			#realize changes
 			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(cutstart)
@@ -449,7 +456,7 @@ Put Table here
 		if cutstart != -2 and cutend != -2: #must be a selection
 			self.Copy("")
 			self.delete_selection()
-			self.reverse_complement_feature()
+			self.gb.reverse_complement_clipboard()
 			
 			#update viewer
 			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
@@ -486,13 +493,13 @@ Put Table here
 			#if paste is from copied/cut genbank dna
 			#elif.....
 			if pasteend == False:
-				self.insert(pastestart)
+				self.gb.paste(pastestart)
 
 #			else: #if a selection
 #				start, end =self.tab_list[self.current_tab].GetSelection()
 #				self.delete_selection()  
 #				self.tab_list[self.current_tab].SetInsertionPoint(start)   #this generates probelems with the features. Need to sepereate delete and insert somehow
-#				self.insert("")
+#				self.gb.paste("")
 
 			#update viwer
 			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
@@ -505,9 +512,9 @@ Put Table here
 	
 	def Paste_RevComp(self, evt):
 		'''Paste reverse complement of DNA'''
-		self.reverse_complement_feature()
+		self.gb.reverse_complement_clipboard()
 		self.Paste("")
-		
+		self.gb.reverse_complement_clipboard() #change it back
 		#generate output
 		self.output.write('Reverse complement of sequence pasted'+'\n', 'Text')
 
@@ -516,69 +523,33 @@ Put Table here
 	def Copy(self, evt):
 		'''Copy DNA and features into clipboard'''
 		control = wx.Window.FindFocus() #which field is selected?
-		
+
 		if control == self.search_word: #the searchbox
 			start, finish = self.search_word.GetSelection()
-			pyperclip.copy(self.search_word.GetValue()[start:finish])
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.search_word.GetValue()[start:finish])
 
 		elif control == self.output: #the outputpanel
 			start, finish = self.output.GetSelection()
-			pyperclip.copy(self.output.GetValue()[start:finish])
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.output.GetValue()[start:finish])
 			
 		elif control == self.gbviewer: #the main dna window	
-			copystart, copyend = self.gbviewer.GetSelection()
-		
-			string = self.gb.get_dna()[copystart:copyend]
-			pyperclip.copy(string) #copy dna to system clipboard (in case I want to paste it somwhere else)
-			self.gb.clipboard = []
-			self.gb.clipboard.append(string) #copy to internal clipboard
-
-			self.gb.clipboard.append(self.gb.copy(copystart, copyend))
-		
-
-#			self.dna_output(self.gb.clipboard)
-			#make it so that the copied stuff can be used across tabs...
-
-
+			start, finish = self.gbviewer.GetSelection()
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.gb.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
+				self.gb.copy(start, finish)
+#				self.dna_output(self.gb.clipboard)
 
 	
 	def Copy_RevComp(self, evt):
 		'''Copy reverse complement of DNA'''
 		copystart, copyend = self.gbviewer.GetSelection()
 		self.Copy("")
-		self.reverse_complement_feature()	
+		self.gb.reverse_complement_clipboard()
 #		self.dna_output(self.gb.clipboard)
 		
 
-	def reverse_complement_feature(self): #needs a little more tuning... somehow features disappear...
-		'''Reverse-complements features saved in clipboard'''
-		self.gb.clipboard[0] = dna.reversecomplement(self.gb.clipboard[0]) #change dna sequence
-		for i in range(1, len(self.gb.clipboard)): #checks self.allgbfeatures to match dna change
-				lead = int(self.gb.clipboard[i][1]) #how much sequence before feature?
-				feature = int(self.gb.clipboard[i][2]) - int(self.gb.clipboard[i][1]) #how much sequence in feature?
-				trail = len(self.gb.clipboard[0]) - int(self.gb.clipboard[i][2]) # how much sequence after feature?
-				
-				self.gb.clipboard[i][1] = trail + 1 #apply changes to feature positions
-				self.gb.clipboard[i][2] = trail + feature + 1
-				
-				if self.gb.clipboard[i][3] == 'complement': #change feature 'markers'
-					self.gb.clipboard[i][3] = 'leading'
-				elif self.gb.clipboard[i][3] == 'leading':
-					self.gb.clipboard[i][3] = 'complement'
-				else:
-					print(self.gb.clipboard[i][3])
-					print('Error when reverse-complementing features')
-
-
-
-
-
-	def reverse_complement_selection(self, start, end):
-		self.Copy("")
-		self.delete_selection()
-		self.reverse_complement_feature()		
-		self.insert(start)
-					
 	def delete_selection(self): #done
 		'''Deletes a selection and updates dna and features'''
 		start, end = self.gbviewer.GetSelection()
@@ -586,29 +557,12 @@ Put Table here
 		self.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
 
 
-	def insert(self, pastestart):
-		'''Makes an insertion and updates dna and features'''
-		temp_clipboard = [x[:] for x in self.gb.clipboard] #creates a deep copy which is needed to copy nested lists
-
-		
-		if temp_clipboard[0] != pyperclip.paste(): #if internal and system clipboard is not same then system clipboard takes presidence
-			print('internal clipboard override')
-			temp_clipboard[0] = pyperclip.paste()
-
-		DNA = str(temp_clipboard[0])
-		self.gb.changegbsequence(pastestart+1, pastestart+1, 'i', DNA) #change dna sequence	
-
-		for i in range(len(temp_clipboard[1])): #add features from clipboard
-			self.gb.paste_feature(temp_clipboard[1][i], pastestart)
-
-#		if len(self.gb.allgbfeatures) > 1: #make sure that all features have unique names
-#			self.check_for_unique_feature_names(self.gb.allgbfeatures)
 
 
 
 ########## change this #########################################		
 
-	def check_for_unique_feature_names(self, featurelist): #done
+	def check_for_unique_feature_names(self, featurelist):
 		'''Function for ensuring that all features have unique names'''
 		for i in range(1, len(featurelist)):
 			for n in range(1, len(featurelist)):
