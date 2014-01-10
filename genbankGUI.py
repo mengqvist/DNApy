@@ -117,8 +117,6 @@ class MyFrame(wx.Frame):
 		self.Centre()
 
 		
-		
-#fix all of the below methods....
 
 ############## Info methods
 
@@ -367,6 +365,7 @@ Put Table here
 ################ genbank methods ###############
 	def OnKeyPress(self, evt):
 		'''Checks which key is pressed and if one of them is A, T, C or G inserts the base into the file'''
+		#this is not working
 		print('ok')
 		print(evt)
 
@@ -411,7 +410,7 @@ Put Table here
 		pass
 
 	def RevComp_sel(self, evt):
-		'''t'''
+		'''Funciton to reverse-complement the current selection'''
 		cutstart, cutend = self.gbviewer.GetSelection()
 		if cutstart != -2 and cutend != -2: #must be a selection
 
@@ -427,16 +426,18 @@ Put Table here
 			self.gbviewer.SetInsertionPoint(cutstart)
 
 
-	def Delete(self, evt):
-		deletestart, deleteend = self.gbviewer.GetSelection()
-		if deletestart != -2 and deleteend != -2: #must be a selection
-			self.gb.delete_selection(deletestart, deleteend) #call delete function
+
+
+	def delete_selection(self): #done
+		'''Deletes a selection and updates dna and features'''
+		start, end = self.gbviewer.GetSelection()
+		if start != -2 and end != -2: #must be a selection
+			deletedsequence = self.gb.get_dna()[start:end]
+			self.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
+
 			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
 			self.paint_features()
-			self.gbviewer.SetInsertionPoint(deletestart)
-
-			#generate output
-			self.output.write('Sequence deleted', 'Text'+'\n')
+			self.gbviewer.SetInsertionPoint(start)
 
 	def Cut(self, evt):
 		'''t'''
@@ -551,11 +552,7 @@ Put Table here
 #		self.dna_output(self.gb.clipboard)
 		
 
-	def delete_selection(self): #done
-		'''Deletes a selection and updates dna and features'''
-		start, end = self.gbviewer.GetSelection()
-		deletedsequence = self.gb.get_dna()[start:end]
-		self.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
+
 
 
 
