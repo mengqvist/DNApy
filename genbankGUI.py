@@ -6,7 +6,7 @@
 #extendable, editor for molecular and synthetic biology.  
 #Enjoy!
 #
-#Copyright (C) 2014  Martin Engqvist | 
+#Copyright (C) 2014  Martin K. M. Engqvist | 
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
@@ -213,7 +213,7 @@ Put Table here
 #########################################
 
 	def dna_output(self, featurelist):
-		'''t'''
+		'''Prints output to the output panel'''
 
 		#generate output
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
@@ -440,7 +440,7 @@ Put Table here
 			self.gbviewer.SetInsertionPoint(start)
 
 	def Cut(self, evt):
-		'''t'''
+		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		cutstart, cutend = self.gbviewer.GetSelection()
 		if cutstart != -2 and cutend != -2: #must be a selection
 			self.Copy("")
@@ -469,7 +469,7 @@ Put Table here
 		
 		
 	def Paste(self, evt):
-		'''Paste DNA'''
+		'''Paste DNA and any features'''
 		control = wx.Window.FindFocus() #which field is selected?
 		
 		if control == self.search_word: #the searchbox
@@ -821,14 +821,6 @@ Put Table here
 #		self.output.ShowPosition(self.output.GetLastPosition()) 
 
 		
-	def remove_feature(self, feature):
-		self.gb.removegbfeature(feature)
-		self.features_output(allgbfeatures[2], 'removed')
-		
-	def new_feature():
-		pass
-
-
 	def list_features(self, evt):
 		'''List all features in output panel'''
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
@@ -840,11 +832,6 @@ Put Table here
 		self.output.ShowPosition(self.output.GetLastPosition()) 
 
 	
-		
-
-
-
-
 
 
 ################ other functions ###############################
@@ -914,10 +901,6 @@ Put Table here
 		#which feature corresponds to this pos?
 		Feature = self.gb.get_feature_for_pos(mposition)
 		return mposition, Feature
-
-
-	def view_gbfile():
-		pass
 
 
 ###############################################################
