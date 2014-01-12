@@ -38,6 +38,7 @@ from copy import deepcopy
 import pyperclip
 
 
+
 class gbobject():
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self):
@@ -47,7 +48,7 @@ class gbobject():
 		
 		
 	def readgb(self, filepath):
-		"""Function takes filepath to .gb file and extracts the header, features and DNA sequence"""
+		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
 		a = open(filepath, 'r') #open it for reading
 		gbfile = a.read()
 		a.close()
@@ -175,7 +176,7 @@ class gbobject():
 	
 		self.gbfile['features'] = features
 	
-		self.gbfile['filepath'] = filepath
+		self.gbfile['self.filepath'] = self.filepath
 		
 	def get_location(self, entry):
 		tempentry = ''
@@ -207,7 +208,7 @@ class gbobject():
 
 
 	def add_empty_feature(self):
-		"""Function adds a feature to allgbfeatures"""
+		"""Function adds a feature to self.allgbfeatures"""
 		feature = {}
 		feature['key'] = ""
 		feature['qualifiers'] = ['/label=empty']
@@ -217,7 +218,7 @@ class gbobject():
 
 	
 	def identify_feature(self, feature):
-		'''Used to find the position of a feature in the gbfile data structure'''
+		'''Used to find the position of a feature in the self.gbfile data structure'''
 		featureID = feature['feature']
 		featuretype = feature['key']
 		location = feature['location']
@@ -253,7 +254,7 @@ class gbobject():
 			
 		
 	def remove_feature(self, feature):
-		"""Function removes a feature from allgbfeatures based on its ID (which is the first qualifier)"""
+		"""Function removes a feature from self.allgbfeatures based on its ID (which is the first qualifier)"""
 		position = self.identify_feature(feature)
 		
 		if position == False:
@@ -279,7 +280,7 @@ class gbobject():
 						break
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
-		"""Function changes the ID for a certain feature in allgbfeatures"""
+		"""Function changes the ID for a certain feature in self.allgbfeatures"""
 		for i in range(len(self.gbfile['features'])):
 			if self.gbfile['features'][i]['qualifiers'][0] == '/label='+oldfeatureid:
 				self.gbfile['features'][i]['qualifiers'][0] = '/label='+newfeatureid
@@ -290,7 +291,7 @@ class gbobject():
 		self.clipboard = {}
 		self.clipboard['dna'] = self.get_dna()[copystart:copyend] #copy to internal clipboard
 		self.clipboard['features'] = []
-		allgbfeatures_templist = deepcopy(self.gbfile['features'])
+		self.allgbfeatures_templist = deepcopy(self.gbfile['features'])
 
 		for i in range(len(self.gbfile['features'])): #checks to match dna change
 	
@@ -303,7 +304,7 @@ class gbobject():
 				finish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
 				
 			if copystart<start<=finish<=copyend: #if change encompasses whole feature
-				self.clipboard['features'].append(allgbfeatures_templist[i])
+				self.clipboard['features'].append(self.allgbfeatures_templist[i])
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -copystart, 'b')
 					self.clipboard['features'][-1]['location'][n] = newlocation
@@ -323,8 +324,8 @@ class gbobject():
 		for i in range(len(temp_clipboard['features'])): #add features from clipboard
 			self.paste_feature(temp_clipboard['features'][i], pastestart)
 
-#		if len(self.gb.allgbfeatures) > 1: #make sure that all features have unique names
-#			self.check_for_unique_feature_names(self.gb.allgbfeatures)	
+#		if len(self.gb.self.allgbfeatures) > 1: #make sure that all features have unique names
+#			self.check_for_unique_feature_names(self.gb.self.allgbfeatures)	
 
 
 	def remove_location(self, index, number):
@@ -389,16 +390,16 @@ class gbobject():
 		return DNA
 
 	def get_dna(self):
-		'''Get the entire DNA sequence from the gbfile'''
+		'''Get the entire DNA sequence from the self.gbfile'''
 		return self.gbfile['dna']
 	
 	def get_filepath(self):
-		'''Get the filepath for the opened file'''
-		return self.gbfile['filepath']
+		'''Get the self.filepath for the opened file'''
+		return self.gbfile['self.filepath']
 	
 	def update_filepath(self, new_path):
-		'''Update the filepath where a file is saved'''
-		self.gbfile['filepath'] = new_path
+		'''Update the self.filepath where a file is saved'''
+		self.gbfile['self.filepath'] = new_path
 
 	def get_feature_for_pos(self, position):
 		'''For a given dna position, which features are there?'''		
@@ -454,7 +455,7 @@ class gbobject():
 
 # does this work? is it needed?	
 	def changegbfeaturepos(self, featureid, newstart, newend, complement, changetype):
-		"""Function changes the position of a certain feature in allgbfeatures"""
+		"""Function changes the position of a certain feature in self.allgbfeatures"""
 		for i in range(len(self.gbfile['features'])):
 			if (('/label=' in featureid) == False and self.gbfile['features'][i]['qualifiers'][0] == '/label=' + featureid) or self.gbfile['features'][i]['qualifiers'][0] == featureid:
 				n = 0
@@ -580,14 +581,10 @@ class gbobject():
 			print('%s is not a valid argument for changetype' % changtype)
 
 
-	def write_file(self,filepath):
-		"""Function writes data stored in header, featruelist and dna to a .gb file"""
-
-		#need to add conditions in case header and features are empty
-		
-		a = open(filepath, 'w')
-		a.write(self.gbfile['header']+'\n')
-		a.write('FEATURES             Location/Qualifiers\n')
+	def make_gbstring(self):
+		string = ''
+		string += (self.gbfile['header']+'\n')
+		string += ('FEATURES             Location/Qualifiers\n')
 		for entry in self.gbfile['features']:
 			#print(entry)
 			
@@ -616,20 +613,31 @@ class gbobject():
 			elif entry['complement'] == False and entry['join'] == False and entry['order'] == False:
 				locations = '%s' % locations			
 
-			a.write(('     %s%s%s\n') % (entry['key'], ' '*(16-len(str(entry['key']))), locations))
+			string += (('     %s%s%s\n') % (entry['key'], ' '*(16-len(str(entry['key']))), locations))
 
 			for i in range(len(entry['qualifiers'])):
-				a.write(('                     %s\n') % entry['qualifiers'][i])
+				string += (('                     %s\n') % entry['qualifiers'][i])
 
-		a.write('ORIGIN\n')
+		string += ('ORIGIN\n')
 		for i in range(0, len(self.gbfile['dna']), 60):
-			a.write('%s%d %s %s %s %s %s %s\n' % (' '*(9-len(str(i))), i+1, self.gbfile['dna'][i:i+10], self.gbfile['dna'][i+10:i+20],self.gbfile['dna'][i+20:i+30],self.gbfile['dna'][i+30:i+40],self.gbfile['dna'][i+40:i+50],self.gbfile['dna'][i+50:i+60]))
-		a.write('//')
+			string += ('%s%d %s %s %s %s %s %s\n' % (' '*(9-len(str(i))), i+1, self.gbfile['dna'][i:i+10], self.gbfile['dna'][i+10:i+20],self.gbfile['dna'][i+20:i+30],self.gbfile['dna'][i+30:i+40],self.gbfile['dna'][i+40:i+50],self.gbfile['dna'][i+50:i+60]))
+		string += ('//')		
+
+		return string
+
+	def write_file(self, filepath):
+		"""Function writes data stored in header, featruelist and dna to a .gb file"""
+
+		#need to add conditions in case header and features are empty
+		string = self.mage_gbstring()
+		a = open(filepath, 'w')
+		a.write(string)
 		a.close()
 
 
 
 
+gb = gbobject()
 
 
 

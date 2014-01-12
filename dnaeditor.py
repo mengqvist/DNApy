@@ -61,6 +61,10 @@ import genbank
 #import seqfiles
 #import featureeditor
 
+
+
+
+
 files={}   #dictionary with all configuration files
 
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -77,26 +81,20 @@ execfile(settings) #gets all the pre-assigned settings
 tabtext = 'replace!'
 
 
-
 ########### class for text ######################
-class MyFrame(wx.Frame):
-	def __init__(self, parent, id, title):
-		wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition, wx.Size(1000, 800))
+class MyPanel(wx.Panel):
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
 		
-		#create toolbars
-		self.__generate_toolbar()
-		
-		
-		#create Menu Bar
-		self.create_menu()		
+#		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
 
 		#create splitter
 		splitter = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
 		
 		
 		#create statusbar
-		self.statusbar = self.CreateStatusBar(2)
-		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
+#		self.statusbar = self.CreateStatusBar(2)
+#		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
 
 		#create dna view panel
 		self.gbviewer = output.create(splitter, style=wx.VSCROLL|wx.HSCROLL); #create DNA window
@@ -109,12 +107,53 @@ class MyFrame(wx.Frame):
 		splitter.SplitHorizontally(self.gbviewer, self.output, sashPosition=500)
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
-		sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
+#		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
+#		sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		sizer.Add(splitter, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
+
+
+##########################
+	def changeme(self):
+		##### Toolbar 2 #####
+		
+		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
+			
+		#Select or Mutate
+		self.selormut = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(85, 28), choices=['Select', 'Mutate'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.selormut)		
+		self.selormut.SetSelection(0)
+		
+		#nucleotide or amino acid
+		self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
+		self.nucleotideoraminoacid.SetSelection(0)
+		
+		#'position'
+		self.positionbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(70, 25), value="position")
+		self.frame_2_toolbar.AddControl(self.positionbox)
+		self.positionbox.SetEditable(False)	
+		
+		
+		#'pos #'
+		self.posnum=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(90, 25), value="")
+		self.frame_2_toolbar.AddControl(self.posnum)
+		
+		
+		#'in'
+		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 25), value="in")
+		self.frame_2_toolbar.AddControl(self.inbox)
+		self.inbox.SetEditable(False)
+				
+		#featurebox
+		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=wx.DefaultSize, choices=['File', 'feature1'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.featurebox)
+		
+		#'go'
+
+		self.frame_2_toolbar.Realize()
 
 		
 
@@ -228,72 +267,7 @@ Put Table here
 			self.output.write('\n', 'Text')
 		self.output.ShowPosition(self.output.GetLastPosition()) 
 		
-	def new_document(self, evt):
-		'''Create new gb file'''
-		self.gb=genbank.gbobject() #make new gb in panel	
 
-	def open_file(self, evt):
-		'''Function for opening file'''
-		self.dir_to_open = '/home/martin/Python_files/DNApy/'
-		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
-		dlg.ShowModal()
-		fileName = dlg.GetFilename()
-		all_path=dlg.GetPath()
-		dire=dlg.GetDirectory()
-		dlg.Destroy()
-		if(fileName == None or fileName == "" ):
-			return1
-		
-		name, extension = fileName.split('.')
-		if extension == 'gb':
-			self.gb=genbank.gbobject() #make new gb in panel
-			self.gb.readgb(all_path) #read the file
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
-			self.paint_features() #update features		
-		else:
-			print("error, not a gb file")		
-
-		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
-		wx.EVT_CLOSE(self, self.OnCloseWindow)
-		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
-#		wx.EVT_KEY_DOWN(self, self.OnKeyPress)
-	
-	def save_all(self, evt):
-		pass
-	
-	def save_file(self, evt):
-		'''Function for saving file'''
-#		try:
-
-
-		self.gb.write_file(self.gb.get_filepath())
-		
-#			self.OnUpdateUI(1) #update statusbar
-#		except:
-#			self.save_as_file("")
-		
-
-	def save_as_file(self, evt):
-		'''Function for saving file as'''
-		filepath = self.gb.get_filepath()	
-		for i in range(len(filepath)): #get directory for file
-			if filepath[i] == '/':
-				dire = filepath[0:i+1]
-		#get save dialog
-		dlg = wx.FileDialog( self, style=wx.SAVE | wx.OVERWRITE_PROMPT,defaultDir=dire,wildcard='TXT files (*)|*|Any file (*)|*')
-		dlg.ShowModal()
-		all_path=dlg.GetPath()
-		fileName=dlg.GetFilename()
-		dire=dlg.GetDirectory()
-		dlg.Destroy()
-		if (fileName == None or fileName == ""):
-			return
-		else:
-			#try:
-			self.gb.update_filepath(all_path)
-			self.save_file("")
-			#except:
-			#	error_window(7, self)
 
 
 
@@ -337,29 +311,12 @@ Put Table here
 
 	def search_tool(self):
 		'''Generates the search textbox'''
-		self.search_word=wx.TextCtrl(self.frame_1_toolbar, wx.ID_ANY, "")
-		self.frame_1_toolbar.AddControl(self.search_word)		
-	
+#		self.search_word=wx.TextCtrl(self.frame_1_toolbar, wx.ID_ANY, "")
+#		self.frame_1_toolbar.AddControl(self.search_word)		
+		pass	
 
 
-	def quit(self, evt):
-		'''Function for quiting program'''
-		print("close")
-#    		self.close_all("")
-       		self.Close()
-       		#self.Destroy()		
 
-
-	def OnCloseWindow(self, evt):
-		'''not currently used'''
-#		self.close_all("")
-#		foo=self.GetSize()  ###except for the window size of file 
-#		if(self.IsMaximized()==0):
-#			file=open(files['size'], "w")
-#			file.write(str(foo[0])+"\n"+str(foo[1]))
-#			file.close()
-		self.Close()
-		#self.Destroy()
 
 
 ################ genbank methods ###############
@@ -382,22 +339,22 @@ Put Table here
 	def Uppercase(self, evt):
 		'''Change section to uppercase'''
 		start, end = self.gbviewer.GetSelection()
-		string = self.gb.get_dna()[start:end]
-		self.gb.changegbsequence(start, end, 'r', string.upper())
+		string = genbank.gb.get_dna()[start:end]
+		genbank.gb.changegbsequence(start, end, 'r', string.upper())
 		
 		#update viewer
-		self.gbviewer.SetValue(self.gb.get_dna())
+		self.gbviewer.SetValue(genbank.gb.get_dna())
 		self.paint_features()
 		self.gbviewer.SetSelection(start, end)
 		
 	def Lowercase(self, evt):
 		'''Change section to lowercase'''
 		start, end = self.gbviewer.GetSelection()
-		string = self.gb.get_dna()[start:end]
-		self.gb.changegbsequence(start, end, 'r', string.lower())
+		string = genbank.gb.get_dna()[start:end]
+		genbank.gb.changegbsequence(start, end, 'r', string.lower())
 		
 		#update viewer
-		self.gbviewer.SetValue(self.gb.get_dna())
+		self.gbviewer.SetValue(genbank.gb.get_dna())
 		self.paint_features()
 		self.gbviewer.SetSelection(start, end)
 
@@ -417,11 +374,11 @@ Put Table here
 			#make changes
 			self.Copy("")
 			self.delete_selection()
-			self.gb.reverse_complement_clipboard()		
-			self.gb.paste(cutstart)
+			genbank.gb.reverse_complement_clipboard()		
+			genbank.gb.paste(cutstart)
 			
 			#realize changes
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
+			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(cutstart)
 
@@ -432,10 +389,10 @@ Put Table here
 		'''Deletes a selection and updates dna and features'''
 		start, end = self.gbviewer.GetSelection()
 		if start != -2 and end != -2: #must be a selection
-			deletedsequence = self.gb.get_dna()[start:end]
-			self.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
+			deletedsequence = genbank.gb.get_dna()[start:end]
+			genbank.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
 
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
+			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(start)
 
@@ -447,10 +404,10 @@ Put Table here
 			self.delete_selection()
 			
 			#update viewer
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
+			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(cutstart)
-#			self.dna_output(self.gb.clipboard)
+#			self.dna_output(genbank.gb.clipboard)
 			
 	def Cut_RevComp(self, evt):
 		'''Cut reverse complement of DNA'''
@@ -458,13 +415,13 @@ Put Table here
 		if cutstart != -2 and cutend != -2: #must be a selection
 			self.Copy("")
 			self.delete_selection()
-			self.gb.reverse_complement_clipboard()
+			genbank.gb.reverse_complement_clipboard()
 			
 			#update viewer
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
+			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(cutstart)	
-#			self.dna_output(self.gb.clipboard)
+#			self.dna_output(genbank.gb.clipboard)
 
 		
 		
@@ -472,10 +429,10 @@ Put Table here
 		'''Paste DNA and any features'''
 		control = wx.Window.FindFocus() #which field is selected?
 		
-		if control == self.search_word: #the searchbox
-			self.search_word.SetValue(pyperclip.paste())
+#		if control == self.search_word: #the searchbox
+#			self.search_word.SetValue(pyperclip.paste())
 
-		elif control == self.output: #the outputpanel
+		if control == self.output: #the outputpanel
 			pass
 			
 		elif control == self.gbviewer: #the main dna window
@@ -495,16 +452,16 @@ Put Table here
 			#if paste is from copied/cut genbank dna
 			#elif.....
 			if pasteend == False:
-				self.gb.paste(pastestart)
+				genbank.gb.paste(pastestart)
 
 #			else: #if a selection
 #				start, end =self.tab_list[self.current_tab].GetSelection()
 #				self.delete_selection()  
 #				self.tab_list[self.current_tab].SetInsertionPoint(start)   #this generates probelems with the features. Need to sepereate delete and insert somehow
-#				self.gb.paste("")
+#				genbank.gb.paste("")
 
 			#update viwer
-			self.gbviewer.SetValue(self.gb.get_dna()) #put dna in box
+			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.paint_features()
 			self.gbviewer.SetInsertionPoint(pastestart)
 		
@@ -514,9 +471,9 @@ Put Table here
 	
 	def Paste_RevComp(self, evt):
 		'''Paste reverse complement of DNA'''
-		self.gb.reverse_complement_clipboard()
+		genbank.gb.reverse_complement_clipboard()
 		self.Paste("")
-		self.gb.reverse_complement_clipboard() #change it back
+		genbank.gb.reverse_complement_clipboard() #change it back
 		#generate output
 		self.output.write('Reverse complement of sequence pasted'+'\n', 'Text')
 
@@ -526,12 +483,12 @@ Put Table here
 		'''Copy DNA and features into clipboard'''
 		control = wx.Window.FindFocus() #which field is selected?
 
-		if control == self.search_word: #the searchbox
-			start, finish = self.search_word.GetSelection()
-			if start != -2 and finish != -2: #must be a selection
-				pyperclip.copy(self.search_word.GetValue()[start:finish])
+#		if control == self.search_word: #the searchbox
+#			start, finish = self.search_word.GetSelection()
+#			if start != -2 and finish != -2: #must be a selection
+#				pyperclip.copy(self.search_word.GetValue()[start:finish])
 
-		elif control == self.output: #the outputpanel
+		if control == self.output: #the outputpanel
 			start, finish = self.output.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.output.GetValue()[start:finish])
@@ -539,17 +496,17 @@ Put Table here
 		elif control == self.gbviewer: #the main dna window	
 			start, finish = self.gbviewer.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
-				pyperclip.copy(self.gb.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
-				self.gb.copy(start, finish)
-#				self.dna_output(self.gb.clipboard)
+				pyperclip.copy(genbank.gb.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
+				genbank.gb.copy(start, finish)
+#				self.dna_output(genbank.gb.clipboard)
 
 	
 	def Copy_RevComp(self, evt):
 		'''Copy reverse complement of DNA'''
 		copystart, copyend = self.gbviewer.GetSelection()
 		self.Copy("")
-		self.gb.reverse_complement_clipboard()
-#		self.dna_output(self.gb.clipboard)
+		genbank.gb.reverse_complement_clipboard()
+#		self.dna_output(genbank.gb.clipboard)
 		
 
 
@@ -572,7 +529,7 @@ Put Table here
 					else:
 						feature = featurelist[n][4]
 						number = 0
-					self.gb.allgbfeatures[n][4] = '%s_copy%s' % (feature, str(int(number)+1))
+					genbank.gb.allgbfeatures[n][4] = '%s_copy%s' % (feature, str(int(number)+1))
 
 
 
@@ -613,7 +570,7 @@ Put Table here
 		self.remove_styling() #first remove old styles
 		
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
-		featurelist = self.gb.get_all_feature_positions()
+		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
 			featuretype, complement, start, finish = entry
 
@@ -630,7 +587,7 @@ Put Table here
 
 	def update_text(self, ev):
 		self.update_featurebuttons()		
-		self.update_statusbar("")
+#		self.update_statusbar("")
 		
 #		self.tab_list[self.current_tab].modify=1
 #		self.current_tab=self.gbviewer.GetSelection()
@@ -655,7 +612,7 @@ Put Table here
 		try:			
 			#make new ones from featurelist
 			features = ['DNA']
-			featurelist = self.gb.allgbfeatures
+			featurelist = genbank.gb.allgbfeatures
 			for entry in featurelist:
 				feature = entry[4].split('=')[1] #remove the /label= part
 				features.append(feature)
@@ -699,7 +656,7 @@ Put Table here
 #		'''Pass a list of dictionaries with name and dna to m_align to align sequences'''
 #		#this works sort of ok. Needs improvement though...
 #		
-#		dna = str(self.gb.get_dna())
+#		dna = str(genbank.gb.get_dna())
 #		
 #		self.seqlist.append(dict(name='Reference', dna=dna))
 #		print(self.seqlist)
@@ -763,11 +720,12 @@ Put Table here
 		DNA = self.gbviewer.GetStringSelection()
 		protein = dna.translate(dna.reversecomplement(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
-				
+
+#update this one...
 	def translate_feature(self, evt):
 		'''Translate specified feature'''
-		feature = self.gb.allgbfeatures[2]
-		DNA = self.gb.getdnaforgbfeature(feature[4])
+		feature = genbank.gb.allgbfeatures[2]
+		DNA = genbank.gb.getdnaforgbfeature(feature[4])
 		protein = dna.translate(DNA)
 		self.translate_output(protein, DNA, 'feature "%s"' % feature[4][7:])
 	
@@ -827,7 +785,7 @@ Put Table here
 		tabtext = 'Replace!'
 		self.output.SetInsertionPointEnd() 
 		self.output.write('%s | List features\n' % tabtext, 'File')
-		featurelist = self.gb.list_features()
+		featurelist = genbank.gb.list_features()
 		self.output.write(featurelist, 'Text')
 		self.output.ShowPosition(self.output.GetLastPosition()) 
 
@@ -899,264 +857,28 @@ Put Table here
 		mposition = self.gbviewer.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
 
 		#which feature corresponds to this pos?
-		Feature = self.gb.get_feature_for_pos(mposition)
+		Feature = genbank.gb.get_feature_for_pos(mposition)
 		return mposition, Feature
 
 
 ###############################################################
 
 
-	def __generate_toolbar(self):
-		'''For generating toolbar with buttons'''
-				
-		self.frame_1_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-
-   		#syntax for toolbar
-   		#AddLabelTool(self, id, label, bitmap, bmpDisabled, kind, shortHelp, longHelp, clientData) 
-   		
-
-   		
-   		#New Document
-   		self.frame_1_toolbar.AddLabelTool(500, "New Document", wx.Bitmap(files['default_dir']+"/icon/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'New File', "New File") #last one is the one displayed in status bar
-   		wx.EVT_TOOL(self, 500, self.new_document)
-		#Open File
-   		self.frame_1_toolbar.AddLabelTool(501, "Open File", wx.Bitmap(files['default_dir']+"/icon/open.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Load File', 'Load File')
-   		wx.EVT_TOOL(self, 501, self.open_file)
-		#Save current file
-   		self.frame_1_toolbar.AddLabelTool(502, "Save current file", wx.Bitmap(files['default_dir']+"/icon/save.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Save File', 'Save File')
-   		wx.EVT_TOOL(self, 502, self.save_file)
-		#Save as
-   		self.frame_1_toolbar.AddLabelTool(503, "Save as", wx.Bitmap(files['default_dir']+"/icon/saveas.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Save File As', 'Save File As')
-   		wx.EVT_TOOL(self, 503, self.save_as_file)
-		#Cut
-   		self.frame_1_toolbar.AddLabelTool(504, "Cut", wx.Bitmap(files['default_dir']+"/icon/cut.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Cut', 'Cut')
-   		wx.EVT_TOOL(self, 504, self.Cut)
-		#Copy
-   		self.frame_1_toolbar.AddLabelTool(505, "Copy", wx.Bitmap(files['default_dir']+"/icon/copy.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Copy', 'Copy')
-   		wx.EVT_TOOL(self, 505, self.Copy)
-		#Paste
-   		self.frame_1_toolbar.AddLabelTool(506, "Paste", wx.Bitmap(files['default_dir']+"/icon/paste.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Paste', 'Paste')
-   		wx.EVT_TOOL(self, 506, self.Paste)
-   		#Undo
-   		self.frame_1_toolbar.AddLabelTool(513, "Undo", wx.Bitmap(files['default_dir']+"/icon/undo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Undo', 'Undo')
-   		wx.EVT_TOOL(self, 513, self.Undo)   
-   		#Redo
-   		self.frame_1_toolbar.AddLabelTool(514, "Redo", wx.Bitmap(files['default_dir']+"/icon/redo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Redo', 'Redo')
-   		wx.EVT_TOOL(self, 514, self.Redo) 
-		#Search Upward
-   		self.frame_1_toolbar.AddLabelTool(507, "Search Upward", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Upward', 'Search Upward')
-   		wx.EVT_TOOL(self, 507, self.search_up)
-		#Search window
-		self.search_tool()
-		#Search Downward
-   		self.frame_1_toolbar.AddLabelTool(509, "Search Downward", wx.Bitmap(files['default_dir']+"/icon/down.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Downward', 'Search Downward')
-   		wx.EVT_TOOL(self, 509, self.search_down)
-		#Print current window
-#   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
- #  		wx.EVT_TOOL(self, 510, self.print_setup)
-		
-		self.frame_1_toolbar.Realize()
-		
-		
-		##### Toolbar 2 #####
-		
-		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-			
-		#Select or Mutate
-		self.selormut = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(85, 28), choices=['Select', 'Mutate'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.selormut)		
-		self.selormut.SetSelection(0)
-		
-		#nucleotide or amino acid
-		self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
-		self.nucleotideoraminoacid.SetSelection(0)
-		
-		#'position'
-		self.positionbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(70, 25), value="position")
-		self.frame_2_toolbar.AddControl(self.positionbox)
-		self.positionbox.SetEditable(False)	
-		
-		
-		#'pos #'
-		self.posnum=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(90, 25), value="")
-		self.frame_2_toolbar.AddControl(self.posnum)
-		
-		
-		#'in'
-		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 25), value="in")
-		self.frame_2_toolbar.AddControl(self.inbox)
-		self.inbox.SetEditable(False)
-				
-		#featurebox
-		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=wx.DefaultSize, choices=['File', 'feature1'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.featurebox)
-		
-		#'go'
-
-		self.frame_2_toolbar.Realize()
 
 
 
-
-
-
-	def create_menu(self):     #method for creating menu
-		self.menubar = wx.MenuBar()
-		fileitem = wx.Menu()
-			
-		#new document
-		fileitem.Append(1, "New\tCtrl+Q", "New Document")
-		wx.EVT_MENU(self, 1, self.new_document)
-
-		#open document
-		fileitem.Append(2, "Open\tCtrl+O", "Open Document")
-		wx.EVT_MENU(self, 2, self.open_file)
-		fileitem.AppendSeparator()
-
-		#save document
-		fileitem.Append(3, "Save\tCtrl+S", "Save current document")
-		wx.EVT_MENU(self, 3, self.save_file)
-
-		#save document as
-		fileitem.Append(4, "Save as", "Save a copy of current document")
-		wx.EVT_MENU(self, 4, self.save_as_file)
-
-		#save all
-		fileitem.Append(5, "Save all", "Save all open tabs")
-		wx.EVT_MENU(self, 5, self.save_all)
-		fileitem.AppendSeparator()
-
-		#close single
-		fileitem.Append(5, "Close", "Close current document")
-		wx.EVT_MENU(self, 5, self.close_single)
-
-		#close all
-		fileitem.Append(6, "Close all", "Close all tabs")
-		wx.EVT_MENU(self, 6, self.close_all)
-		fileitem.AppendSeparator()
-
-		#quit
-		fileitem.Append(7, "Exit", "Exit program")
-		wx.EVT_MENU(self, 7, self.quit)
-
-		self.menubar.Append(fileitem, "&File")
-
-		######################### For 'Edit DNA' menu item #############################################
-		self.edit = wx.Menu()
-		#undo
-		self.edit.Append(9, "Undo\tCtrl+Z", "Undo")
-		wx.EVT_MENU(self, 9, self.Undo)
-
-		#redo
-		self.edit.Append(10, "Redo\tCtrl+Y", "Redo")
-		wx.EVT_MENU(self, 10, self.Redo)
-		self.edit.AppendSeparator() #________________________devider
-
-		#cut
-		self.edit.Append(11, "Cut\tCtrl+X", "Cut selected DNA")
-		wx.EVT_MENU(self,11, self.Cut)
-
-		#copy
-		self.edit.Append(12, "Copy\tCtrl+C", "Copy selected DNA")
-		wx.EVT_MENU(self, 12, self.Copy)
-
-		#paste
-		self.edit.Append(13, "Paste\tCtrl+V", "Paste DNA")
-		wx.EVT_MENU(self, 13, self.Paste)
-		
-		#cut reverse complement
-		self.edit.Append(111, "Cut Rev-Comp\tCtrl+Shift+X", "Cut reverse-complement of selected DNA")
-		wx.EVT_MENU(self,111, self.Cut_RevComp)
-
-		#copy reverse complement
-		self.edit.Append(121, "Copy Rev-Comp\tCtrl+Shift+C", "Copy reverse-complement of selected DNA")
-		wx.EVT_MENU(self, 121, self.Copy_RevComp)		
-		
-		#paste reverse complement
-		self.edit.Append(131, "Paste Rev-Comp\tCtrl+Shift+V", "Paste reverse-complement of DNA")
-		wx.EVT_MENU(self, 131, self.Paste_RevComp)
-
-		#reverse-complement selection
-		self.edit.Append(141, "Rev-Comp selection\tCtrl+Shift+R", "Reverse-complement seleected DNA")
-		wx.EVT_MENU(self,141, self.RevComp_sel)
-		self.edit.AppendSeparator() #________________________devider
-		
-		#select all
-		self.edit.Append(14, "Select all", "Select all text")
-		wx.EVT_MENU(self, 14, self.select_all)
-		self.edit.AppendSeparator() #________________________devider
-
-		#uppercase
-		self.edit.Append(34, "Uppercase\tCtrl+W", "Convert selected text to uppercase")
-		wx.EVT_MENU(self, 34, self.Uppercase)
-
-		#lowercase
-		self.edit.Append(35, "Lowercase\tCtrl+E", "Convert selected text to lowercase")
-		wx.EVT_MENU(self, 35, self.Lowercase)
-		self.edit.AppendSeparator() #________________________devider
-
-		self.menubar.Append(self.edit, "Edit DNA")
-		
-	
-	
-		######## Features menu item ########
-		self.features = wx.Menu()
-		
-		self.features.Append(40, "List Features", "List all features in file")
-		wx.EVT_MENU(self,40, self.list_features)
-		
-#		self.features.Append(41, "Edit Features", "Edit features in file")
-#		wx.EVT_MENU(self,41, self.edit_features)		
-		
-		self.menubar.Append(self.features, "Features")
-		
-
-
-		######## Protein menu item #########
-		self.protein = wx.Menu()
-		
-		#translate
-		self.protein.Append(30, "Translate\tCtrl+T", "Translate DNA to protein")
-		wx.EVT_MENU(self,30, self.translate_selection)
-
-		#translate reverse complement
-		self.protein.Append(31, "Translate Rev-Comp\tCtrl+Shift+T", "Translate DNA to protein")
-		wx.EVT_MENU(self,31, self.translate_selection_reverse_complement)
-
-		#translate feature
-		self.protein.Append(32, "Translate feature", "Translate DNA feature to protein")
-		wx.EVT_MENU(self,32, self.translate_feature)
-
-		self.menubar.Append(self.protein, "Protein")
-
-
-
-		########## For 'Help' menu item #############
-		self.help = wx.Menu()
-		#about program
-		self.help.Append(21, "About", "About this program")
-		wx.EVT_MENU(self, 21, self.info)
-
-		#print IUPAC codes for dna and AA
-		self.help.Append(22, "IUPAC codes", "IUPAC codes of DNA and amino acids")
-		wx.EVT_MENU(self, 22, self.IUPAC_codes)
-
-
-		self.menubar.Append(self.help, "Help")
-
-		self.SetMenuBar(self.menubar)
-
-##### main loop
-class MyApp(wx.App):
-    def OnInit(self):
-        frame = MyFrame(None, -1, "DNApy - GBviewer")
-        frame.Show(True)
-        self.SetTopWindow(frame)
-        return True
-        
 if __name__ == '__main__': #if script is run by itself and not loaded	
-	app = MyApp(0)
-	app.MainLoop()
+	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
+
+
+
+	#remove this and make it get the filename proper
+	tabtext = 'replace!'
+
+	frame = wx.Frame(None, title="DNA editor") # creation of a Frame with a title
+	frame.dnaeditor = MyPanel(frame) # creation of a richtextctrl in the frame
+	frame.Show() # frames are invisible by default so we use Show() to make them visible
+	frame.dnaeditor.open_file("")
+	app.MainLoop() # here the app enters a loop waiting for user input
 
 
