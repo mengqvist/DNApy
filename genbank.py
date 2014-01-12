@@ -176,7 +176,7 @@ class gbobject():
 	
 		self.gbfile['features'] = features
 	
-		self.gbfile['self.filepath'] = self.filepath
+		self.gbfile['filepath'] = filepath
 		
 	def get_location(self, entry):
 		tempentry = ''
@@ -219,16 +219,16 @@ class gbobject():
 	
 	def identify_feature(self, feature):
 		'''Used to find the position of a feature in the self.gbfile data structure'''
-		featureID = feature['feature']
-		featuretype = feature['key']
-		location = feature['location']
 		if len(self.gbfile['features']) == 0:
 			return False
 		else:
 			for i in range(len(self.gbfile['features'])):
-				if self.gbfile['features'][i]['qualifiers'][0].split('=')[1] == featureID and self.gbfile['features'][i]['key'] == featuretype:		
-					return i	
-
+				if self.gbfile['features'][i]['key'] != feature['key']: continue
+				if self.gbfile['features'][i]['location'] != feature['location']: continue
+				if self.gbfile['features'][i]['qualifiers'][0] != feature['qualifiers'][0]: continue
+				if self.gbfile['features'][i]['complement'] == feature['complement']: #it is == here
+					return i
+			return False
 
 	def paste_feature(self, feature, insertlocation):
 		'''Paste feature from clipboard into an existing genbankfile'''
@@ -278,6 +278,14 @@ class gbobject():
 					if self.gbfile['features'][i]['qualifiers'][n] == qualifier: 
 						del self.gbfile['features'][i]['qualifiers'][n]
 						break
+
+	def change_feature_type(self, feature, newkey):
+		index = self.identify_feature(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['key'] = newkey
+
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
 		"""Function changes the ID for a certain feature in self.allgbfeatures"""
@@ -395,11 +403,11 @@ class gbobject():
 	
 	def get_filepath(self):
 		'''Get the self.filepath for the opened file'''
-		return self.gbfile['self.filepath']
+		return self.gbfile['filepath']
 	
 	def update_filepath(self, new_path):
 		'''Update the self.filepath where a file is saved'''
-		self.gbfile['self.filepath'] = new_path
+		self.gbfile['filepath'] = new_path
 
 	def get_feature_for_pos(self, position):
 		'''For a given dna position, which features are there?'''		
@@ -629,7 +637,7 @@ class gbobject():
 		"""Function writes data stored in header, featruelist and dna to a .gb file"""
 
 		#need to add conditions in case header and features are empty
-		string = self.mage_gbstring()
+		string = self.make_gbstring()
 		a = open(filepath, 'w')
 		a.write(string)
 		a.close()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import ast
 import wx
 import genbank
 import sys, os
@@ -109,10 +109,6 @@ class MyPanel(wx.Panel):
 		self.Bind(wx.EVT_BUTTON, self.OnDeleteQualifier, id=8)
 		self.Bind(wx.EVT_BUTTON, self.OnApplyChanges, id=9)
 
-		#open a file
-#		all_path = default_filepath
-#		self.gb=genbank.gbobject() #make new gb in panel
-#		genbank.gb.readgb(all_path) #read the file
 		
 		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
 		splitter2 = wx.SplitterWindow(splitter1, -1, style=wx.SP_3D)
@@ -124,7 +120,7 @@ class MyPanel(wx.Panel):
 		self.feature_list = FeatureView(splitter1, id=wx.ID_ANY)
 		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
 		self.feature_list.SetFont(font)
-		self.feature_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.OnSelect, id=3001)
+		self.feature_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.ListOnSelect)
 
 
 		#second panel, for editing features
@@ -171,6 +167,9 @@ class MyPanel(wx.Panel):
 #		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
 
 		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(150, -1), choices=featuretypes, style=wx.CB_READONLY)
+		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
+
+
 		typetext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
 
 		#location
@@ -202,7 +201,6 @@ class MyPanel(wx.Panel):
 		
 		globsizer = hbox = wx.BoxSizer()
 		globsizer.Add(splitter1, -1, wx.EXPAND)
-#		globsizer.Add(splitter2, -1, wx.EXPAND)
 		self.SetSizer(globsizer)
 
 
@@ -255,6 +253,10 @@ class MyPanel(wx.Panel):
 		listctrlcontent = []
 		for row in range(self.feature_list.listview.GetItemCount()):
 			featurename, featuretype, location, strand, qualifiers = [self.feature_list.listview.GetItem(row, col).GetText() for col in range(self.feature_list.listview.GetColumnCount())]
+			location = '[' + location + ']' #add brackets back
+			location =  ast.literal_eval(location) #convert to list
+			qualifiers = ast.literal_eval(qualifiers) #convert to list
+
 			if strand == 'leading': strand = False
 			elif strand == 'complement': strand = True
 			listctrlcontent.append(dict(feature=featurename, key=featuretype, location=location, complement=strand, qualifiers=qualifiers))
@@ -265,7 +267,7 @@ class MyPanel(wx.Panel):
 
 		return feature
 
-	def OnSelect(self, event):
+	def ListOnSelect(self, event):
 		'''Updates all fields depending on which feature is chosen'''
 	
 		#get selected feature
@@ -294,12 +296,11 @@ class MyPanel(wx.Panel):
 					self.qualifier_list.listview.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
 					self.qualifier_list.listview.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)					
 		
-#				for n in range(len(entry['qualifiers'])):
-#					#set color
-#					item = n
-#					self.qualifier_list.listview.SetItemBackgroundColour(item, color)
-
-
+	def TypeComboboxOnSelect(self, event):
+		newkey = self.type_combobox.GetValue()
+		feature = self.get_selection()
+		genbank.gb.change_feature_type(feature, newkey)
+		self.populate_feature_list()
 
 	def OnNew(self, event):
 		genbank.gb.add_empty_feature()

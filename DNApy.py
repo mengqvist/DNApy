@@ -48,6 +48,11 @@ import dnaeditor
 import featureeditor
 
 
+
+#TODO
+#make each window refresh when it is changed into
+#test which functions are broken
+
 files={}   #dictionary with all configuration files
 
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -76,6 +81,8 @@ class MyFrame(wx.Frame):
 
 		self.generate_dnaview_tab("")
 		self.generate_featureview_tab("")
+		self.generate_vectorview_tab("")
+		self.generate_sequencingview_tab('')
 		self.generate_genbankview_tab("")
 		
 		#create toolbars
@@ -109,7 +116,7 @@ class MyFrame(wx.Frame):
 
 		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
 		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "DNA view")
+		self.DNApy.AddPage(self.panel[number], "DNA")
 		self.panel[number].SetSizer(sizer_1)
 
 
@@ -125,14 +132,14 @@ class MyFrame(wx.Frame):
 
 		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
 		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "Feature view")
+		self.DNApy.AddPage(self.panel[number], "Feature")
 		self.panel[number].SetSizer(sizer_1)
 
 
 	def generate_vectorview_tab(self, evt):
 		pass
 
-	def generate_squencingview_tab(self, evt):
+	def generate_sequencingview_tab(self, evt):
 		pass
 
 	def generate_genbankview_tab(self, evt):
@@ -148,7 +155,7 @@ class MyFrame(wx.Frame):
 
 		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
 		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "GenBank view")
+		self.DNApy.AddPage(self.panel[number], "GenBank")
 		self.panel[number].SetSizer(sizer_1)
 
 ################ file functions #################
@@ -210,7 +217,8 @@ class MyFrame(wx.Frame):
 
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
-		filepath = genbank.gb.get_filepath()	
+		filepath = genbank.gb.get_filepath()
+		print(filepath)	
 		for i in range(len(filepath)): #get directory for file
 			if filepath[i] == '/':
 				dire = filepath[0:i+1]
