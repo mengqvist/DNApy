@@ -76,8 +76,7 @@ class MyFrame(wx.Frame):
 		wx.Frame.__init__(self, parent, id, title)
 		ID=wx.NewId()
 		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
-#		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
-#		wx.EVT_CLOSE(self, self.OnCloseWindow)
+		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
 		self.generate_dnaview_tab("")
 		self.generate_featureview_tab("")
@@ -260,6 +259,15 @@ class MyFrame(wx.Frame):
 
 ##########################################################
 
+
+	def page_change(self, ev):
+		'''When changing between tabs'''
+		print('pagechange')
+		self.Refresh()
+		self.current_tab=self.DNApy.GetSelection()
+		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
+
+######### Toolbar and Menu ############
 
 	def __generate_toolbar(self):
 		'''For generating toolbar with buttons'''

@@ -263,21 +263,23 @@ class gbobject():
 			del self.gbfile['features'][position]
 
 
-	def add_qualifier(self, newqualifier, featureID):
+	def add_qualifier(self, feature, newqualifier):
 		'''Adds qualifier tag to existing feature'''
-		for i in range(len(self.gbfile['features'])):
-			if self.gbfile['features'][i]['qualifiers'][0].split('=')[1] == featureID:
-				self.gbfile['features'][i]['qualifiers'].append(newqualifier)  #change append to sth that works for dicts
+		index = self.identify_feature(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['qualifiers'].append(newqualifier)  #change append to sth that works for dicts
 		
 		
-	def remove_qualifier(self, qualifier, featureID):
+	def remove_qualifier(self, feature, number):
 		'''Removes a qualifier tag from an existing feature'''
-		for i in range(len(self.gbfile['features'])):
-			if self.gbfile['features'][i]['qualifiers'][0].split('=')[1] == featureID:
-				for n in range(len(self.gbfile['features'][i]['qualifiers'][n])):
-					if self.gbfile['features'][i]['qualifiers'][n] == qualifier: 
-						del self.gbfile['features'][i]['qualifiers'][n]
-						break
+		index = self.identify_feature(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			del self.gbfile['features'][index]['qualifiers'][number]
+
 
 	def change_feature_type(self, feature, newkey):
 		index = self.identify_feature(feature)
@@ -286,6 +288,12 @@ class gbobject():
 		else:
 			self.gbfile['features'][index]['key'] = newkey
 
+	def change_feature_complement(self, feature, complement):
+		index = self.identify_feature(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['complement'] = complement 
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
 		"""Function changes the ID for a certain feature in self.allgbfeatures"""

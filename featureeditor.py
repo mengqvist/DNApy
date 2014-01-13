@@ -68,21 +68,11 @@ class QualifierView(wx.Panel):
 		self.listview.InsertColumn(1, "Tag", format=wx.LIST_FORMAT_LEFT, width=wx.LIST_AUTOSIZE)
 		
 		addqual = wx.Button(self, 7, 'Add Qualifier')
-		deletequal = wx.Button(self, 8, 'Delete Qualifier')
-		applychange = wx.Button(self, 9, 'Apply Changes')
-#		removeall = wx.Button(self, 4, 'Remove all')
-#		reference = wx.Button(self, 5, 'Set reference')
-#		fasta = wx.Button(self, 6, 'Print FASTA')
-
+		deletequal = wx.Button(self, 8, 'Remove Qualifier')
 		
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(addqual)
 		sizer.Add(deletequal)
-		sizer.Add(applychange)
-#		sizer.Add(removeall)
-#		sizer.Add(reference)
-#		sizer.Add(fasta)
-
 		
 		sizer2 = wx.BoxSizer(wx.VERTICAL)
 		sizer2.Add(self.listview, 3, wx.EXPAND)
@@ -105,9 +95,9 @@ class MyPanel(wx.Panel):
 		self.Bind(wx.EVT_BUTTON, self.OnCopyTranslation, id=5)
 
 		#bind qualifier buttions
-		self.Bind(wx.EVT_BUTTON, self.OnNewQualifier, id=7)
-		self.Bind(wx.EVT_BUTTON, self.OnDeleteQualifier, id=8)
-		self.Bind(wx.EVT_BUTTON, self.OnApplyChanges, id=9)
+		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
+		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
+
 
 		
 		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
@@ -181,6 +171,7 @@ class MyPanel(wx.Panel):
 		#complement or not
 		complementtext = wx.StaticText(self.feature_dlg, id=1004, label='')
 		self.complementbox = wx.CheckBox(self.feature_dlg, label="Complement?")
+		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)
 		complementtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
 		
 		
@@ -295,6 +286,14 @@ class MyPanel(wx.Panel):
 					self.qualifier_list.listview.Append([col0, col1])
 					self.qualifier_list.listview.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
 					self.qualifier_list.listview.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)					
+
+
+	def ComplementCheckboxOnSelect(self, event):
+		newcomplement = self.complementbox.GetValue()
+		print(newcomplement)
+		feature = self.get_selection()
+		genbank.gb.change_feature_complement(feature, newcomplement)
+		self.populate_feature_list()
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
@@ -309,15 +308,9 @@ class MyPanel(wx.Panel):
 	def OnDelete(self, event):
 		'''Delete selected feature'''
 		feature = self.get_selection()
-		featureID = feature['feature']
-		featuretype = feature['key']
-		
-		self.delete_feature(feature)
-		
-	def delete_feature(self, feature):
-		genbank.gb.removegbfeature(feature)
+		genbank.gb.remove_feature(feature)
 		self.populate_feature_list()
-
+	
 
 	def OnCopyFASTA(self, event):
 		pass
@@ -331,14 +324,17 @@ class MyPanel(wx.Panel):
 
 	## qualifiers ##
 	
-	def OnNewQualifier(self, event):
-		pass
+	def OnAddQualifier(self, event):
+		feature = self.get_selection()
+		qualifier = '/label=testing' #change this 
+		genbank.gb.add_qualifier(feature, qualifier)
+		self.populate_feature_list()
 	
-	def OnDeleteQualifier(self, event):
-		pass
-	
-	def OnApplyChanges(self, event):
-		pass
+	def OnRemoveQualifier(self, event):
+		feature = self.get_selection()
+		number = self.qualifier_list.listview.GetFocusedItem()
+		genbank.gb.remove_qualifier(feature, number)
+		self.populate_feature_list()
 
 
 ################# #################### ###############
@@ -347,51 +343,10 @@ class MyPanel(wx.Panel):
 		
 
 			
-
-#	def OnDelete(self, event):
-#		'''Delete selected feature'''
-#		feature = self.features_combobox.GetValue()
-#		self.remove_feature(feature)
-				
-	def OnCancel(self, event):
-		'''Cancel and do not save changes'''
-		self.feature_dlg.Destroy()
-	
-	def OnApply(self,event):
-		'''Apply changes'''
-		feature = self.features_combobox.GetValue()
-		featuretype = self.type_combobox.GetValue() #get type
-		featurelocation = self.location.Getvalue() #get location
-		complementornot = self.complementbox.GetValue() #get complement
-		
-		#now apply changes
-	
-	def OnOK(self, event):
-		'''Apply changes'''
-		self.feature_dlg.Destroy()
-		
-#		oldstart = self.featurefrom
-#		newlocation = self.location.GetValue()
-#		genbank.gb.gbfile['features'][0]['location'] = newlocation
-#		oldend = self.featureto
-#		newend = self.tonum.GetValue()
-#		self.Close()
 			
 
-#		if self.complementbox.GetValue() == True: MyFrame.genbank.gb.gbfile['features'][0]['complement'] = True
-#		else: MyFrame.genbank.gb.gbfile['features'][0]['complement'] = False
-			
 
-#		gbinstance.changegbfeaturepos(self.featurelabel, start, end, complementornot) #update any changes to pos and complement in gbinstance
-#
-#		if self.featurelabel != self.featureval.GetValue(): #if label changed, update label in gbinstance
-#			gbinstance.changegbfeatureid(self.featurelabel, self.featureval.GetValue())
-
-
-
-
-
-
+#featurelocation = self.location.Getvalue() #get location
 
 ##### main loop
 class MyApp(wx.App):
