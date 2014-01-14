@@ -344,7 +344,7 @@ Put Table here
 		
 		#update viewer
 		self.gbviewer.SetValue(genbank.gb.get_dna())
-		self.paint_features()
+		self.updateUI()
 		self.gbviewer.SetSelection(start, end)
 		
 	def Lowercase(self, evt):
@@ -355,7 +355,7 @@ Put Table here
 		
 		#update viewer
 		self.gbviewer.SetValue(genbank.gb.get_dna())
-		self.paint_features()
+		self.updateUI()
 		self.gbviewer.SetSelection(start, end)
 
 
@@ -379,7 +379,7 @@ Put Table here
 			
 			#realize changes
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.paint_features()
+			self.updateUI()
 			self.gbviewer.SetInsertionPoint(cutstart)
 
 
@@ -393,7 +393,7 @@ Put Table here
 			genbank.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
 
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.paint_features()
+			self.updateUI()
 			self.gbviewer.SetInsertionPoint(start)
 
 	def Cut(self, evt):
@@ -405,7 +405,7 @@ Put Table here
 			
 			#update viewer
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.paint_features()
+			self.updateUI()
 			self.gbviewer.SetInsertionPoint(cutstart)
 #			self.dna_output(genbank.gb.clipboard)
 			
@@ -419,7 +419,7 @@ Put Table here
 			
 			#update viewer
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.paint_features()
+			self.updateUI()
 			self.gbviewer.SetInsertionPoint(cutstart)	
 #			self.dna_output(genbank.gb.clipboard)
 
@@ -462,7 +462,7 @@ Put Table here
 
 			#update viwer
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.paint_features()
+			self.updateUI()
 			self.gbviewer.SetInsertionPoint(pastestart)
 		
 			#generate output
@@ -565,13 +565,18 @@ Put Table here
 
 
 	
-	def paint_features(self):
+	def updateUI(self):
 		'''For changing background color of text ranges'''
+		self.gbviewer.SetValue(genbank.gb.get_dna())		
+
 		self.remove_styling() #first remove old styles
+
+		
 		
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
 		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
+			print(entry)
 			featuretype, complement, start, finish = entry
 
 			self.get_feature_color(featuretype, complement)
@@ -702,6 +707,7 @@ Put Table here
 	def translate_output(self, protein, DNA, info):
 		'''Generate output in the output.panel'''
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
+		self.output.clear()
 		self.output.SetInsertionPointEnd()
 		self.output.write('%s | Translate %s ' % (tabtext, info), 'File')
 		self.output.write(('%d AA from %d bases, %d bases left untranslated' % (len(protein), len(DNA), len(DNA)%3))+'\n', 'Text')
@@ -803,7 +809,7 @@ Put Table here
 			file.write(str(foo[0])+"\n"+str(foo[1]))
 			file.close()
 		self.Destroy()
-		self.paint_features() #refresh everything
+		self.updateUI() #refresh everything
 
 	def update_statusbar(self, evt):
 		'''Updates statusbar'''

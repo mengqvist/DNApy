@@ -38,17 +38,17 @@ class FeatureView(wx.Panel):
 		
 		newfeature = wx.Button(self, 1, 'New Feature')
 		deletefeature = wx.Button(self, 2, 'Delete Feature')
-		copyfasta = wx.Button(self, 5, 'Copy FASTA')
-		copydna = wx.Button(self, 4, 'Copy DNA')
-		copytranslation = wx.Button(self, 5, 'Copy Translation')
+#		copyfasta = wx.Button(self, 5, 'Copy FASTA')
+#		copydna = wx.Button(self, 4, 'Copy DNA')
+#		copytranslation = wx.Button(self, 5, 'Copy Translation')
 		
 		
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(newfeature)
 		sizer.Add(deletefeature)
-		sizer.Add(copyfasta)
-		sizer.Add(copydna)
-		sizer.Add(copytranslation)
+#		sizer.Add(copyfasta)
+#		sizer.Add(copydna)
+#		sizer.Add(copytranslation)
 
 		
 		sizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -90,9 +90,9 @@ class MyPanel(wx.Panel):
 		#bind feature buttons
 		self.Bind(wx.EVT_BUTTON, self.OnNew, id=1)
 		self.Bind(wx.EVT_BUTTON, self.OnDelete, id=2)
-		self.Bind(wx.EVT_BUTTON, self.OnCopyFASTA, id=3)
-		self.Bind(wx.EVT_BUTTON, self.OnCopyDNA, id=4)
-		self.Bind(wx.EVT_BUTTON, self.OnCopyTranslation, id=5)
+#		self.Bind(wx.EVT_BUTTON, self.OnCopyFASTA, id=3)
+#		self.Bind(wx.EVT_BUTTON, self.OnCopyDNA, id=4)
+#		self.Bind(wx.EVT_BUTTON, self.OnCopyTranslation, id=5)
 
 		#bind qualifier buttions
 		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
@@ -215,12 +215,13 @@ class MyPanel(wx.Panel):
 
 	
 		
-	def populate_feature_list(self):
+	def updateUI(self):
 		'''Refreshes table from features stored in the genbank object'''
 		self.feature_list.listview.DeleteAllItems()
 		n = 0 #for feautrecolor
 		for entry in genbank.gb.gbfile['features']:
 			col0 = entry['qualifiers'][0].split('=')[1]
+	#		col0 = 'T7\terminator'
 			col1 = entry['key']
 			col2 = str(entry['location'])[1:-1]
 			if entry['complement'] == True:
@@ -275,10 +276,6 @@ class MyPanel(wx.Panel):
 
 		for entry in genbank.gb.gbfile['features']:
 			if entry['qualifiers'][0].split('=')[1] == feature['feature']:
-				#get color
-				self.get_feature_color(entry)
-				color = self.current_highlight_color
-					
 				for qualifier in entry['qualifiers']:
 					#set content
 					col0, col1 = qualifier.split('=')
@@ -290,26 +287,25 @@ class MyPanel(wx.Panel):
 
 	def ComplementCheckboxOnSelect(self, event):
 		newcomplement = self.complementbox.GetValue()
-		print(newcomplement)
 		feature = self.get_selection()
 		genbank.gb.change_feature_complement(feature, newcomplement)
-		self.populate_feature_list()
+		self.updateUI()
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
 		feature = self.get_selection()
 		genbank.gb.change_feature_type(feature, newkey)
-		self.populate_feature_list()
+		self.updateUI()
 
 	def OnNew(self, event):
 		genbank.gb.add_empty_feature()
-		self.populate_feature_list()
+		self.updateUI()
 		
 	def OnDelete(self, event):
 		'''Delete selected feature'''
 		feature = self.get_selection()
 		genbank.gb.remove_feature(feature)
-		self.populate_feature_list()
+		self.updateUI()
 	
 
 	def OnCopyFASTA(self, event):
@@ -328,13 +324,13 @@ class MyPanel(wx.Panel):
 		feature = self.get_selection()
 		qualifier = '/label=testing' #change this 
 		genbank.gb.add_qualifier(feature, qualifier)
-		self.populate_feature_list()
+		self.updateUI()
 	
 	def OnRemoveQualifier(self, event):
 		feature = self.get_selection()
 		number = self.qualifier_list.listview.GetFocusedItem()
 		genbank.gb.remove_qualifier(feature, number)
-		self.populate_feature_list()
+		self.updateUI()
 
 
 ################# #################### ###############

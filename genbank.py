@@ -78,42 +78,46 @@ class gbobject():
 		tempstr = ''
 		
 		if featurelist[-1] == '': del featurelist[-1] #last entry tends to be empty, if so, remove
-
+		
 		for line in range(1, len(featurelist)):
-			if ('..' in featurelist[line] and tempstr != '') == True or line+1 == len(featurelist):
+			if ('..' in featurelist[line] and tempstr != '') == True:
 				if tempstr[-1] == ',': #to protect against numberings that extend over several rows
 					tempstr += featurelist[line]
-				else:
 
-					templist = tempstr.split('  ')
-					templist[:] = [x for x in templist if x != ''] #remove empty entries
-				
-					for i in range(len(templist)): #remove single whitespace in front
-						if templist[i][0] == ' ':
-							templist[i] = templist[i][1:]
-				
-					#to deal with feature descriptions or amino acid sequences that break over several lines 
-					done = False
-					i = 2
-					while done != True:
-						listlen = len(templist)
-						if templist[i][0] != '/': 
-							templist[i-1] += templist[i]
-							del templist[i]
-							i = 1
-						if i >= listlen-1:
-							done = True
-						i += 1
-				
-				
-					featurelist2.append(templist)
-					tempstr = featurelist[line]
+				elif line+1 == len(featurelist):
+					tempstr += featurelist[line]
+
+
+				templist = tempstr.split('  ')
+				templist[:] = [x for x in templist if x != ''] #remove empty entries
+			
+				for i in range(len(templist)): #remove single whitespace in front
+					if templist[i][0] == ' ':
+						templist[i] = templist[i][1:]
+			
+				#to deal with feature descriptions or amino acid sequences that break over several lines 
+				done = False
+				i = 2
+				while done != True:
+					listlen = len(templist)
+					if templist[i][0] != '/': 
+						templist[i-1] += templist[i]
+						del templist[i]
+						i = 1
+					if i >= listlen-1:
+						done = True
+					i += 1
+			
+			
+				featurelist2.append(templist)
+				tempstr = featurelist[line]
 				
 			elif '..' in featurelist[line] and tempstr == '': #first feature
 				tempstr = featurelist[line]
+
 			else:						#in-between features
 				tempstr += featurelist[line]
-
+		
 
 
 		#now arrange features into the correct data structure
@@ -257,7 +261,7 @@ class gbobject():
 		"""Function removes a feature from self.allgbfeatures based on its ID (which is the first qualifier)"""
 		position = self.identify_feature(feature)
 		
-		if position == False:
+		if position is False:
 			print('feature identify error')
 		else:
 			del self.gbfile['features'][position]

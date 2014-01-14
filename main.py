@@ -40,13 +40,14 @@ from wxPython.lib.colourselect import *
 
 import pyperclip
 
-import output
+
 import dna
 import genbank
 
+#GUI components
 import dnaeditor
 import featureeditor
-
+import genbankfileview
 
 
 #TODO
@@ -131,7 +132,7 @@ class MyFrame(wx.Frame):
 
 		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
 		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "Feature")
+		self.DNApy.AddPage(self.panel[number], "Features")
 		self.panel[number].SetSizer(sizer_1)
 
 
@@ -145,8 +146,7 @@ class MyFrame(wx.Frame):
 		number=len(self.tab_list)
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
-
-		self.genbankview = output.create(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
+		self.genbankview = genbankfileview.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
 		self.genbankview.SetEditable(False)
 
 		self.tab_list.append(self.genbankview)
@@ -166,7 +166,7 @@ class MyFrame(wx.Frame):
 
 	def open_file(self, evt):
 		'''Function for opening file'''
-		self.dir_to_open = '/home/martin/Python_files/DNApy/'
+		self.dir_to_open = default_filepath
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
 		dlg.ShowModal()
 		fileName = dlg.GetFilename()
@@ -180,16 +180,10 @@ class MyFrame(wx.Frame):
 		if extension == 'gb':
 			#self.gb=genbank.gbobject() #make new gb in panel
 			genbank.gb.readgb(all_path) #read the file
-
-			#update DNA
-			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
-			self.dnaview.paint_features() #update features	
-
-			#update features
-			self.featureview.populate_feature_list()	
-
-			#update genbank
-			self.genbankview.SetValue(genbank.gb.make_gbstring())		
+			try:
+				self.page_change("")
+			except:
+				pass		
 
 		else:
 			print("error, not a gb file")		
@@ -199,8 +193,6 @@ class MyFrame(wx.Frame):
 		
 #		wx.EVT_KEY_DOWN(self, self.OnKeyPress)
 	
-	def save_all(self, evt):
-		pass
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
@@ -209,7 +201,7 @@ class MyFrame(wx.Frame):
 
 		genbank.gb.write_file(genbank.gb.get_filepath())
 		
-#			self.OnUpdateUI(1) #update statusbar
+
 #		except:
 #			self.save_as_file("")
 		
@@ -262,10 +254,13 @@ class MyFrame(wx.Frame):
 
 	def page_change(self, ev):
 		'''When changing between tabs'''
-		print('pagechange')
 		self.Refresh()
 		self.current_tab=self.DNApy.GetSelection()
-		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
+#		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
+		try:
+			self.tab_list[self.current_tab].updateUI()
+		except:
+			pass
 
 ######### Toolbar and Menu ############
 
@@ -386,18 +381,18 @@ class MyFrame(wx.Frame):
 		wx.EVT_MENU(self, 4, self.save_as_file)
 
 		#save all
-		fileitem.Append(5, "Save all", "Save all open tabs")
-		wx.EVT_MENU(self, 5, self.save_all)
-		fileitem.AppendSeparator()
+#		fileitem.Append(5, "Save all", "Save all open tabs")
+#		wx.EVT_MENU(self, 5, self.save_all)
+#		fileitem.AppendSeparator()
 
 		#close single
 		fileitem.Append(5, "Close", "Close current document")
 		wx.EVT_MENU(self, 5, self.dnaview.close_single)
 
 		#close all
-		fileitem.Append(6, "Close all", "Close all tabs")
-		wx.EVT_MENU(self, 6, self.dnaview.close_all)
-		fileitem.AppendSeparator()
+#		fileitem.Append(6, "Close all", "Close all tabs")
+#		wx.EVT_MENU(self, 6, self.dnaview.close_all)
+#		fileitem.AppendSeparator()
 
 		#quit
 		fileitem.Append(7, "Exit", "Exit program")
@@ -522,7 +517,7 @@ class MyFrame(wx.Frame):
 ##### main loop
 class MyApp(wx.App):
     def OnInit(self):
-        frame = MyFrame(None, -1, "DNApy.py")
+        frame = MyFrame(None, -1, "DNApy")
         frame.Show(True)
         self.SetTopWindow(frame)
         return True

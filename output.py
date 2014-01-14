@@ -43,6 +43,9 @@ class create(rt.RichTextCtrl):
 		self.SetFont(font)
 
 
+	def clear(self):
+		'''Remove any text already in the Output Panel'''
+		self.Clear()
 
 	def write(self, string, stringtype):
 		'''General method for printing to the Output Panel'''
