@@ -103,6 +103,7 @@ class MyFrame(wx.Frame):
 		
 		self.Centre()	
 
+##### Generate tabs and define content #####
 
 	def generate_dnaview_tab(self, evt):
 		number=len(self.tab_list)
@@ -181,6 +182,7 @@ class MyFrame(wx.Frame):
 			#self.gb=genbank.gbobject() #make new gb in panel
 			genbank.gb.readgb(all_path) #read the file
 			try:
+				self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 				self.page_change("")
 			except:
 				pass		
@@ -188,7 +190,7 @@ class MyFrame(wx.Frame):
 		else:
 			print("error, not a gb file")		
 
-#		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 #		wx.EVT_CLOSE(self, self.OnCloseWindow)
 		
 #		wx.EVT_KEY_DOWN(self, self.OnKeyPress)
@@ -261,6 +263,52 @@ class MyFrame(wx.Frame):
 			self.tab_list[self.current_tab].updateUI()
 		except:
 			pass
+
+	def update_statusbar(self, evt):
+		'''Updates statusbar'''
+		#this stuff is for the statusbar
+#		if len(self.tab_list) == 0:
+#			string = 'File unmodified'
+#		elif self.tab_list[self.current_tab].modify==0:
+#			string = 'File unmodified'
+#		elif self.tab_list[self.current_tab].modify==1:
+#			string = 'File not yet saved'
+		
+		mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+		
+		
+		try:
+			Position = str(mposition+1)
+		except:
+			Position = ""
+		
+		try:
+			Feature = str(Feature)
+		except:
+			Feature = ""
+		
+		try:		
+			SelectionFrom, SelectionTo = (str(self.dnaview.gbviewer.GetSelection()[0]+1), str(self.dnaview.gbviewer.GetSelection()[1]))
+			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
+				SelectionFrom, SelectionTo = ("0", "0")
+		except:
+			SelectionFrom, SelectionTo = ("0", "0")
+		try:	
+			Length = str(self.dnaview.gbviewer.GetSelection()[1] - self.dnaview.gbviewer.GetSelection()[0])
+		except:
+			Length = ""
+
+
+		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
+		
+		if float(Length)/3 == 1: #if one triplet is selected, show the AA
+			AA = ': %s' % dna.translate(self.dnaview.gbviewer.GetStringSelection())
+		else:
+			AA = ''
+			
+		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+
+
 
 ######### Toolbar and Menu ############
 

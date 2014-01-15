@@ -5,41 +5,42 @@ default_filepath = '/home/martin/Work/4_LA/Vectors/'
 #here
 
 ## Available colors ##
+#rv color is same as fw, just lighter
 red = {'fw':'#bb553d', 'rv':'#d28a5f'}
 orange = {'fw':'#e29425', 'rv':'#f5c27a'}
 yellow = {'fw':'#ffe349', 'rv':'#fdf388'}
 green = {'fw':'#44a153', 'rv':'#b2d562'}
 cyan = {'fw':'#4c9dab', 'rv':'#7acccb'}
 blue = {'fw':'#5683bf', 'rv':'#9fbfdc'}
-purple = {'fw':'#808080', 'rv':'#907bbe'}
+purple = {'fw':'#5f5799', 'rv':'#907bbe'}
 magenta = {'fw':'#a14673', 'rv':'#c57fad'}
 burgundy = {'fw':'#955050', 'rv':'#b58d8d'}
 grey = {'fw':'#848484', 'rv':'#c2c2c2'}
 
 ## Color assignment to features ##
+#all features which are not given a specified color will be grey
+
 ## DNA
 promoter = cyan
-CAAT_signal = purple
-TATA_signal = purple
-#-35_signal = purple
-#-10_signal = purple
+CAAT_signal = burgundy
+TATA_signal = burgundy
+#-35_signal = burgundy
+#-10_signal = burgundy
 RBS = burgundy
+
 gene = orange
 intron = orange
 exon = green
 CDS = green
 terminator = red
 
-## RNA
-mRNA = yellow
-#3'UTR = yellow
-#5'UTR = yellow
-
 ## Other
 misc_feature = grey
 primer = magenta
+rep_origin = blue
+modified_base = yellow
+variation = yellow
+protein_bind = purple
 
-#blue
-#yellow
-#burgundy
+
 

@@ -74,6 +74,7 @@ class gbobject():
 		
 		featurelist2 = []
 		featurelist = features.split('\n')
+#		print(featurelist)
 		templist = []
 		tempstr = ''
 		
@@ -89,9 +90,15 @@ class gbobject():
 
 
 				templist = tempstr.split('  ')
+
 				templist[:] = [x for x in templist if x != ''] #remove empty entries
-			
-				for i in range(len(templist)): #remove single whitespace in front
+				
+				#to remove any \r and \n newline characters at the end
+				for i in range(len(templist)): 
+					templist[i] = templist[i].rstrip('\r\n')
+
+				#remove single whitespace in front
+				for i in range(len(templist)): 
 					if templist[i][0] == ' ':
 						templist[i] = templist[i][1:]
 			

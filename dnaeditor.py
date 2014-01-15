@@ -407,6 +407,7 @@ Put Table here
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(cutstart)
+			self.gbviewer.ShowPosition(cutstart) 
 #			self.dna_output(genbank.gb.clipboard)
 			
 	def Cut_RevComp(self, evt):
@@ -567,7 +568,7 @@ Put Table here
 	
 	def updateUI(self):
 		'''For changing background color of text ranges'''
-		self.gbviewer.SetValue(genbank.gb.get_dna())		
+				
 
 		self.remove_styling() #first remove old styles
 
@@ -576,7 +577,6 @@ Put Table here
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
 		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
-			print(entry)
 			featuretype, complement, start, finish = entry
 
 			self.get_feature_color(featuretype, complement)
@@ -810,50 +810,6 @@ Put Table here
 			file.close()
 		self.Destroy()
 		self.updateUI() #refresh everything
-
-	def update_statusbar(self, evt):
-		'''Updates statusbar'''
-		#this stuff is for the statusbar
-#		if len(self.tab_list) == 0:
-#			string = 'File unmodified'
-#		elif self.tab_list[self.current_tab].modify==0:
-#			string = 'File unmodified'
-#		elif self.tab_list[self.current_tab].modify==1:
-#			string = 'File not yet saved'
-		
-		mposition, Feature = self.mouse_position("") #get mouse position
-		
-		
-		try:
-			Position = str(mposition+1)
-		except:
-			Position = ""
-		
-		try:
-			Feature = str(Feature)
-		except:
-			Feature = ""
-		
-		try:		
-			SelectionFrom, SelectionTo = (str(self.gbviewer.GetSelection()[0]+1), str(self.gbviewer.GetSelection()[1]))
-			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-				SelectionFrom, SelectionTo = ("0", "0")
-		except:
-			SelectionFrom, SelectionTo = ("0", "0")
-		try:	
-			Length = str(self.gbviewer.GetSelection()[1] - self.gbviewer.GetSelection()[0])
-		except:
-			Length = ""
-
-
-		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-		
-		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-			AA = ': %s' % dna.translate(self.gbviewer.GetStringSelection())
-		else:
-			AA = ''
-			
-		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
 
 		
 	def mouse_position(self, event):
