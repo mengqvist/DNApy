@@ -273,41 +273,46 @@ class MyFrame(wx.Frame):
 #			string = 'File unmodified'
 #		elif self.tab_list[self.current_tab].modify==1:
 #			string = 'File not yet saved'
-		
-		mposition, Feature = self.dnaview.mouse_position("") #get mouse position
-		
-		
-		try:
-			Position = str(mposition+1)
-		except:
-			Position = ""
-		
-		try:
-			Feature = str(Feature)
-		except:
-			Feature = ""
-		
-		try:		
-			SelectionFrom, SelectionTo = (str(self.dnaview.gbviewer.GetSelection()[0]+1), str(self.dnaview.gbviewer.GetSelection()[1]))
-			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-				SelectionFrom, SelectionTo = ("0", "0")
-		except:
-			SelectionFrom, SelectionTo = ("0", "0")
-		try:	
-			Length = str(self.dnaview.gbviewer.GetSelection()[1] - self.dnaview.gbviewer.GetSelection()[0])
-		except:
-			Length = ""
-
-
-		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-		
-		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-			AA = ': %s' % dna.translate(self.dnaview.gbviewer.GetStringSelection())
-		else:
-			AA = ''
+		self.current_tab=self.DNApy.GetSelection()
+		if self.current_tab == 0: #if dna editor is active
 			
-		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+			mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+		
+		
+			try:
+				Position = str(mposition+1)
+			except:
+				Position = ""
+		
+			try:
+				Feature = str(Feature)
+			except:
+				Feature = ""
+		
+			try:		
+				SelectionFrom, SelectionTo = (str(self.dnaview.gbviewer.GetSelection()[0]+1), str(self.dnaview.gbviewer.GetSelection()[1]))
+				if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
+					SelectionFrom, SelectionTo = ("0", "0")
+			except:
+				SelectionFrom, SelectionTo = ("0", "0")
+			try:	
+				Length = str(self.dnaview.gbviewer.GetSelection()[1] - self.dnaview.gbviewer.GetSelection()[0])
+			except:
+				Length = ""
 
+
+			self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
+		
+			if float(Length)/3 == 1: #if one triplet is selected, show the AA
+				AA = ': %s' % dna.translate(self.dnaview.gbviewer.GetStringSelection())
+			else:
+				AA = ''
+			
+			self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+
+		else:
+			self.SetStatusText('', 0)
+			self.SetStatusText('', 1)		
 
 
 ######### Toolbar and Menu ############
