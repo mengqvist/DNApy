@@ -190,6 +190,7 @@ class gbobject():
 		self.gbfile['filepath'] = filepath
 		
 	def get_location(self, entry):
+		'''Returns start and end location for an entry of a location list'''
 		tempentry = ''
 		for n in range(len(entry)):
 			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
@@ -293,6 +294,7 @@ class gbobject():
 
 
 	def change_feature_type(self, feature, newkey):
+		"Changes feature type of the feature passed to method'''
 		index = self.identify_feature(feature)
 		if index is False:
 			print('Error, no index found')
@@ -300,6 +302,7 @@ class gbobject():
 			self.gbfile['features'][index]['key'] = newkey
 
 	def change_feature_complement(self, feature, complement):
+		'''Changes whether a feature is on leading or complement DNA strand'''
 		index = self.identify_feature(feature)
 		if index is False:
 			print('Error, no index found')
@@ -609,6 +612,7 @@ class gbobject():
 
 
 	def make_gbstring(self):
+		'''Prepare data stored in gbfile into one string. Used for saving and for displayig gbfile'''
 		string = ''
 		string += (self.gbfile['header']+'\n')
 		string += ('FEATURES             Location/Qualifiers\n')
