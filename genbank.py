@@ -294,7 +294,7 @@ class gbobject():
 
 
 	def change_feature_type(self, feature, newkey):
-		"Changes feature type of the feature passed to method'''
+		'''Changes feature type of the feature passed to method'''
 		index = self.identify_feature(feature)
 		if index is False:
 			print('Error, no index found')
