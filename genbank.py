@@ -189,6 +189,9 @@ class gbobject():
 	
 		self.gbfile['filepath'] = filepath
 		
+		self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
+	
+
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
 		tempentry = ''
@@ -196,9 +199,6 @@ class gbobject():
 			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
-
-
-			
 
 
 	def reverse_complement_clipboard(self):	
@@ -241,6 +241,7 @@ class gbobject():
 				if self.gbfile['features'][i]['complement'] == feature['complement']: #it is == here
 					return i
 			return False
+
 
 	def paste_feature(self, feature, insertlocation):
 		'''Paste feature from clipboard into an existing genbankfile'''
@@ -291,6 +292,30 @@ class gbobject():
 			print('Error, no index found')
 		else:
 			del self.gbfile['features'][index]['qualifiers'][number]
+
+	
+	def ApEandVNTI_clutter(self):
+		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
+		for i in range(len(self.gbfile['features'])):
+			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+					return True
+		return False
+
+
+	def clean_clutter(self):
+		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
+		deletionlist = []
+		for i in range(len(self.gbfile['features'])):
+			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+					deletionlist.append((i, n))
+
+		#remove qualifiers based on deletionlist
+		while len(deletionlist)>0:
+			index, number = deletionlist[-1]
+			del self.gbfile['features'][index]['qualifiers'][number]
+			del deletionlist[-1]
 
 
 	def change_feature_type(self, feature, newkey):

@@ -51,8 +51,13 @@ import genbankfileview
 
 
 #TODO
-#make each window refresh when it is changed into
 #test which functions are broken
+#add name of open file to top
+#add vector view
+#add pretty dna view
+#improve the feature editor
+#make rightklick menus
+
 
 files={}   #dictionary with all configuration files
 
@@ -179,13 +184,16 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension == 'gb':
-			#self.gb=genbank.gbobject() #make new gb in panel
 			genbank.gb.readgb(all_path) #read the file
-			try:
-				self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
-				self.page_change("")
-			except:
-				pass		
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+			
+			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
+				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
+				result = dlg.ShowModal()
+				dlg.Destroy()
+				if result == wx.ID_YES: #if yes, remove clutter
+					genbank.gb.clean_clutter()
+			self.page_change("")
 
 		else:
 			print("error, not a gb file")		
@@ -194,6 +202,7 @@ class MyFrame(wx.Frame):
 #		wx.EVT_CLOSE(self, self.OnCloseWindow)
 		
 #		wx.EVT_KEY_DOWN(self, self.OnKeyPress)
+
 	
 	
 	def save_file(self, evt):
