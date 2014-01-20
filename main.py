@@ -52,10 +52,9 @@ import genbankfileview
 
 #TODO
 #test which functions are broken
-#add name of open file to top
 #add vector view
 #add pretty dna view
-#improve the feature editor
+#improve the feature editor (especially the "location" field)
 #make rightklick menus
 
 
@@ -186,7 +185,7 @@ class MyFrame(wx.Frame):
 		if extension == 'gb':
 			genbank.gb.readgb(all_path) #read the file
 			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
-			
+			self.SetTitle(fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
 				result = dlg.ShowModal()
