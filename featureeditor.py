@@ -166,6 +166,7 @@ class MyPanel(wx.Panel):
 		locationtext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Location:')
 		locationtext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
 		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(300,-1))
+		self.location.Bind(wx.EVT_TEXT, self.LocationFieldOnText)
 		locationtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
 		
 		#complement or not
@@ -268,7 +269,7 @@ class MyPanel(wx.Panel):
 		#update fields
 		self.featuretext.SetLabel(feature['feature'])
 		self.type_combobox.SetStringSelection(feature['key']) #update type
-		self.location.SetValue(str(feature['location'])) #update location
+		self.location.ChangeValue(str(feature['location'])) #update location
 		self.complementbox.SetValue(feature['complement']) #update complement
 		
 		#update qualifier field
@@ -295,6 +296,14 @@ class MyPanel(wx.Panel):
 		newkey = self.type_combobox.GetValue()
 		feature = self.get_selection()
 		genbank.gb.change_feature_type(feature, newkey)
+		self.updateUI()
+
+	def LocationFieldOnText(self, event): # fix  this! maybe use a different event to call it...
+		newlocation = self.location.GetLineText(0) #get location
+		print(type(newlocation))
+		print(newlocation)
+		feature = self.get_selection()
+		genbank.gb.set_location(feature, newlocation)
 		self.updateUI()
 
 	def OnNew(self, event):
@@ -342,7 +351,7 @@ class MyPanel(wx.Panel):
 			
 
 
-#featurelocation = self.location.Getvalue() #get location
+
 
 ##### main loop
 class MyApp(wx.App):

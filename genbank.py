@@ -199,7 +199,10 @@ class gbobject():
 			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
-
+	
+	def set_location(self, feature, newlocation):
+		index = self.identify_feature(feature)
+		self.gbfile['features'][index]['location'] = newlocation
 
 	def reverse_complement_clipboard(self):	
 		'''Reverse-complements the DNA and all features in clipboard'''
@@ -310,6 +313,8 @@ class gbobject():
 			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
 				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
 					deletionlist.append((i, n))
+#				elif ''\'' in self.gbfile['features'][i]['qualifiers'][n]:
+#					self.gbfile['features'][i]['qualifiers'][n] = self.gbfile['features'][i]['qualifiers'][n].replace(''\'', ' ')
 
 		#remove qualifiers based on deletionlist
 		while len(deletionlist)>0:

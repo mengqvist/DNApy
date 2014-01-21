@@ -54,6 +54,7 @@ import genbankfileview
 #test which functions are broken
 #add vector view
 #add pretty dna view
+#make selection stick across tabs
 #improve the feature editor (especially the "location" field)
 #make rightklick menus
 
