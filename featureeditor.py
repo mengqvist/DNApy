@@ -38,16 +38,16 @@ class FeatureView(wx.Panel):
 		
 		newfeature = wx.Button(self, 1, 'New Feature')
 		deletefeature = wx.Button(self, 2, 'Delete Feature')
-#		copyfasta = wx.Button(self, 5, 'Copy FASTA')
-#		copydna = wx.Button(self, 4, 'Copy DNA')
+		moveup = wx.Button(self, 4, 'Move Up')
+		movedown = wx.Button(self, 5, 'Move Down')
 #		copytranslation = wx.Button(self, 5, 'Copy Translation')
 		
 		
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(newfeature)
 		sizer.Add(deletefeature)
-#		sizer.Add(copyfasta)
-#		sizer.Add(copydna)
+		sizer.Add(moveup)
+		sizer.Add(movedown)
 #		sizer.Add(copytranslation)
 
 		
@@ -90,8 +90,8 @@ class MyPanel(wx.Panel):
 		#bind feature buttons
 		self.Bind(wx.EVT_BUTTON, self.OnNew, id=1)
 		self.Bind(wx.EVT_BUTTON, self.OnDelete, id=2)
-#		self.Bind(wx.EVT_BUTTON, self.OnCopyFASTA, id=3)
-#		self.Bind(wx.EVT_BUTTON, self.OnCopyDNA, id=4)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveFeatureUp, id=4)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveFeatureDown, id=5)
 #		self.Bind(wx.EVT_BUTTON, self.OnCopyTranslation, id=5)
 
 		#bind qualifier buttions
@@ -315,7 +315,18 @@ class MyPanel(wx.Panel):
 		feature = self.get_selection()
 		genbank.gb.remove_feature(feature)
 		self.updateUI()
-	
+
+	def OnMoveFeatureUp(self, event):
+		'''Move feature up one step'''
+		feature = self.get_selection()
+		genbank.gb.move_feature(feature, 'u')	
+		self.updateUI()
+
+	def OnMoveFeatureDown(self, event):
+		'''Move feature up down step'''
+		feature = self.get_selection()
+		genbank.gb.move_feature(feature, 'd')
+		self.updateUI()	
 
 	def OnCopyFASTA(self, event):
 		pass

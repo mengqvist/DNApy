@@ -279,6 +279,16 @@ class gbobject():
 			del self.gbfile['features'][position]
 
 
+	def move_feature(self, feature, upordown):
+		'''Moves a feature one step up or down the list (up defined as closer to the beginning)'''
+		index = self.identify_feature(feature)
+		if upordown == 'u' and index != 0:
+			self.gbfile['features'][index-1], self.gbfile['features'][index] = self.gbfile['features'][index], self.gbfile['features'][index-1]
+
+		elif upordown == 'd' and index != len(self.gbfile['features'])-1:
+			self.gbfile['features'][index+1], self.gbfile['features'][index] = self.gbfile['features'][index], self.gbfile['features'][index+1]
+
+
 	def add_qualifier(self, feature, newqualifier):
 		'''Adds qualifier tag to existing feature'''
 		index = self.identify_feature(feature)
