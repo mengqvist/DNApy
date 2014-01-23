@@ -306,7 +306,20 @@ class gbobject():
 		else:
 			del self.gbfile['features'][index]['qualifiers'][number]
 
-	
+
+	def move_qualifier(self, feature, number, upordown):
+		'''Moves a qualifier one step up or down the list (up defined as closer to the beginning)'''
+		index = self.identify_feature(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			if upordown == 'u' and number != 0:
+				self.gbfile['features'][index]['qualifiers'][number-1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number-1]
+
+			elif upordown == 'd' and number != len(self.gbfile['features'][index]['qualifiers'])-1:
+				self.gbfile['features'][index]['qualifiers'][number+1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number+1]
+
+
 	def ApEandVNTI_clutter(self):
 		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
 		for i in range(len(self.gbfile['features'])):
@@ -341,6 +354,7 @@ class gbobject():
 		else:
 			self.gbfile['features'][index]['key'] = newkey
 
+
 	def change_feature_complement(self, feature, complement):
 		'''Changes whether a feature is on leading or complement DNA strand'''
 		index = self.identify_feature(feature)
@@ -348,6 +362,7 @@ class gbobject():
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['complement'] = complement 
+
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
 		"""Function changes the ID for a certain feature in self.allgbfeatures"""

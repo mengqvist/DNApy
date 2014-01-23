@@ -69,10 +69,14 @@ class QualifierView(wx.Panel):
 		
 		addqual = wx.Button(self, 7, 'Add Qualifier')
 		deletequal = wx.Button(self, 8, 'Remove Qualifier')
-		
+		qualup = wx.Button(self, 9, 'Move Up')
+		qualdown = wx.Button(self, 10, 'Move Down')		
+
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(addqual)
 		sizer.Add(deletequal)
+		sizer.Add(qualup)
+		sizer.Add(qualdown)
 		
 		sizer2 = wx.BoxSizer(wx.VERTICAL)
 		sizer2.Add(self.listview, 3, wx.EXPAND)
@@ -97,8 +101,8 @@ class MyPanel(wx.Panel):
 		#bind qualifier buttions
 		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
 		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
-
-
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
 		
 		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
 		splitter2 = wx.SplitterWindow(splitter1, -1, style=wx.SP_3D)
@@ -352,6 +356,19 @@ class MyPanel(wx.Panel):
 		genbank.gb.remove_qualifier(feature, number)
 		self.updateUI()
 
+	def OnMoveQualifierUp(self, event):
+		feature = self.get_selection()
+		number = self.qualifier_list.listview.GetFocusedItem()
+		genbank.gb.move_qualifier(feature, number, 'u')
+		self.updateUI()
+		self.qualifier_list.listview.SetItemState(number+1, True, wx.LIST_STATE_SELECTED)
+
+	def OnMoveQualifierDown(self, event):
+		feature = self.get_selection()
+		number = self.qualifier_list.listview.GetFocusedItem()
+		genbank.gb.move_qualifier(feature, number, 'd')
+		self.updateUI()
+		self.qualifier_list.listview.SetItemState(number-1, True, wx.LIST_STATE_SELECTED)
 
 ################# #################### ###############
 
