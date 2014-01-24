@@ -311,26 +311,58 @@ class MyPanel(wx.Panel):
 		self.updateUI()
 
 	def OnNew(self, event):
+		'''Make new feature'''
+		#make feature and update interface
 		genbank.gb.add_empty_feature()
 		self.updateUI()
+
+		number = self.feature_list.listview.GetItemCount()-1
+		self.update_feature_selection(number)
 		
+
 	def OnDelete(self, event):
 		'''Delete selected feature'''
+		#identify feature, remove it and update interface
 		feature = self.get_selection()
+		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.remove_feature(feature)
 		self.updateUI()
+	
+		#set highlight, focus and selection
+		if number == self.feature_list.listview.GetItemCount():
+			number = number-1
+		self.update_feature_selection(number)
+
 
 	def OnMoveFeatureUp(self, event):
 		'''Move feature up one step'''
 		feature = self.get_selection()
+		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'u')	
 		self.updateUI()
+		if number != 0:
+			number = number-1
+		self.update_feature_selection(number)
+		
 
 	def OnMoveFeatureDown(self, event):
 		'''Move feature up down step'''
 		feature = self.get_selection()
+		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'd')
-		self.updateUI()	
+		self.updateUI()
+	
+		if number != self.feature_list.listview.GetItemCount()-1:
+			number = number+1
+		self.update_feature_selection(number)
+
+
+	def update_feature_selection(self, number):
+		'''Updates which feature is selected'''
+		self.feature_list.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
+		self.feature_list.listview.Select(number, True) #to select it
+		self.feature_list.listview.Focus(number) #to focus it
+
 
 	def OnCopyFASTA(self, event):
 		pass
@@ -346,29 +378,58 @@ class MyPanel(wx.Panel):
 	
 	def OnAddQualifier(self, event):
 		feature = self.get_selection()
+		featurenumber = self.feature_list.listview.GetFirstSelected()
 		qualifier = '/label=testing' #change this 
 		genbank.gb.add_qualifier(feature, qualifier)
 		self.updateUI()
+
+		number = self.qualifier_list.listview.GetItemCount()-1
+		self.update_qualifier_selection(featurenumber, number)
 	
+
 	def OnRemoveQualifier(self, event):
 		feature = self.get_selection()
-		number = self.qualifier_list.listview.GetFocusedItem()
-		genbank.gb.remove_qualifier(feature, number)
-		self.updateUI()
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		number = self.qualifier_list.listview.GetFirstSelected()
+		if self.qualifier_list.listview.GetItemCount() != 1: #don't delete last qualifier
+			genbank.gb.remove_qualifier(feature, number)
+			self.updateUI()
+
+			#set highlight, focus and selection
+			if number == self.qualifier_list.listview.GetItemCount():
+				number = number-1
+			self.update_qualifier_selection(featurenumber, number)
+
 
 	def OnMoveQualifierUp(self, event):
 		feature = self.get_selection()
-		number = self.qualifier_list.listview.GetFocusedItem()
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		number = self.qualifier_list.listview.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'u')
 		self.updateUI()
-		self.qualifier_list.listview.SetItemState(number+1, True, wx.LIST_STATE_SELECTED)
+		if number != 0:
+			number = number-1
+		self.update_qualifier_selection(featurenumber, number)	
+
 
 	def OnMoveQualifierDown(self, event):
 		feature = self.get_selection()
-		number = self.qualifier_list.listview.GetFocusedItem()
+		number = self.qualifier_list.listview.GetFirstSelected()
+		featurenumber = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'd')
 		self.updateUI()
-		self.qualifier_list.listview.SetItemState(number-1, True, wx.LIST_STATE_SELECTED)
+		if number != self.qualifier_list.listview.GetItemCount()-1:
+			number = number+1
+		self.update_qualifier_selection(featurenumber, number)
+
+
+	def update_qualifier_selection(self, featurenumber, number):
+		'''Updates which feature is selected'''
+		self.update_feature_selection(featurenumber) #make sure the right feature is selected
+		self.qualifier_list.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
+		self.qualifier_list.listview.Select(number, True) #to select it
+		self.qualifier_list.listview.Focus(number) #to focus it
+
 
 ################# #################### ###############
 
