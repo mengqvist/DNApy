@@ -97,25 +97,31 @@ class MyPanel(wx.Panel):
 #		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
 
 		#create dna view panel
-		self.gbviewer = output.create(splitter, style=wx.VSCROLL|wx.HSCROLL); #create DNA window
+		self.gbviewer = output.create(self, style=wx.VSCROLL|wx.HSCROLL); #create DNA window
 		self.gbviewer.SetEditable(False)	
 		
 		#create output
-		self.output = output.create(splitter, style=wx.VSCROLL|wx.HSCROLL); #create output window
+#		self.output = output.create(splitter, style=wx.VSCROLL|wx.HSCROLL); #create output window
 
 			
-		splitter.SplitHorizontally(self.gbviewer, self.output, sashPosition=500)
+#		splitter.SplitHorizontally(self.gbviewer, self.output, sashPosition=500)
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
 #		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
 #		sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
-		sizer.Add(splitter, -1, wx.EXPAND)
+#		sizer.Add(splitter, -1, wx.EXPAND)
+		sizer.Add(self.gbviewer, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
 
 
 ##########################
+	def output(self, string):
+		'''Popup output window'''
+		
+
+
 	def changeme(self):
 		##### Toolbar 2 #####
 		
