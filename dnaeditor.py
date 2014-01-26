@@ -99,12 +99,8 @@ class MyPanel(wx.Panel):
 		#create dna view panel
 		self.gbviewer = output.create(self, style=wx.VSCROLL|wx.HSCROLL); #create DNA window
 		self.gbviewer.SetEditable(False)	
-		
-		#create output
-#		self.output = output.create(splitter, style=wx.VSCROLL|wx.HSCROLL); #create output window
 
-			
-#		splitter.SplitHorizontally(self.gbviewer, self.output, sashPosition=500)
+
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
 #		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
@@ -117,9 +113,11 @@ class MyPanel(wx.Panel):
 
 
 ##########################
-	def output(self, string):
-		'''Popup output window'''
-		
+	def make_outputpopup(self):
+		'''Creates a popup window in which output can be printed'''
+		self.outputframe = wx.Frame(None, title="Output Panel") # creation of a Frame with a title
+		self.output = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
+
 
 
 	def changeme(self):
@@ -195,9 +193,9 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 Get source code at: https://github.com/0b0bby0/DNApy
 
 '''
-		self.output.SetInsertionPointEnd()
+		self.make_outputpopup()		
 		self.output.write(string+'\n', 'Text')
-		self.output.ShowPosition(self.output.GetLastPosition()) 
+		self.outputframe.Show()
 		
 	def IUPAC_codes(self, event):
 		'''Prints info about the IUPAC codes for DNA and amino acids'''
@@ -242,16 +240,21 @@ V 			Val 			Valine
 W 			Trp 			Tryptophan
 Y 			Tyr 			Tyrosine
 '''
-		self.output.write(string+'\n', 'Text')
 
-	
+		self.make_outputpopup()		
+		self.output.write(string+'\n', 'Text')
+		self.outputframe.Show()
+
+
 	
 	def codon_table(self, event):
 		'''Prints the standard codon table for translating DNA to protein'''
 		string = '''
 Put Table here
 '''
+		self.make_outputpopup()	
 		self.output.write(string+'\n', 'Text')
+		self.outputframe.Show()
  
 
 
@@ -259,8 +262,7 @@ Put Table here
 
 	def dna_output(self, featurelist):
 		'''Prints output to the output panel'''
-
-		#generate output
+		self.make_outputpopup()	
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
 		DNA = featurelist[0]
 		self.output.write('%s | DNA in clipboard, %d bp' % (tabtext, len(DNA))+'\n', 'File')
@@ -271,10 +273,7 @@ Put Table here
 				feature = featurelist[i]
 				self.output.write(('>%s "%s", ' % (feature['key'], feature['qualifiers'][0].split('=')[1])), 'Text')
 			self.output.write('\n', 'Text')
-		self.output.ShowPosition(self.output.GetLastPosition()) 
-		
-
-
+		self.outputframe.Show()
 
 
 	def close_single(self, evt):
@@ -389,8 +388,6 @@ Put Table here
 			self.gbviewer.SetInsertionPoint(cutstart)
 
 
-
-
 	def delete_selection(self): #done
 		'''Deletes a selection and updates dna and features'''
 		start, end = self.gbviewer.GetSelection()
@@ -401,6 +398,7 @@ Put Table here
 			self.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(start)
+
 
 	def Cut(self, evt):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
@@ -415,6 +413,7 @@ Put Table here
 			self.gbviewer.SetInsertionPoint(cutstart)
 			self.gbviewer.ShowPosition(cutstart) 
 #			self.dna_output(genbank.gb.clipboard)
+			
 			
 	def Cut_RevComp(self, evt):
 		'''Cut reverse complement of DNA'''
@@ -439,10 +438,10 @@ Put Table here
 #		if control == self.search_word: #the searchbox
 #			self.search_word.SetValue(pyperclip.paste())
 
-		if control == self.output: #the outputpanel
-			pass
+#		if control == self.output: #the outputpanel
+#			pass
 			
-		elif control == self.gbviewer: #the main dna window
+		if control == self.gbviewer: #the main dna window
 
 			#add filter to remove non-dna characters
 		
@@ -472,8 +471,6 @@ Put Table here
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(pastestart)
 		
-			#generate output
-			self.output.write('Sequence pasted'+'\n', 'Text')
 
 	
 	def Paste_RevComp(self, evt):
@@ -481,8 +478,6 @@ Put Table here
 		genbank.gb.reverse_complement_clipboard()
 		self.Paste("")
 		genbank.gb.reverse_complement_clipboard() #change it back
-		#generate output
-		self.output.write('Reverse complement of sequence pasted'+'\n', 'Text')
 
 
 		
@@ -495,12 +490,12 @@ Put Table here
 #			if start != -2 and finish != -2: #must be a selection
 #				pyperclip.copy(self.search_word.GetValue()[start:finish])
 
-		if control == self.output: #the outputpanel
-			start, finish = self.output.GetSelection()
-			if start != -2 and finish != -2: #must be a selection
-				pyperclip.copy(self.output.GetValue()[start:finish])
+#		if control == self.output: #the outputpanel
+#			start, finish = self.output.GetSelection()
+#			if start != -2 and finish != -2: #must be a selection
+#				pyperclip.copy(self.output.GetValue()[start:finish])
 			
-		elif control == self.gbviewer: #the main dna window	
+		if control == self.gbviewer: #the main dna window	
 			start, finish = self.gbviewer.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(genbank.gb.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
@@ -540,11 +535,6 @@ Put Table here
 
 
 
-
-
-
-
-
 ######### Functions for updating text and text highlighting #############
 	def remove_styling(self):
 		'''Removes background styling for whole document'''
@@ -574,11 +564,10 @@ Put Table here
 	
 	def updateUI(self):
 		'''For changing background color of text ranges'''
-				
+
+
 
 		self.remove_styling() #first remove old styles
-
-		
 		
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
 		featurelist = genbank.gb.get_all_feature_positions()
@@ -595,6 +584,16 @@ Put Table here
 			self.attr.SetBackgroundColour(color)
 			self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 		self.update_text("")
+
+		#use this to get the first line characters 
+		##develop it##
+		#set insertion point to beginning... Make it update on resize
+		print(self.gbviewer.GetInsertionPoint()+1)
+		self.gbviewer.MoveDown()
+		print(self.gbviewer.GetInsertionPoint()+1)
+		self.gbviewer.MoveDown()
+		print(self.gbviewer.GetInsertionPoint()+1)
+		##############
 
 	def update_text(self, ev):
 		self.update_featurebuttons()		
@@ -713,13 +712,11 @@ Put Table here
 	def translate_output(self, protein, DNA, info):
 		'''Generate output in the output.panel'''
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
-		self.output.clear()
-		self.output.SetInsertionPointEnd()
-		self.output.write('%s | Translate %s ' % (tabtext, info), 'File')
+		self.make_outputpopup()			
+		self.output.write('%s | Translate %s\n' % (tabtext, info), 'File')
 		self.output.write(('%d AA from %d bases, %d bases left untranslated' % (len(protein), len(DNA), len(DNA)%3))+'\n', 'Text')
 		self.output.write(protein, 'Protein')
-		self.output.Newline()
-		self.output.ShowPosition(self.output.GetLastPosition()) 
+		self.outputframe.Show()
 	
 	def translate_selection(self, evt):
 		'''Translate selected DNA'''
@@ -793,14 +790,13 @@ Put Table here
 		
 	def list_features(self, evt):
 		'''List all features in output panel'''
+		self.make_outputpopup()
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
 		tabtext = 'Replace!'
-		self.output.SetInsertionPointEnd() 
 		self.output.write('%s | List features\n' % tabtext, 'File')
 		featurelist = genbank.gb.list_features()
 		self.output.write(featurelist, 'Text')
-		self.output.ShowPosition(self.output.GetLastPosition()) 
-
+		self.outputframe.Show()
 	
 
 
