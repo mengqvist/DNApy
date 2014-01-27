@@ -96,17 +96,24 @@ class MyPanel(wx.Panel):
 #		self.statusbar = self.CreateStatusBar(2)
 #		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
 
+		#create line count panel
+		self.linecount = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
+		self.linecount.SetEditable(False)
+
+
+
 		#create dna view panel
-		self.gbviewer = output.create(self, style=wx.VSCROLL|wx.HSCROLL); #create DNA window
+		self.gbviewer = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 		self.gbviewer.SetEditable(False)	
 
 
 
-		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer = wx.BoxSizer(wx.HORIZONTAL)
 #		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
 #		sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 #		sizer.Add(splitter, -1, wx.EXPAND)
-		sizer.Add(self.gbviewer, -1, wx.EXPAND)
+		sizer.Add(self.linecount, proportion=1, flag=wx.EXPAND)
+		sizer.Add(self.gbviewer, proportion=10, flag=wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
@@ -588,11 +595,10 @@ Put Table here
 		#use this to get the first line characters 
 		##develop it##
 		#set insertion point to beginning... Make it update on resize
-		print(self.gbviewer.GetInsertionPoint()+1)
-		self.gbviewer.MoveDown()
-		print(self.gbviewer.GetInsertionPoint()+1)
-		self.gbviewer.MoveDown()
-		print(self.gbviewer.GetInsertionPoint()+1)
+		while self.gbviewer.MoveDown() == True:
+			self.gbviewer.MoveDown()
+			self.linecount.write(str(self.gbviewer.GetInsertionPoint()+1)+'\n', 'Text')
+
 		##############
 
 	def update_text(self, ev):
