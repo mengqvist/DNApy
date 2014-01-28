@@ -29,7 +29,7 @@ execfile(settings) #gets all the pre-assigned settings
 class FeatureView(wx.Panel):
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
-		self.listview = wx.ListCtrl(self, id=3001, style=wx.LC_REPORT)
+		self.listview = wx.ListCtrl(self, id=3001, style=wx.LC_REPORT|wx.LC_SINGLE_SEL)
 		self.listview.InsertColumn(0, "Feature", format=wx.LIST_FORMAT_LEFT, width=200)
 		self.listview.InsertColumn(1, "Type", format=wx.LIST_FORMAT_LEFT, width=70)
 		self.listview.InsertColumn(2, "Location on DNA", format=wx.LIST_FORMAT_LEFT, width=200)
