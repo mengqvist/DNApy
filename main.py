@@ -101,12 +101,23 @@ class MyFrame(wx.Frame):
 		self.statusbar = self.CreateStatusBar(2)
 		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
 
+		self.do_layout()
+		self.Centre()
+
+
+	def do_layout(self):
+		'''Pack toolbar and the tabs in their sizers'''
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
+		#if second toolbar is present, add that too.
+		try:
+			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
+		except:
+			pass
 		sizer.Add(self.DNApy, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
-		self.Centre()	
+			
 
 ##### Generate tabs and define content #####
 
@@ -374,51 +385,62 @@ class MyFrame(wx.Frame):
 		#Print current window
 #   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
  #  		wx.EVT_TOOL(self, 510, self.print_setup)
+   		self.frame_1_toolbar.AddCheckTool(511, wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Search', 'Search')
+   		wx.EVT_TOOL(self, 511, self.toggle_search_toolbar)
 		
 		self.frame_1_toolbar.Realize()
 		
-		
+
 		##### Toolbar 2 #####
+	
+		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
 		
-#		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-			
 		#Select or Mutate
-#		self.selormut = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(85, 28), choices=['Select', 'Mutate'], style=wx.CB_READONLY)
-#		self.frame_2_toolbar.AddControl(self.selormut)		
-#		self.selormut.SetSelection(0)
-		
+		self.selormut = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(85, 28), choices=['Select', 'Mutate'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.selormut)		
+		self.selormut.SetSelection(0)
+	
 		#nucleotide or amino acid
-#		self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
-#		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
-#		self.nucleotideoraminoacid.SetSelection(0)
-		
+		self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
+		self.nucleotideoraminoacid.SetSelection(0)
+	
 		#'position'
-#		self.positionbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(70, 25), value="position")
-#		self.frame_2_toolbar.AddControl(self.positionbox)
-#		self.positionbox.SetEditable(False)	
-		
-		
+		self.positionbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(70, 25), value="position")
+		self.frame_2_toolbar.AddControl(self.positionbox)
+		self.positionbox.SetEditable(False)	
+	
+	
 		#'pos #'
-#		self.posnum=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(90, 25), value="")
-#		self.frame_2_toolbar.AddControl(self.posnum)
-		
-		
+		self.posnum=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(90, 25), value="")
+		self.frame_2_toolbar.AddControl(self.posnum)
+	
+	
 		#'in'
-#		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 25), value="in")
-#		self.frame_2_toolbar.AddControl(self.inbox)
-#		self.inbox.SetEditable(False)
-				
+		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 25), value="in")
+		self.frame_2_toolbar.AddControl(self.inbox)
+		self.inbox.SetEditable(False)
+			
 		#featurebox
-#		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=wx.DefaultSize, choices=['File', 'feature1'], style=wx.CB_READONLY)
-#		self.frame_2_toolbar.AddControl(self.featurebox)
-		
+		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=wx.DefaultSize, choices=['File', 'feature1'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.featurebox)
+	
 		#'go'
 
-#		self.frame_2_toolbar.Realize()
+		self.frame_2_toolbar.Realize()
+		self.frame_2_toolbar.Hide()
 
 
 
+	def toggle_search_toolbar(self, evt):
+		'''Toggles the visibility of the search toolbar'''
+		if self.frame_1_toolbar.GetToolState(511) == True:
+			self.frame_2_toolbar.Show()
 
+		elif self.frame_1_toolbar.GetToolState(511) == False:
+			self.frame_2_toolbar.Hide()
+
+		self.Layout()
 
 
 	def create_menu(self):     #method for creating menu
