@@ -92,6 +92,7 @@ class MyFrame(wx.Frame):
 		
 		#create toolbars
 		self.__generate_toolbar()
+		self.__generate_search_toolbar()
 		
 		
 		#create Menu Bar
@@ -391,45 +392,108 @@ class MyFrame(wx.Frame):
 		self.frame_1_toolbar.Realize()
 		
 
+
+
+	def __generate_search_toolbar(self):
 		##### Toolbar 2 #####
-	
+		self.findormutSelection = 0
+		self.nucleotideoraminoacidSelection = 0
+		self.sequenceorpositionSelection = 0
+
 		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-		
-		#Select or Mutate
-		self.selormut = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(85, 28), choices=['Select', 'Mutate'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.selormut)		
-		self.selormut.SetSelection(0)
-	
-		#nucleotide or amino acid
-		self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
-		self.nucleotideoraminoacid.SetSelection(0)
-	
-		#'position'
-		self.positionbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(70, 25), value="position")
-		self.frame_2_toolbar.AddControl(self.positionbox)
-		self.positionbox.SetEditable(False)	
-	
-	
-		#'pos #'
-		self.posnum=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(90, 25), value="")
-		self.frame_2_toolbar.AddControl(self.posnum)
-	
-	
-		#'in'
-		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 25), value="in")
-		self.frame_2_toolbar.AddControl(self.inbox)
-		self.inbox.SetEditable(False)
+
+		self.add_search_tools()
 			
-		#featurebox
-		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=wx.ID_ANY, size=wx.DefaultSize, choices=['File', 'feature1'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.featurebox)
-	
-		#'go'
 
 		self.frame_2_toolbar.Realize()
 		self.frame_2_toolbar.Hide()
 
+
+	def add_search_tools(self):
+		'''Adds tools to the search toolbar'''
+		#Select or Mutate
+		self.findormut = wx.ComboBox(self.frame_2_toolbar, id=600, size=(100, 28), choices=['Find', 'Mutate'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.findormut)		
+		self.findormut.SetSelection(self.findormutSelection)
+		wx.EVT_COMBOBOX(self, 600, self.OnChangeSearchParams)	
+
+		#nucleotide or amino acid
+		findormut = self.findormut.GetValue()
+		if findormut == 'Find':
+			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
+		elif findormut == 'Mutate':
+			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
+		self.nucleotideoraminoacid.SetSelection(self.nucleotideoraminoacidSelection)
+		wx.EVT_COMBOBOX(self, 601, self.OnChangeSearchParams)
+
+		#'position'
+		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
+		if nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
+			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position'], style=wx.CB_READONLY)
+			self.frame_2_toolbar.AddControl(self.sequenceorposition)
+			self.sequenceorposition.SetSelection(self.sequenceorpositionSelection)
+			wx.EVT_COMBOBOX(self, 602, self.OnChangeSearchParams)
+		elif nucleotideoraa == 'Feature':
+			pass
+	
+		#'position or sequence'
+#		sequenceorposition = self.sequenceorposition.GetValue()
+#		if sequenceorposition == 'Sequence':
+#			print('Sequence')
+#		elif sequenceorposition == 'Position':
+#			print('Position')
+		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
+		self.frame_2_toolbar.AddControl(self.searchinput)
+	
+	
+		#'in'
+		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="in")
+		self.frame_2_toolbar.AddControl(self.inbox)
+		self.inbox.SetEditable(False)
+			
+		#featurebox
+		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
+		self.frame_2_toolbar.AddControl(self.featurebox)
+		wx.EVT_COMBOBOX(self, 603, self.placeholder)
+		self.featurebox.SetSelection(0)
+	
+		#'go'
+   		self.frame_2_toolbar.AddLabelTool(604, "Search", wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search', 'Search')
+   		wx.EVT_TOOL(self, 604, self.dnaview.search)
+
+	def placeholder(self, evt):
+		pass
+
+	def OnChangeSearchParams(self, evt):
+		'''When changes are made to options in the searchbar, update which downstream options are available'''
+		#get selection for find or mutate
+		if evt.GetId() == 600:
+			self.findormutSelection = self.findormut.GetSelection()
+		elif evt.GetId() == 601:
+			self.nucleotideoraminoacidSelection = self.nucleotideoraminoacid.GetSelection()
+		elif evt.GetId() == 602:
+			self.sequenceorpositionSelection = self.sequenceorposition.GetSelection()
+
+		self.frame_2_toolbar.ClearTools()
+		self.add_search_tools()
+
+
+
+
+#		moleculeorfeature = self.featurebox.GetValue()
+#		if moleculeorfeature == 'Molecule':
+#			pass
+
+
+
+		#get the search input
+#		if self.searchinput.GetValue() == '':
+#			pass
+#		else:
+#			pass
+
+	
 
 
 	def toggle_search_toolbar(self, evt):
