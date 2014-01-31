@@ -429,11 +429,16 @@ class MyFrame(wx.Frame):
 
 		#'position'
 		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
-		if nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
-			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position'], style=wx.CB_READONLY)
+		if nucleotideoraa == 'Nucleotide' and findormut == 'Mutate':
+			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position', 'Selection'], style=wx.CB_READONLY)
 			self.frame_2_toolbar.AddControl(self.sequenceorposition)
 			self.sequenceorposition.SetSelection(self.sequenceorpositionSelection)
 			wx.EVT_COMBOBOX(self, 602, self.OnChangeSearchParams)
+		elif nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
+			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position'], style=wx.CB_READONLY)
+			self.frame_2_toolbar.AddControl(self.sequenceorposition)
+			self.sequenceorposition.SetSelection(self.sequenceorpositionSelection)
+			wx.EVT_COMBOBOX(self, 602, self.OnChangeSearchParams)			
 		elif nucleotideoraa == 'Feature':
 			pass
 	
@@ -453,7 +458,11 @@ class MyFrame(wx.Frame):
 		self.inbox.SetEditable(False)
 			
 		#featurebox
-		self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
+		try:
+			#get features...
+			self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule' and features], style=wx.CB_READONLY)
+		except:
+			self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
 		self.frame_2_toolbar.AddControl(self.featurebox)
 		wx.EVT_COMBOBOX(self, 603, self.placeholder)
 		self.featurebox.SetSelection(0)
