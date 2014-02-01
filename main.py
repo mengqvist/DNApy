@@ -92,7 +92,7 @@ class MyFrame(wx.Frame):
 		
 		#create toolbars
 		self.__generate_toolbar()
-		self.__generate_search_toolbar()
+		self.__generate_searchandmutate_toolbar()
 		
 		
 		#create Menu Bar
@@ -207,6 +207,14 @@ class MyFrame(wx.Frame):
 					genbank.gb.clean_clutter()
 			self.page_change("")
 
+			self.frame_1_toolbar.EnableTool(502, 1)
+			self.frame_1_toolbar.EnableTool(503, 1)
+			self.frame_1_toolbar.EnableTool(504, 1)
+			self.frame_1_toolbar.EnableTool(505, 1)
+			self.frame_1_toolbar.EnableTool(506, 1)
+			self.frame_1_toolbar.EnableTool(511, 1)
+			self.frame_1_toolbar.EnableTool(512, 1)
+
 		else:
 			print("error, not a gb file")		
 
@@ -251,6 +259,7 @@ class MyFrame(wx.Frame):
 			self.save_file("")
 			#except:
 			#	error_window(7, self)
+
 
 	def quit(self, evt):
 		'''Function for quiting program'''
@@ -375,101 +384,106 @@ class MyFrame(wx.Frame):
    		#Redo
    		self.frame_1_toolbar.AddLabelTool(514, "Redo", wx.Bitmap(files['default_dir']+"/icon/redo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Redo', 'Redo')
    		wx.EVT_TOOL(self, 514, self.dnaview.Redo) 
-		#Search Upward
-   		self.frame_1_toolbar.AddLabelTool(507, "Search Upward", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Upward', 'Search Upward')
-   		wx.EVT_TOOL(self, 507, self.dnaview.search_up)
-		#Search window
-		self.dnaview.search_tool()
-		#Search Downward
-   		self.frame_1_toolbar.AddLabelTool(509, "Search Downward", wx.Bitmap(files['default_dir']+"/icon/down.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Downward', 'Search Downward')
-   		wx.EVT_TOOL(self, 509, self.dnaview.search_down)
 		#Print current window
 #   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
  #  		wx.EVT_TOOL(self, 510, self.print_setup)
-   		self.frame_1_toolbar.AddCheckTool(511, wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Search', 'Search')
-   		wx.EVT_TOOL(self, 511, self.toggle_search_toolbar)
+   		self.frame_1_toolbar.AddCheckTool(511, wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Find', 'Find')
+   		wx.EVT_TOOL(self, 511, self.toggle_searchandmutate_toolbar)
+
+   		self.frame_1_toolbar.AddCheckTool(512, wx.Bitmap(files['default_dir']+"/icon/mutate.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Mutate', 'Mutate')
+   		wx.EVT_TOOL(self, 512, self.toggle_searchandmutate_toolbar)
+
 		
 		self.frame_1_toolbar.Realize()
 		
+		self.frame_1_toolbar.EnableTool(502, 0)
+		self.frame_1_toolbar.EnableTool(503, 0)
+		self.frame_1_toolbar.EnableTool(504, 0)
+		self.frame_1_toolbar.EnableTool(505, 0)
+		self.frame_1_toolbar.EnableTool(506, 0)
+		self.frame_1_toolbar.EnableTool(513, 0)
+		self.frame_1_toolbar.EnableTool(514, 0)
+		self.frame_1_toolbar.EnableTool(511, 0)
+		self.frame_1_toolbar.EnableTool(512, 0)
 
-
-
-	def __generate_search_toolbar(self):
+	def __generate_searchandmutate_toolbar(self):
 		##### Toolbar 2 #####
-		self.findormutSelection = 0
 		self.nucleotideoraminoacidSelection = 0
-		self.sequenceorpositionSelection = 0
 
 		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-
-		self.add_search_tools()
+		
+		self.findormutSelection = 'Find'
+		self.add_search_tools(self.findormutSelection)
 			
 
 		self.frame_2_toolbar.Realize()
 		self.frame_2_toolbar.Hide()
 
 
-	def add_search_tools(self):
-		'''Adds tools to the search toolbar'''
-		#Select or Mutate
-		self.findormut = wx.ComboBox(self.frame_2_toolbar, id=600, size=(100, 28), choices=['Find', 'Mutate'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.findormut)		
-		self.findormut.SetSelection(self.findormutSelection)
-		wx.EVT_COMBOBOX(self, 600, self.OnChangeSearchParams)	
-
+	def add_search_tools(self, typeof):
+		'''Adds tools to the find/mutate toolbar. A string "find" or "mutate" is passed to determine which tollbar to build'''
+	
 		#nucleotide or amino acid
-		findormut = self.findormut.GetValue()
-		if findormut == 'Find':
+		if typeof == 'Find':
 			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
-		elif findormut == 'Mutate':
+		elif typeof == 'Mutate':
 			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid'], style=wx.CB_READONLY)
 		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
 		self.nucleotideoraminoacid.SetSelection(self.nucleotideoraminoacidSelection)
 		wx.EVT_COMBOBOX(self, 601, self.OnChangeSearchParams)
 
-		#'position'
-		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
-		if nucleotideoraa == 'Nucleotide' and findormut == 'Mutate':
-			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position', 'Selection'], style=wx.CB_READONLY)
-			self.frame_2_toolbar.AddControl(self.sequenceorposition)
-			self.sequenceorposition.SetSelection(self.sequenceorpositionSelection)
-			wx.EVT_COMBOBOX(self, 602, self.OnChangeSearchParams)
-		elif nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
-			self.sequenceorposition=wx.ComboBox(self.frame_2_toolbar, id=602, size=(120, 28), choices=['Sequence', 'Position'], style=wx.CB_READONLY)
-			self.frame_2_toolbar.AddControl(self.sequenceorposition)
-			self.sequenceorposition.SetSelection(self.sequenceorpositionSelection)
-			wx.EVT_COMBOBOX(self, 602, self.OnChangeSearchParams)			
-		elif nucleotideoraa == 'Feature':
-			pass
-	
-		#'position or sequence'
-#		sequenceorposition = self.sequenceorposition.GetValue()
-#		if sequenceorposition == 'Sequence':
-#			print('Sequence')
-#		elif sequenceorposition == 'Position':
-#			print('Position')
+		#'input'
 		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
 		self.frame_2_toolbar.AddControl(self.searchinput)
 	
-	
+		if typeof == 'Mutate':
+			self.tobox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="to")
+			self.frame_2_toolbar.AddControl(self.tobox)
+			self.mutateto=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
+			self.frame_2_toolbar.AddControl(self.mutateto)
+
 		#'in'
-		self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="in")
-		self.frame_2_toolbar.AddControl(self.inbox)
-		self.inbox.SetEditable(False)
+		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
+		if nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
+			self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="in")
+			self.frame_2_toolbar.AddControl(self.inbox)
+			self.inbox.SetEditable(False)
 			
 		#featurebox
-		try:
-			#get features...
-			self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule' and features], style=wx.CB_READONLY)
-		except:
-			self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
-		self.frame_2_toolbar.AddControl(self.featurebox)
-		wx.EVT_COMBOBOX(self, 603, self.placeholder)
-		self.featurebox.SetSelection(0)
-	
+		if nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
+			try:
+				#get features...
+				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule' and features], style=wx.CB_READONLY)
+			except:
+				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
+			self.frame_2_toolbar.AddControl(self.featurebox)
+			wx.EVT_COMBOBOX(self, 603, self.placeholder)
+			self.featurebox.SetSelection(0)
+		
 		#'go'
-   		self.frame_2_toolbar.AddLabelTool(604, "Search", wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search', 'Search')
-   		wx.EVT_TOOL(self, 604, self.dnaview.search)
+		if typeof == 'Find':
+			#Search Upward
+	   		self.frame_2_toolbar.AddLabelTool(507, "Search Upward", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Upward', 'Search Upward')
+	   		wx.EVT_TOOL(self, 507, self.find)
+			#Search Downward
+	   		self.frame_2_toolbar.AddLabelTool(509, "Search Downward", wx.Bitmap(files['default_dir']+"/icon/down.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Downward', 'Search Downward')
+	   		wx.EVT_TOOL(self, 509, self.find)
+			#search glass
+	   		self.frame_2_toolbar.AddLabelTool(604, "Find", wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Find', 'Find')
+	   		wx.EVT_TOOL(self, 604, self.find)
+		elif typeof == 'Mutate':
+			self.frame_2_toolbar.AddLabelTool(604, "Mutate", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Mutate', 'Mutate')
+	   		wx.EVT_TOOL(self, 604, self.find)
+
+	def find(self, evt):
+		self.nucleotideoraminoacid.GetValue()
+
+		self.featurebox.GetValue()
+
+		self.searchinput.GetValue()
+
+	def mutate(self, evt):
+		pass
 
 	def placeholder(self, evt):
 		pass
@@ -477,40 +491,32 @@ class MyFrame(wx.Frame):
 	def OnChangeSearchParams(self, evt):
 		'''When changes are made to options in the searchbar, update which downstream options are available'''
 		#get selection for find or mutate
-		if evt.GetId() == 600:
-			self.findormutSelection = self.findormut.GetSelection()
-		elif evt.GetId() == 601:
+		if evt.GetId() == 601:
 			self.nucleotideoraminoacidSelection = self.nucleotideoraminoacid.GetSelection()
-		elif evt.GetId() == 602:
-			self.sequenceorpositionSelection = self.sequenceorposition.GetSelection()
 
 		self.frame_2_toolbar.ClearTools()
-		self.add_search_tools()
+		self.add_search_tools(self.findormutSelection)
 
 
-
-
-#		moleculeorfeature = self.featurebox.GetValue()
-#		if moleculeorfeature == 'Molecule':
-#			pass
-
-
-
-		#get the search input
-#		if self.searchinput.GetValue() == '':
-#			pass
-#		else:
-#			pass
-
-	
-
-
-	def toggle_search_toolbar(self, evt):
+	def toggle_searchandmutate_toolbar(self, evt):
 		'''Toggles the visibility of the search toolbar'''
-		if self.frame_1_toolbar.GetToolState(511) == True:
+		if self.frame_1_toolbar.GetToolState(511) == True and self.frame_1_toolbar.GetToolState(512) == False:
 			self.frame_2_toolbar.Show()
+			self.frame_1_toolbar.EnableTool(512, 0)
+			self.frame_2_toolbar.ClearTools()
+			self.findormutSelection = 'Find'
+			self.add_search_tools(self.findormutSelection)
 
-		elif self.frame_1_toolbar.GetToolState(511) == False:
+		elif self.frame_1_toolbar.GetToolState(511) == False and self.frame_1_toolbar.GetToolState(512) == True:
+			self.frame_2_toolbar.Show()
+			self.frame_1_toolbar.EnableTool(511, 0)
+			self.frame_2_toolbar.ClearTools()
+			self.findormutSelection = 'Mutate'
+			self.add_search_tools(self.findormutSelection)
+
+		elif self.frame_1_toolbar.GetToolState(511) == False and self.frame_1_toolbar.GetToolState(512) == False:
+			self.frame_1_toolbar.EnableTool(511, 1)
+			self.frame_1_toolbar.EnableTool(512, 1)
 			self.frame_2_toolbar.Hide()
 
 		self.Layout()

@@ -514,6 +514,12 @@ class gbobject():
 			featurelist += ('>%s at %s on %s strand\n' % (feature['qualifiers'][0], feature['location'], complement))
 		return featurelist
 
+	def find(self, searchstring ):
+		pass
+
+	def mutate():
+		pass
+
 	def get_location(self, location):
 		'''Takes a location entry and extracts the start and end numbers'''	
 		templocation = ''
