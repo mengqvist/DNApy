@@ -514,7 +514,7 @@ class gbobject():
 			featurelist += ('>%s at %s on %s strand\n' % (feature['qualifiers'][0], feature['location'], complement))
 		return featurelist
 
-	def find(self, searchstring ):
+	def find(self, searchstring, moleculeorfeature):
 		pass
 
 	def mutate():

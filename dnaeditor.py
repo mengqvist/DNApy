@@ -36,9 +36,7 @@
 #fix gb so that new file can be made using just dna
 #fix header parsing
 #rig catg keys so that when keys are pressed the dna actually goes into the file (and backspace and del keys too)
-#when loading file, ask whether it should be cleaned from ApEinfo tags and those from vectorNTI
 #clean up functions, organize them and take away everything that is not needed
-#Change MyFrame to a panel instead. Move menus and toolbars out into a seperate frame. This is needed for later integration of the other parts.
 #Fix "new document" 
 #fix undo/redo
 

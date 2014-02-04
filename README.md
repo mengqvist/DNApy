@@ -22,6 +22,9 @@ Addition/removal/modification of genbank features
 Addition/removal/modification of genbank qualifiers
 
 
+
+Unlimited undo/redo (not yet implemented)
+
 Addition/removal/modification of genbank header entries (not yet implemented)
 
 Plasmid view visualization (not yet implemented)
@@ -41,6 +44,8 @@ Automated design of degenerate codon libraries (not yet implemented)
 Primer design (not yet implemented)
 
 Analysis of sequence reads in the .ab1 format (not yet implemented)
+
+Automatic structure prediction of mutated proteins (using SwissModel) (not yet implemented)
 
 
 Project Website
