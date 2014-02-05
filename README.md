@@ -47,6 +47,8 @@ Analysis of sequence reads in the .ab1 format (not yet implemented)
 
 Automatic structure prediction of mutated proteins (using SwissModel) (not yet implemented)
 
+Calculation of ribosome binding strength (not yet implemented)
+
 
 Project Website
 =====
