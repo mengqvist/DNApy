@@ -39,14 +39,17 @@ import pyperclip
 
 
 
+
 class gbobject():
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self):
 		self.gbfile = {} #this variable stores the whole genbank file
-		self.allgbfeatures = [] #will contain all features in list format
 		self.filepath = '' #for keeping track of the file being edited
+		self.clipboard = {}
+		self.clipboard['dna'] = ''
+		self.clipboard['features'] = []
 		
-		
+
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
 		a = open(filepath, 'r') #open it for reading
@@ -184,13 +187,18 @@ class gbobject():
 			#add dictionary to list
 			features.append(Feature)
 			
-	
 		self.gbfile['features'] = features
-	
 		self.gbfile['filepath'] = filepath
-		
 		self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
+
 	
+	def makegb(self):
+		'''Method that creates a new, empty genbank file'''
+		self.gbfile['features'] = []
+		self.gbfile['dna'] = ''
+		self.gbfile['header'] = ''
+		self.gbfile['filepath'] = ''
+
 
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
@@ -199,10 +207,12 @@ class gbobject():
 			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
+
 	
 	def set_location(self, feature, newlocation):
 		index = self.identify_feature(feature)
 		self.gbfile['features'][index]['location'] = newlocation
+
 
 	def reverse_complement_clipboard(self):	
 		'''Reverse-complements the DNA and all features in clipboard'''
@@ -453,25 +463,23 @@ class gbobject():
 		return location		
 
 	
-	def get_feature_dna(self, featureid):
-		'''Retrieves the dna sequence for a specified feature'''
+	def get_feature_dna(self, index):
+		'''Retrieves the dna sequence for a feature specified by its index'''
 		DNA = ''
-		for i in range(len(self.gbfile['features'])):
-			if (('/label=' in featureid) == False and self.gbfile['features'][i]['qualifiers'][0] == '/label=' + featureid) or self.gbfile['features'][i]['qualifiers'][0] == featureid:
-				for entry in self.gbfile['features'][i]['location']:
-					start, finish = self.get_location(entry)
-					
-					if self.gbfile['features'][i]['join'] == False and self.gbfile['features'][i]['order'] == False:
-						DNA = self.gbfile['dna'][start+1:finish+1]
-					
-					elif self.gbfile['features'][i]['join'] == True:
-						DNA += self.gbfile['dna'][start+1:finish+1]
-						
-					elif self.gbfile['features'][i]['order'] == True: #I probably need to change the reversecomplement function to not remove /n
-						DNA += self.gbfile['dna'][start+1:finish+1] + '\n'
+		for entry in self.gbfile['features'][index]['location']:
+			start, finish = self.get_location(entry)
+			
+			if self.gbfile['features'][index]['join'] == False and self.gbfile['features'][index]['order'] == False:
+				DNA = self.gbfile['dna'][start+1:finish+1]
+			
+			elif self.gbfile['features'][index]['join'] == True:
+				DNA += self.gbfile['dna'][start+1:finish+1]
 				
-				if self.gbfile['features'][i]['complement'] == True:
-					DNA = dna.reversecomplement(DNA)
+			elif self.gbfile['features'][index]['order'] == True: #I probably need to change the reversecomplement function to not remove /n
+				DNA += self.gbfile['dna'][start+1:finish+1] + '\n'
+		
+		if self.gbfile['features'][index]['complement'] == True:
+			DNA = dna.reversecomplement(DNA)
 		return DNA
 
 	def get_dna(self):
@@ -486,9 +494,9 @@ class gbobject():
 		'''Update the self.filepath where a file is saved'''
 		self.gbfile['filepath'] = new_path
 
-	def get_feature_for_pos(self, position):
-		'''For a given dna position, which features are there?'''		
-		Feature = ''
+	def get_features_for_pos(self, position):
+		'''For a given DNA position, return any feature entry that spanns that position'''
+		features = []
 		for feature in self.gbfile['features']:
 			for entry in feature['location']: #there may be several starts and finishes in a feature...
 				start, finish = self.get_location(entry)
@@ -496,11 +504,20 @@ class gbobject():
 				finish -= 1
 
 				if start <= position <= finish:
-					if Feature != '': Feature += ', '
-					Feature += feature['qualifiers'][0].split('=')[1] #removes the '/label=' part from qualifier
+					features.append(feature)
+		return features		
 
-		if Feature == '': Feature = 'None'
-		return Feature
+
+	def get_featurename_for_pos(self, position):
+		'''For a given dna position, which features are there?'''		
+		featurename = ''
+		features = self.get_features_for_pos(position)
+		for feature in features:
+			if featurename != '': featurename += ', '
+			featurename += feature['qualifiers'][0].split('=')[1] #removes the '/label=' part from qualifier
+		if featurename == '': featurename = 'None'
+		return featurename
+
 
 	def list_features(self):
 		'''List all features as a string output'''
@@ -511,11 +528,17 @@ class gbobject():
 				complement = 'complement'
 			else:
 				complement = 'leading'
-			featurelist += ('>%s at %s on %s strand\n' % (feature['qualifiers'][0], feature['location'], complement))
+			currentfeature = ('>[%s] %s at %s on %s strand\n' % (str(i), feature['qualifiers'][0], feature['location'], complement))
+			print(currentfeature)
+			print(\n)
+			featurelist += currentfeature
 		return featurelist
 
 	def find(self, searchstring, moleculeorfeature):
-		pass
+		if moleculeorfeature == False: #false if molecule
+			pass
+			
+	
 
 	def mutate():
 		pass
@@ -727,11 +750,23 @@ class gbobject():
 		a.close()
 
 
+def open_file(filepath):
+	'''Function that makes a gbobject with a specified genbank file'''
+	global gb
+	gb = gbobject()
+	gb.readgb('/home/martin/Python_files/DNApy_local/GBtest.gb')
 
 
-gb = gbobject()
+def new_file():
+	'''Function that makes a gbobject with an empty genbank file'''
+	global gb
+	gb = gbobject()
+	gb.makegb()
 
 
-
-
+#if __name__ == '__main__': #if script is run by itself and not loaded	
+	#import sysargw
+	#get the imput...
+	#open_file(input)
+	#return gb
 

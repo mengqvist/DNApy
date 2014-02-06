@@ -177,10 +177,22 @@ class MyFrame(wx.Frame):
 
 ################ file functions #################
 
-	def new_document(self, evt):
+	def new_file(self, evt):
 		'''Create new gb file'''
-		#self.gb=genbank.gbobject() #make new gb in panel	
-		pass
+		gb = genbank.new_file() #make new gb in panel	
+		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+		self.SetTitle('NewFile - DNApy')
+		self.page_change("")
+
+		self.frame_1_toolbar.EnableTool(502, 1)
+		self.frame_1_toolbar.EnableTool(503, 1)
+		self.frame_1_toolbar.EnableTool(504, 1)
+		self.frame_1_toolbar.EnableTool(505, 1)
+		self.frame_1_toolbar.EnableTool(506, 1)
+		self.frame_1_toolbar.EnableTool(511, 1)
+		self.frame_1_toolbar.EnableTool(512, 1)
+		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+
 
 	def open_file(self, evt):
 		'''Function for opening file'''
@@ -196,7 +208,7 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension == 'gb':
-			genbank.gb.readgb(all_path) #read the file
+			gb = genbank.open_file(all_path) #make a genbank object and read file
 			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 			self.SetTitle(fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
@@ -359,7 +371,7 @@ class MyFrame(wx.Frame):
    		
    		#New Document
    		self.frame_1_toolbar.AddLabelTool(500, "New Document", wx.Bitmap(files['default_dir']+"/icon/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'New File', "New File") #last one is the one displayed in status bar
-   		wx.EVT_TOOL(self, 500, self.new_document)
+   		wx.EVT_TOOL(self, 500, self.new_file)
 		#Open File
    		self.frame_1_toolbar.AddLabelTool(501, "Open File", wx.Bitmap(files['default_dir']+"/icon/open.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Load File', 'Load File')
    		wx.EVT_TOOL(self, 501, self.open_file)
@@ -527,20 +539,20 @@ class MyFrame(wx.Frame):
 		fileitem = wx.Menu()
 			
 		#new document
-		fileitem.Append(1, "New\tCtrl+Q", "New Document")
-		wx.EVT_MENU(self, 1, self.new_document)
+		fileitem.Append(1, "New\tCtrl+Q", "New File")
+		wx.EVT_MENU(self, 1, self.new_file)
 
 		#open document
-		fileitem.Append(2, "Open\tCtrl+O", "Open Document")
+		fileitem.Append(2, "Open\tCtrl+O", "Open File")
 		wx.EVT_MENU(self, 2, self.open_file)
 		fileitem.AppendSeparator()
 
 		#save document
-		fileitem.Append(3, "Save\tCtrl+S", "Save current document")
+		fileitem.Append(3, "Save\tCtrl+S", "Save current file")
 		wx.EVT_MENU(self, 3, self.save_file)
 
 		#save document as
-		fileitem.Append(4, "Save as", "Save a copy of current document")
+		fileitem.Append(4, "Save as", "Save a copy of current file")
 		wx.EVT_MENU(self, 4, self.save_as_file)
 
 		#save all
@@ -549,7 +561,7 @@ class MyFrame(wx.Frame):
 #		fileitem.AppendSeparator()
 
 		#close single
-		fileitem.Append(5, "Close", "Close current document")
+		fileitem.Append(5, "Close", "Close current file")
 		wx.EVT_MENU(self, 5, self.dnaview.close_single)
 
 		#close all

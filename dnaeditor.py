@@ -33,11 +33,9 @@
 
 
 #TODO
-#fix gb so that new file can be made using just dna
 #fix header parsing
 #rig catg keys so that when keys are pressed the dna actually goes into the file (and backspace and del keys too)
 #clean up functions, organize them and take away everything that is not needed
-#Fix "new document" 
 #fix undo/redo
 
 
@@ -825,7 +823,7 @@ Put Table here
 		mposition = self.gbviewer.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
 
 		#which feature corresponds to this pos?
-		Feature = genbank.gb.get_feature_for_pos(mposition)
+		Feature = genbank.gb.get_featurename_for_pos(mposition)
 		return mposition, Feature
 
 
