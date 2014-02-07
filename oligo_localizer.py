@@ -9,6 +9,11 @@
 #   the author at andrea.cabibbo*mailsymbol*uniroma2 dot it #         # ######   #
 ##################################################################################
 
+
+##
+# Note from Martin Engqvist. This is an abbreviated and adapted version of the script. Find the original at http://cellbiol.com/python_cgi_scripts_bioinformatics.php
+##
+
 #import cgitb; cgitb.enable()
 import sys
 import os
