@@ -474,12 +474,12 @@ class MyFrame(wx.Frame):
 		
 		#'go'
 		if typeof == 'Find':
-			#Search Upward
-	   		self.frame_2_toolbar.AddLabelTool(507, "Search Upward", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Upward', 'Search Upward')
-	   		wx.EVT_TOOL(self, 507, self.find)
-			#Search Downward
-	   		self.frame_2_toolbar.AddLabelTool(509, "Search Downward", wx.Bitmap(files['default_dir']+"/icon/down.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Search Downward', 'Search Downward')
-	   		wx.EVT_TOOL(self, 509, self.find)
+			#find previous
+	   		self.frame_2_toolbar.AddLabelTool(507, "Find previous", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Find previous', 'Find previous')
+	   		wx.EVT_TOOL(self, 507, self.find_previous)
+			#find next
+	   		self.frame_2_toolbar.AddLabelTool(509, "Find next", wx.Bitmap(files['default_dir']+"/icon/down.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Find next', 'Find next')
+	   		wx.EVT_TOOL(self, 509, self.find_next)
 			#search glass
 	   		self.frame_2_toolbar.AddLabelTool(604, "Find", wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Find', 'Find')
 	   		wx.EVT_TOOL(self, 604, self.find)
@@ -488,11 +488,33 @@ class MyFrame(wx.Frame):
 	   		wx.EVT_TOOL(self, 604, self.find)
 
 	def find(self, evt):
+		'''Find nucleotide in molecule'''
 		self.nucleotideoraminoacid.GetValue()
-
 		self.featurebox.GetValue()
+		searchstring = self.searchinput.GetValue()
+		genbank.gb.find_dna(searchstring)
+		try:
+			self.tab_list[self.current_tab].updateUI()
+		except:
+			pass
+	
+	def find_previous(self, evt):
+		'''Select prevous search hit'''
+		genbank.gb.find_previous()
+		selection = genbank.gb.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		self.dnaview.gbviewer.SetSelection(start-1, finish)
+		self.dnaview.gbviewer.ShowPosition(start) 
 
-		self.searchinput.GetValue()
+	def find_next(self, evt):
+		'''Select next search hit'''
+		genbank.gb.find_next()
+		selection = genbank.gb.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		self.dnaview.gbviewer.SetSelection(start-1, finish)
+		self.dnaview.gbviewer.ShowPosition(start) 
 
 	def mutate(self, evt):
 		pass

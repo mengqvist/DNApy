@@ -36,7 +36,7 @@
 import dna
 from copy import deepcopy
 import pyperclip
-
+import oligo_localizer
 
 
 
@@ -48,7 +48,8 @@ class gbobject():
 		self.clipboard = {}
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
-		
+		self.search_hits = []	# variable for storing a list of search hits
+		self.selection = ()	 #variable for storing current DNA selection
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
@@ -199,6 +200,17 @@ class gbobject():
 		self.gbfile['header'] = ''
 		self.gbfile['filepath'] = ''
 
+	def set_selection(self, selection):
+		'''Method for selecting a certain DNA range'''
+		#input needs to be a touple of two values
+		self.selection = selection
+		start = selection[0]
+		finish = selection[1]
+		print('Selection from %s to %s') % (start, finish)
+
+	def get_selection(self):
+		'''Method for getting which DNA range is currently selected'''
+		return self.selection
 
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
@@ -530,18 +542,73 @@ class gbobject():
 				complement = 'leading'
 			currentfeature = ('>[%s] %s at %s on %s strand\n' % (str(i), feature['qualifiers'][0], feature['location'], complement))
 			print(currentfeature)
-			print(\n)
+			print('\n')
 			featurelist += currentfeature
 		return featurelist
 
-	def find(self, searchstring, moleculeorfeature):
-		if moleculeorfeature == False: #false if molecule
-			pass
-			
-	
+
+	def find_dna(self, searchstring):
+		'''Method for finding a certain DNA sequence in the file. Degenerate codons are supported'''
+		dna_seq = self.get_dna()
+		dna_seq = dna_seq.upper()
+		oligo = searchstring
+		oligo = oligo.upper()
+		dna_seq = list(dna_seq)
+		dna_seq = oligo_localizer.cleaner(dna_seq)
+
+		if oligo=='':
+			print 'The searchstring is missing, please check your input'
+			self.search_hits = []
+		else:
+			if oligo_localizer.match_oligo(dna_seq,oligo)!=[]:
+				print('The following matches were found: ')
+				self.search_hits = []
+				for match in oligo_localizer.match_oligo(dna_seq,oligo):
+					lm=len(match[2])
+					print('from %s to %s %s' % (match[0]+1,match[1]+lm,match[2]))
+					self.search_hits.append((match[0]+1,match[1]+lm))
+				self.set_selection(self.search_hits[0])
+			else:
+				print('Sorry, no matches were found')			
+
+	def find_protein():
+		'''Method for finding a certain protein sequence in the file. Degenerate codons are supported'''
+		pass
+
+	def find_previous(self):
+		'''Switch to the previous search hit'''
+		selection = self.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		for i in range(len(self.search_hits)):
+			if start < self.search_hits[0][0]:
+				print('first')
+				self.set_selection(self.search_hits[-1])
+				break
+			elif start <= self.search_hits[i][0]:
+				self.set_selection(self.search_hits[i-1])
+				print(i)
+				print('second')
+				break
+
+	def find_next(self):
+		'''Switch to the next search hit'''
+		selection = self.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		for i in range(len(self.search_hits)):
+			if start < self.search_hits[i][0]:
+				self.set_selection(self.search_hits[i])
+				break
+			elif i == len(self.search_hits)-1:
+				self.set_selection(self.search_hits[0])
+				break
+
+
 
 	def mutate():
 		pass
+
 
 	def get_location(self, location):
 		'''Takes a location entry and extracts the start and end numbers'''	

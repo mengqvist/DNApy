@@ -1,30 +1,27 @@
 #!/usr/bin/python2
 
 ##################################################################################
-#   An Oligonucleotide Finder written by Andrea Cabibbo          #      ######   #
+#   An oligo or motif finder written by Andrea Cabibbo           #      ######   #
 #   Feel free to use/modify/redistribute the code               # #     #        #
 #   If you use significant parts of this code please preserve  #   #    #        #
-#   this header and the site footer.                          #######   #        # 
+#   this header.                                              #######   #        # 
 #   If you find bugs or have suggestions, please contact     #       #  #        #
-#   the author at andrea.cabibbo*mailsymbol*uniroma2 dot it #         # ######   #
+#   the author at andrea.cabibbo@uniroma2.it                #         # ######   #
+#   The tool is available online at                                              #
+#   http://www.cellbiol.com/scripts/oligo/oligo_motif_sequence_finder.php        #
 ##################################################################################
 
-
-##
-# Note from Martin Engqvist. This is an abbreviated and adapted version of the script. Find the original at http://cellbiol.com/python_cgi_scripts_bioinformatics.php
-##
-
-#import cgitb; cgitb.enable()
+import cgitb; cgitb.enable()
 import sys
 import os
 sys.path.insert(0, os.getcwd())
 import cgi
 import re
 import string
-
-
+from copy import deepcopy
 
 def cleaner(seq):
+    '''Function for cleaning DNA of non-DNA characters'''
     i=0
     so=[] #seq_out
     for char in seq:
@@ -35,7 +32,7 @@ def cleaner(seq):
             #print char,'is whitespace!! deleted'
         if char not in 'GATCRYWSMKHBVDN':   #IUPAC ambiguous_dna_values
             pass
-            #so.append(in_seq[i])
+            #so.append(dna_seq[i])
             # print 'WARNING: INVALID DNA CHARACTER <B>%s</B> DETECTED IN POSITION <B>%s</B>. Character NOT deleted'%(char,str(i+1))
         else:
             so.append(seq[i])
@@ -45,7 +42,9 @@ def cleaner(seq):
     return so
 
 
+
 def re_const(oligo):
+    '''This is the actual search function'''
     oligo=oligo.upper()
     wo=list(oligo)
     re_out=[]
@@ -83,38 +82,38 @@ def re_const(oligo):
         elif char=='N':
             re_out.append('[NXMRWSYKVHDBGATC]')
     re_out=string.join(re_out,'')
+    re_out="(?=(%s))" % re_out
     re_out_comp=re.compile(re_out,re.IGNORECASE)
     return re_out_comp
 
+
 def match_oligo(seq,oligo,mismatches=0):
-    '''Function for searching for a certain oligo'''
-    re_oligo=re_const(oligo)
-    L_out=[]
-    for match in re_oligo.finditer(seq):
-        L_out.append([match.start(),match.end(),match.group()])
-    return L_out
+	'''Function for searching for a certain oligo'''
+	re_oligo=re_const(oligo)
+	L_out=[]
+	for match in re_oligo.finditer(seq):
+		L_out.append([match.end(),match.start(),match.group(1)])
+	return L_out
 
-                   
-        
-    
+     
 if __name__=='__main__':
-
-	oligo = 'cca'
-	seq = 'CCACADACACACACACCACCCCACCACACCACCCACCC'
+	dna_seq='cacccaaaaccaaaasdddc'
+	dna_seq=dna_seq.upper()
+	oligo='nnnnnnn'
+	oligo=oligo.upper()
+	dna_seq=list(dna_seq)
+	myseq=cleaner(dna_seq)
 
 	if oligo=='':
 		print 'The oligo is missing, please <a href="oligo_finder.html">try again</A>'
 	else:
-		seq=list(seq)
-		myseq=cleaner(seq)
-		print('Your cleaned input sequence: %s' % myseq)
-
 		if match_oligo(myseq,oligo)!=[]:
 			print('The following matches were found: ')
 			for match in match_oligo(myseq,oligo):
-				print('from %s to %s %s' % (match[0]+1,match[1],match[2]))
+				lm=len(match[2])
+				print('from %s to %s %s' % (match[0]+1,match[1]+lm,match[2]))
 		else:
 			print('Sorry, no matches were found')
-        
-		 
+
+
 

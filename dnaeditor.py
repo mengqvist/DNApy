@@ -567,16 +567,12 @@ Put Table here
 	
 	def updateUI(self):
 		'''For changing background color of text ranges'''
-
-
-
 		self.remove_styling() #first remove old styles
 		
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
 		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
 			featuretype, complement, start, finish = entry
-
 			self.get_feature_color(featuretype, complement)
 	
 			color = self.gbviewer.current_highlight_color #get color
@@ -587,6 +583,22 @@ Put Table here
 			self.attr.SetBackgroundColour(color)
 			self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 		self.update_text("")
+		
+		#color in search hits if any are present
+		search_hits = genbank.gb.search_hits
+		if len(search_hits) != 0:
+			color = '#ffff00'
+			for i in range(len(search_hits)):
+				start = int(search_hits[i][0])
+				finish = int(search_hits[i][1])
+				
+				#do the painting
+				self.attr = rt.RichTextAttr()
+				self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
+				self.attr.SetBackgroundColour(color)
+				self.gbviewer.SetStyleEx(rt.RichTextRange(start-1, finish), self.attr)
+			self.update_text("")
+
 
 		#use this to get the first line characters 
 		##develop it##
