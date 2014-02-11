@@ -357,6 +357,313 @@ class MyFrame(wx.Frame):
 			self.SetStatusText('', 1)		
 
 
+##########################################
+
+	def make_outputpopup(self):
+		'''Creates a popup window in which output can be printed'''
+		self.outputframe = wx.Frame(None, title="Output Panel") # creation of a Frame with a title
+		self.output = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
+		
+
+############## Info methods
+
+	def info(self, event):
+		string = '''
+This file is part of DNApy. DNApy is a DNA editor written purely in python. 
+The program is intended to be an intuitive, fully featured, 
+extendable, editor for molecular and synthetic biology.  
+Enjoy!
+
+Copyright (C) 2014  Martin Engqvist | 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+LICENSE:
+This file is part of DNApy.
+DNApy is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+ 
+DNApy is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Library General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Get source code at: https://github.com/0b0bby0/DNApy
+
+'''
+		self.make_outputpopup()		
+		self.output.write(string+'\n', 'Text')
+		self.outputframe.Show()
+		
+	def IUPAC_codes(self, event):
+		'''Prints info about the IUPAC codes for DNA and amino acids'''
+		string = '''
+Nucleotide code 	Base
+A 				Adenine
+C 				Cytosine
+G 				Guanine
+T (or U) 			Thymine (or Uracil)
+R 				A or G
+Y 				C or T
+S 				G or C
+W 				A or T
+K 				G or T
+M 				A or C
+B 				C or G or T
+D 				A or G or T
+H 				A or C or T
+V 				A or C or G
+N 				any base
+. or - 				gap
+
+Amino acid 	Three letter 	Amino acid
+A 			Ala 			Alanine
+C 			Cys 			Cysteine
+D 			Asp 			Aspartic Acid
+E 			Glu 			Glutamic Acid
+F 			Phe 			Phenylalanine
+G 			Gly 			Glycine
+H 			His 			Histidine
+I 			Ile 			Isoleucine
+K 			Lys 			Lysine
+L 			Leu 			Leucine
+M 			Met 			Methionine
+N 			Asn 			Asparagine
+P 			Pro 			Proline
+Q 			Gln 			Glutamine
+R 			Arg 			Arginine
+S 			Ser 			Serine
+T 			Thr 			Threonine
+V 			Val 			Valine
+W 			Trp 			Tryptophan
+Y 			Tyr 			Tyrosine
+'''
+
+		self.make_outputpopup()		
+		self.output.write(string+'\n', 'Text')
+		self.outputframe.Show()
+
+
+	
+	def codon_table(self, event):
+		'''Prints the standard codon table for translating DNA to protein'''
+		string = '''
+Put Table here
+'''
+		self.make_outputpopup()	
+		self.output.write(string+'\n', 'Text')
+		self.outputframe.Show()
+ 
+
+
+
+################ genbank methods ###############
+	def OnKeyPress(self, evt):
+		'''Checks which key is pressed and if one of them is A, T, C or G inserts the base into the file'''
+		#this is not working
+		print('ok')
+		print(evt)
+
+		keycode = event.GetUnicodeKey()
+#		if keycode == :
+#			insert...
+	
+		evt.Skip()
+
+	def select_all(self, evt):
+		pass
+
+		
+	def Uppercase(self, evt):
+		'''Change section to uppercase'''
+		genbank.gb.uppercase()
+		#update viewer
+		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+		self.dnaview.updateUI()
+		selection = genbank.gb.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		self.dnaview.gbviewer.SetSelection(start, finish)
+		self.dnaview.gbviewer.ShowPosition(start) 
+		
+	def Lowercase(self, evt):
+		'''Change section to lowercase'''
+		genbank.gb.lowercase()
+		#update viewer
+		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+		self.dnaview.updateUI()
+		selection = genbank.gb.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		self.dnaview.gbviewer.SetSelection(start, finish)
+		self.dnaview.gbviewer.ShowPosition(start) 
+
+	def Undo(self, evt):
+		pass
+		#I should store each genbank file as a deep copy in a list, that way I can get them back by undoing/redoing
+
+	def Redo(self, evt):
+		pass
+
+	def RevComp_sel(self, evt):
+		'''Funciton to reverse-complement the current selection'''
+		cutstart, cutend = self.dnaview.gbviewer.GetSelection()
+		if cutstart != -2 and cutend != -2: #must be a selection
+
+			#make changes
+			self.Copy("")
+			self.delete_selection()
+			genbank.gb.reverse_complement_clipboard()		
+			genbank.gb.paste(cutstart)
+			
+			#realize changes
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
+			self.dnaview.updateUI()
+			self.dnaview.gbviewer.SetInsertionPoint(cutstart)
+
+
+	def delete_selection(self): #done
+		'''Deletes a selection and updates dna and features'''
+		start, end = self.dnaview.gbviewer.GetSelection()
+		if start != -2 and end != -2: #must be a selection
+			deletedsequence = genbank.gb.get_dna()[start:end]
+			genbank.gb.changegbsequence(start+1, end+1, 'd', deletedsequence)
+
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
+			self.dnaview.updateUI()
+			self.dnaview.gbviewer.SetInsertionPoint(start)
+
+
+	def Cut(self, evt):
+		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
+		cutstart, cutend = self.dnaview.gbviewer.GetSelection()
+		if cutstart != -2 and cutend != -2: #must be a selection
+			self.Copy("")
+			self.delete_selection()
+			
+			#update viewer
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
+			self.dnaview.updateUI()
+			self.dnaview.gbviewer.SetInsertionPoint(cutstart)
+			self.dnaview.gbviewer.ShowPosition(cutstart) 
+#			self.dna_output(genbank.gb.clipboard)
+			
+			
+	def Cut_RevComp(self, evt):
+		'''Cut reverse complement of DNA'''
+		cutstart, cutend = self.dnaview.gbviewer.GetSelection()
+		if cutstart != -2 and cutend != -2: #must be a selection
+			self.Copy("")
+			self.delete_selection()
+			genbank.gb.reverse_complement_clipboard()
+			
+			#update viewer
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
+			self.dnaview.updateUI()
+			self.dnaview.gbviewer.SetInsertionPoint(cutstart)	
+#			self.dna_output(genbank.gb.clipboard)
+
+		
+		
+	def Paste(self, evt):
+		'''Paste DNA and any features'''
+		control = wx.Window.FindFocus() #which field is selected?
+		
+		if control == self.searchinput: #the searchbox
+			self.searchinput.SetValue(pyperclip.paste())
+			
+		elif control == self.dnaview.gbviewer: #the main dna window
+
+			#add filter to remove non-dna characters
+		
+			#figure out whether to over-write something
+			pastestart, pasteend = self.dnaview.gbviewer.GetSelection()
+			if pastestart == -2 and pasteend == -2: #not a selection
+				pastestart = self.dnaview.gbviewer.GetInsertionPoint()
+				pasteend = False
+
+			#if paste is from raw sequence
+			#if.....
+		
+		
+			#if paste is from copied/cut genbank dna
+			#elif.....
+			if pasteend == False:
+				genbank.gb.paste(pastestart)
+
+#			else: #if a selection
+#				start, end =self.tab_list[self.current_tab].GetSelection()
+#				self.delete_selection()  
+#				self.tab_list[self.current_tab].SetInsertionPoint(start)   #this generates probelems with the features. Need to sepereate delete and insert somehow
+#				genbank.gb.paste("")
+
+			#update viwer
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna()) #put dna in box
+			self.dnaview.updateUI()
+			self.dnaview.gbviewer.SetInsertionPoint(pastestart)
+		
+
+	
+	def Paste_RevComp(self, evt):
+		'''Paste reverse complement of DNA'''
+		genbank.gb.reverse_complement_clipboard()
+		self.Paste("")
+		genbank.gb.reverse_complement_clipboard() #change it back
+
+
+		
+	def Copy(self, evt):
+		'''Copy DNA and features into clipboard'''
+		control = wx.Window.FindFocus() #which field is selected?
+
+		if control == self.searchinput: #the searchbox
+			start, finish = self.searchinput.GetSelection()
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.searchinput.GetValue()[start:finish])
+
+#		if control == self.output: #the outputpanel
+#			start, finish = self.output.GetSelection()
+#			if start != -2 and finish != -2: #must be a selection
+#				pyperclip.copy(self.output.GetValue()[start:finish])
+			
+		elif control == self.dnaview.gbviewer: #the main dna window	
+			start, finish = self.dnaview.gbviewer.GetSelection()
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(genbank.gb.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
+				genbank.gb.copy(start, finish)
+#				self.dna_output(genbank.gb.clipboard)
+
+	
+	def Copy_RevComp(self, evt):
+		'''Copy reverse complement of DNA'''
+		copystart, copyend = self.dnaview.gbviewer.GetSelection()
+		self.Copy("")
+		genbank.gb.reverse_complement_clipboard()
+#		self.dna_output(genbank.gb.clipboard)
+		
+	def list_features(self, evt):
+		'''List all features in output panel'''
+		self.make_outputpopup()
+#		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
+		tabtext = 'Replace!'
+		self.output.write('%s | List features\n' % tabtext, 'File')
+		featurelist = genbank.gb.list_features()
+		self.output.write(featurelist, 'Text')
+		self.outputframe.Show()
+
+
+
+
+
+
+
+
 ######### Toolbar and Menu ############
 
 	def __generate_toolbar(self):
@@ -383,19 +690,19 @@ class MyFrame(wx.Frame):
    		wx.EVT_TOOL(self, 503, self.save_as_file)
 		#Cut
    		self.frame_1_toolbar.AddLabelTool(504, "Cut", wx.Bitmap(files['default_dir']+"/icon/cut.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Cut', 'Cut')
-   		wx.EVT_TOOL(self, 504, self.dnaview.Cut)
+   		wx.EVT_TOOL(self, 504, self.Cut)
 		#Copy
    		self.frame_1_toolbar.AddLabelTool(505, "Copy", wx.Bitmap(files['default_dir']+"/icon/copy.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Copy', 'Copy')
-   		wx.EVT_TOOL(self, 505, self.dnaview.Copy)
+   		wx.EVT_TOOL(self, 505, self.Copy)
 		#Paste
    		self.frame_1_toolbar.AddLabelTool(506, "Paste", wx.Bitmap(files['default_dir']+"/icon/paste.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Paste', 'Paste')
-   		wx.EVT_TOOL(self, 506, self.dnaview.Paste)
+   		wx.EVT_TOOL(self, 506, self.Paste)
    		#Undo
    		self.frame_1_toolbar.AddLabelTool(513, "Undo", wx.Bitmap(files['default_dir']+"/icon/undo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Undo', 'Undo')
-   		wx.EVT_TOOL(self, 513, self.dnaview.Undo)   
+   		wx.EVT_TOOL(self, 513, self.Undo)   
    		#Redo
    		self.frame_1_toolbar.AddLabelTool(514, "Redo", wx.Bitmap(files['default_dir']+"/icon/redo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Redo', 'Redo')
-   		wx.EVT_TOOL(self, 514, self.dnaview.Redo) 
+   		wx.EVT_TOOL(self, 514, self.Redo) 
 		#Print current window
 #   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
  #  		wx.EVT_TOOL(self, 510, self.print_setup)
@@ -497,6 +804,12 @@ class MyFrame(wx.Frame):
 			self.tab_list[self.current_tab].updateUI()
 		except:
 			pass
+
+		selection = genbank.gb.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		self.dnaview.gbviewer.SetSelection(start, finish)
+		self.dnaview.gbviewer.ShowPosition(start) 
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
@@ -504,7 +817,7 @@ class MyFrame(wx.Frame):
 		selection = genbank.gb.get_selection()
 		start = selection[0]
 		finish = selection[1]
-		self.dnaview.gbviewer.SetSelection(start-1, finish)
+		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 
 	def find_next(self, evt):
@@ -513,7 +826,7 @@ class MyFrame(wx.Frame):
 		selection = genbank.gb.get_selection()
 		start = selection[0]
 		finish = selection[1]
-		self.dnaview.gbviewer.SetSelection(start-1, finish)
+		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 
 	def mutate(self, evt):
@@ -583,8 +896,8 @@ class MyFrame(wx.Frame):
 #		fileitem.AppendSeparator()
 
 		#close single
-		fileitem.Append(5, "Close", "Close current file")
-		wx.EVT_MENU(self, 5, self.dnaview.close_single)
+#		fileitem.Append(5, "Close", "Close current file")
+#		wx.EVT_MENU(self, 5, self.dnaview.close_file)
 
 		#close all
 #		fileitem.Append(6, "Close all", "Close all tabs")
@@ -601,54 +914,54 @@ class MyFrame(wx.Frame):
 		self.edit = wx.Menu()
 		#undo
 		self.edit.Append(9, "Undo\tCtrl+Z", "Undo")
-		wx.EVT_MENU(self, 9, self.dnaview.Undo)
+		wx.EVT_MENU(self, 9, self.Undo)
 
 		#redo
 		self.edit.Append(10, "Redo\tCtrl+Y", "Redo")
-		wx.EVT_MENU(self, 10, self.dnaview.Redo)
+		wx.EVT_MENU(self, 10, self.Redo)
 		self.edit.AppendSeparator() #________________________devider
 
 		#cut
 		self.edit.Append(11, "Cut\tCtrl+X", "Cut selected DNA")
-		wx.EVT_MENU(self,11, self.dnaview.Cut)
+		wx.EVT_MENU(self,11, self.Cut)
 
 		#copy
 		self.edit.Append(12, "Copy\tCtrl+C", "Copy selected DNA")
-		wx.EVT_MENU(self, 12, self.dnaview.Copy)
+		wx.EVT_MENU(self, 12, self.Copy)
 
 		#paste
 		self.edit.Append(13, "Paste\tCtrl+V", "Paste DNA")
-		wx.EVT_MENU(self, 13, self.dnaview.Paste)
+		wx.EVT_MENU(self, 13, self.Paste)
 		
 		#cut reverse complement
 		self.edit.Append(111, "Cut Rev-Comp\tCtrl+Shift+X", "Cut reverse-complement of selected DNA")
-		wx.EVT_MENU(self,111, self.dnaview.Cut_RevComp)
+		wx.EVT_MENU(self,111, self.Cut_RevComp)
 
 		#copy reverse complement
 		self.edit.Append(121, "Copy Rev-Comp\tCtrl+Shift+C", "Copy reverse-complement of selected DNA")
-		wx.EVT_MENU(self, 121, self.dnaview.Copy_RevComp)		
+		wx.EVT_MENU(self, 121, self.Copy_RevComp)		
 		
 		#paste reverse complement
 		self.edit.Append(131, "Paste Rev-Comp\tCtrl+Shift+V", "Paste reverse-complement of DNA")
-		wx.EVT_MENU(self, 131, self.dnaview.Paste_RevComp)
+		wx.EVT_MENU(self, 131, self.Paste_RevComp)
 
 		#reverse-complement selection
 		self.edit.Append(141, "Rev-Comp selection\tCtrl+Shift+R", "Reverse-complement seleected DNA")
-		wx.EVT_MENU(self,141, self.dnaview.RevComp_sel)
+		wx.EVT_MENU(self,141, self.RevComp_sel)
 		self.edit.AppendSeparator() #________________________devider
 		
 		#select all
 		self.edit.Append(14, "Select all", "Select all text")
-		wx.EVT_MENU(self, 14, self.dnaview.select_all)
+		wx.EVT_MENU(self, 14, self.select_all)
 		self.edit.AppendSeparator() #________________________devider
 
 		#uppercase
 		self.edit.Append(34, "Uppercase\tCtrl+W", "Convert selected text to uppercase")
-		wx.EVT_MENU(self, 34, self.dnaview.Uppercase)
+		wx.EVT_MENU(self, 34, self.Uppercase)
 
 		#lowercase
 		self.edit.Append(35, "Lowercase\tCtrl+E", "Convert selected text to lowercase")
-		wx.EVT_MENU(self, 35, self.dnaview.Lowercase)
+		wx.EVT_MENU(self, 35, self.Lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
 		self.menubar.Append(self.edit, "Edit DNA")
@@ -659,7 +972,7 @@ class MyFrame(wx.Frame):
 		self.features = wx.Menu()
 		
 		self.features.Append(40, "List Features", "List all features in file")
-		wx.EVT_MENU(self,40, self.dnaview.list_features)
+		wx.EVT_MENU(self,40, self.list_features)
 		
 #		self.features.Append(41, "Edit Features", "Edit features in file")
 #		wx.EVT_MENU(self,41, self.edit_features)		
@@ -691,11 +1004,11 @@ class MyFrame(wx.Frame):
 		self.help = wx.Menu()
 		#about program
 		self.help.Append(21, "About", "About this program")
-		wx.EVT_MENU(self, 21, self.dnaview.info)
+		wx.EVT_MENU(self, 21, self.info)
 
 		#print IUPAC codes for dna and AA
 		self.help.Append(22, "IUPAC codes", "IUPAC codes of DNA and amino acids")
-		wx.EVT_MENU(self, 22, self.dnaview.IUPAC_codes)
+		wx.EVT_MENU(self, 22, self.IUPAC_codes)
 
 
 		self.menubar.Append(self.help, "Help")

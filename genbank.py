@@ -30,8 +30,9 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
-
-
+#TODO
+#fix header parsing
+#fix undo/redo
 
 import dna
 from copy import deepcopy
@@ -212,6 +213,22 @@ class gbobject():
 		'''Method for getting which DNA range is currently selected'''
 		return self.selection
 
+	def uppercase(self):
+		'''Change DNA selection to uppercase characters'''
+		selection = self.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		string = self.get_dna()[start:finish]
+		self.changegbsequence(start, finish, 'r', string.upper())
+
+	def lowercase(self):
+		'''Change DNA selection to lowercase characters'''
+		selection = self.get_selection()
+		start = selection[0]
+		finish = selection[1]
+		string = self.get_dna()[start:finish]
+		self.changegbsequence(start, finish, 'r', string.lower())
+
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
 		tempentry = ''
@@ -220,7 +237,6 @@ class gbobject():
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
 
-	
 	def set_location(self, feature, newlocation):
 		index = self.identify_feature(feature)
 		self.gbfile['features'][index]['location'] = newlocation
@@ -565,8 +581,8 @@ class gbobject():
 				self.search_hits = []
 				for match in oligo_localizer.match_oligo(dna_seq,oligo):
 					lm=len(match[2])
-					print('from %s to %s %s' % (match[0]+1,match[1]+lm,match[2]))
-					self.search_hits.append((match[0]+1,match[1]+lm))
+					print('from %s to %s %s' % (match[0],match[1]+lm,match[2]))
+					self.search_hits.append((match[0],match[1]+lm))
 				self.set_selection(self.search_hits[0])
 			else:
 				print('Sorry, no matches were found')			
@@ -582,13 +598,10 @@ class gbobject():
 		finish = selection[1]
 		for i in range(len(self.search_hits)):
 			if start < self.search_hits[0][0]:
-				print('first')
 				self.set_selection(self.search_hits[-1])
 				break
 			elif start <= self.search_hits[i][0]:
 				self.set_selection(self.search_hits[i-1])
-				print(i)
-				print('second')
 				break
 
 	def find_next(self):
@@ -815,6 +828,86 @@ class gbobject():
 		a = open(filepath, 'w')
 		a.write(string)
 		a.close()
+
+
+
+
+	def protein_mw(self, evt, protein):
+		if ('*' in protein[:-1]) == True:
+			pass
+		else:
+			pass
+			#add function for calculating MW
+
+	def align_proteins(self, evt):
+		pass
+		
+	def align_proteins_fasta(self, evt):
+		pass
+	
+	def protein_identsim(self, evt):
+		pass
+
+	def mutate_positions(self, evt):
+		pass
+	
+	def codon_optimize():
+		pass
+	
+	def protein_to_dna():
+		pass
+	
+	def minilib_design():
+		pass
+	
+	def find_barcode():
+		pass
+
+	def insert_barcode():
+		pass
+	
+	def read_barcode():
+		pass	
+	
+	def protein_pattern_find():
+		pass
+
+
+	
+	def align_dna_fasta():
+		pass	
+	
+	def restriction_enzyme():
+		pass
+		#don't forget methylation toggle
+#		'''--G  T-C-G-A-C--
+#		--|          |--
+#		--C-A-G-C-T  G--'''
+	
+	def seq_analysis():
+		#analyze sequencing results
+		pass
+	
+	def gbfile_from_mut():
+		pass
+		
+	def blast_dna():
+		pass
+	
+	def find_hairpins():
+		pass
+	
+	def codon_usage():
+		pass
+	
+	def find_bad_codons():
+		pass
+	
+	def primer_design():
+		pass
+	
+	def primer_database():
+		pass	
 
 
 def open_file(filepath):
