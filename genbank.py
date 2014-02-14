@@ -229,6 +229,25 @@ class gbobject():
 		string = self.get_dna()[start:finish]
 		self.changegbsequence(start, finish, 'r', string.lower())
 
+
+	def reverse_complement_clipboard(self):	
+		'''Reverse-complements the DNA and all features in clipboard'''
+		self.clipboard['dna'] = dna.reversecomplement(self.clipboard['dna']) #change dna sequence
+		pyperclip.copy(self.clipboard['dna'])	
+		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
+			if self.clipboard['features'][i]['complement'] == True: self.clipboard['features'][i]['complement'] = False
+			elif self.clipboard['features'][i]['complement'] == False: self.clipboard['features'][i]['complement'] = True
+
+			for n in range(len(self.clipboard['features'][i]['location'])):
+				start, finish = self.get_location(self.clipboard['features'][i]['location'][n])
+				featurelength = finish - start    #how much sequence in feature?
+				trail = len(self.clipboard['dna']) - finish     # how much sequence after feature?
+
+				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -finish+(trail+featurelength+1), 'f')	
+				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -start+trail+1, 's')
+			self.clipboard['features'][i]['location'].reverse() #reverse order of list elements				
+
+
 	def reverse_complement_selection(self):
 		'''Reverse-complements current DNA selection'''
 		start, finish = self.get_selection()
@@ -236,7 +255,10 @@ class gbobject():
 			self.copy()
 			self.delete()
 			self.reverse_complement_clipboard()		
-			self.paste(start)
+			self.paste()
+
+
+
 
 	def delete(self):
 		'''Deletes current DNA selection'''
@@ -334,22 +356,6 @@ class gbobject():
 
 ############################
 
-	def reverse_complement_clipboard(self):	
-		'''Reverse-complements the DNA and all features in clipboard'''
-		self.clipboard['dna'] = dna.reversecomplement(self.clipboard['dna']) #change dna sequence
-		pyperclip.copy(self.clipboard['dna'])	
-		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
-			if self.clipboard['features'][i]['complement'] == True: self.clipboard['features'][i]['complement'] = False
-			elif self.clipboard['features'][i]['complement'] == False: self.clipboard['features'][i]['complement'] = True
-
-			for n in range(len(self.clipboard['features'][i]['location'])):
-				start, finish = self.get_location(self.clipboard['features'][i]['location'][n])
-				featurelength = finish - start    #how much sequence in feature?
-				trail = len(self.clipboard['dna']) - finish     # how much sequence after feature?
-
-				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -finish+(trail+featurelength+1), 'f')	
-				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -start+trail+1, 's')
-			self.clipboard['features'][i]['location'].reverse() #reverse order of list elements				
 
 
 	def add_empty_feature(self):

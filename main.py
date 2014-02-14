@@ -552,7 +552,9 @@ Put Table here
 		
 	def paste_reverse_complement(self, evt):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
+		self.match_selection()
 		genbank.gb.paste_reverse_complement()
+		self.update_viewer()
 		#need to add logic to make sure the correct panel is selected
 
 	def copy(self, evt):
@@ -570,6 +572,7 @@ Put Table here
 
 	def copy_reverse_complement(self, evt):
 		'''Copy reverse complement of DNA'''
+		self.match_selection()
 		genbank.gb.copy_reverse_complement()
 		#need to add logic to make sure the correct panel is selected
 
