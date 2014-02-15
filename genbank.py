@@ -52,6 +52,35 @@ class gbobject():
 		self.search_hits = []	# variable for storing a list of search hits
 		self.selection = (0, 0)	 #variable for storing current DNA selection
 
+	def treat_input_line(self, tempstr):
+		'''Function for parsing a string containing feature information into the correct data format'''
+		templist = tempstr.split('  ')
+
+		templist[:] = [x for x in templist if x != ''] #remove empty entries
+		
+		#to remove any \r and \n newline characters at the end
+		for i in range(len(templist)): 
+			templist[i] = templist[i].rstrip('\r\n')
+
+		#remove single whitespace in front
+		for i in range(len(templist)): 
+			if templist[i][0] == ' ':
+				templist[i] = templist[i][1:]
+	
+		#to deal with feature descriptions or amino acid sequences that break over several lines 
+		done = False
+		i = 2
+		while done != True:
+			listlen = len(templist)
+			if templist[i][0] != '/': 
+				templist[i-1] += templist[i]
+				del templist[i]
+				i = 1
+			if i >= listlen-1:
+				done = True
+			i += 1
+		return templist
+
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
 		a = open(filepath, 'r') #open it for reading
@@ -79,7 +108,6 @@ class gbobject():
 		
 		featurelist2 = []
 		featurelist = features.split('\n')
-#		print(featurelist)
 		templist = []
 		tempstr = ''
 		
@@ -92,36 +120,8 @@ class gbobject():
 
 				elif line+1 == len(featurelist):
 					tempstr += featurelist[line]
-
-
-				templist = tempstr.split('  ')
-
-				templist[:] = [x for x in templist if x != ''] #remove empty entries
-				
-				#to remove any \r and \n newline characters at the end
-				for i in range(len(templist)): 
-					templist[i] = templist[i].rstrip('\r\n')
-
-				#remove single whitespace in front
-				for i in range(len(templist)): 
-					if templist[i][0] == ' ':
-						templist[i] = templist[i][1:]
 			
-				#to deal with feature descriptions or amino acid sequences that break over several lines 
-				done = False
-				i = 2
-				while done != True:
-					listlen = len(templist)
-					if templist[i][0] != '/': 
-						templist[i-1] += templist[i]
-						del templist[i]
-						i = 1
-					if i >= listlen-1:
-						done = True
-					i += 1
-			
-			
-				featurelist2.append(templist)
+				featurelist2.append(self.treat_input_line(tempstr))
 				tempstr = featurelist[line]
 				
 			elif '..' in featurelist[line] and tempstr == '': #first feature
@@ -129,8 +129,10 @@ class gbobject():
 
 			else:						#in-between features
 				tempstr += featurelist[line]
-		
 
+		#catch final entry
+		featurelist2.append(self.treat_input_line(tempstr))
+		
 
 		#now arrange features into the correct data structure
 		features = []
@@ -825,7 +827,6 @@ class gbobject():
 		string += (self.gbfile['header']+'\n')
 		string += ('FEATURES             Location/Qualifiers\n')
 		for entry in self.gbfile['features']:
-			#print(entry)
 			
 			locations = entry['location'][0]
 			if len(entry['location']) > 1:
@@ -958,7 +959,7 @@ def open_file(filepath):
 	'''Function that makes a gbobject with a specified genbank file'''
 	global gb
 	gb = gbobject()
-	gb.readgb('/home/martin/Python_files/DNApy_local/GBtest.gb')
+	gb.readgb(filepath)
 
 
 def new_file():
