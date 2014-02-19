@@ -9,8 +9,7 @@ from string import *
 #fix buttons
 #make pretty
 #add right-click menu
-#add search function, narrow list based on keyword
-#add menubar with load and save options
+#add search function
 #how to modify the location?
 #make the xref and protein id and such copyable
 
@@ -58,6 +57,10 @@ class FeatureView(wx.Panel):
 		self.SetSizer(sizer2)
 
 
+class EditFeatureView(wx.Panel):
+	def __init__(self, parent, id):
+		wx.Panel.__init__(self, parent)
+
 
 
 class QualifierView(wx.Panel):
@@ -83,6 +86,74 @@ class QualifierView(wx.Panel):
 		sizer2.Add(sizer, 0, wx.EXPAND)
 
 		self.SetSizer(sizer2)
+
+		#bind qualifier buttions
+		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
+		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
+
+
+	def OnAddQualifier(self, event):
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		qualifier = '/label=testing' #change this 
+		genbank.gb.add_qualifier(feature, qualifier)
+		self.updateUI()
+
+		number = self.qualifier_list.listview.GetItemCount()-1
+		self.update_qualifier_selection(featurenumber, number)
+	
+
+	def OnRemoveQualifier(self, event):
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		number = self.qualifier_list.listview.GetFirstSelected()
+		if self.qualifier_list.listview.GetItemCount() != 1: #don't delete last qualifier
+			genbank.gb.remove_qualifier(feature, number)
+			self.updateUI()
+
+			#set highlight, focus and selection
+			if number == self.qualifier_list.listview.GetItemCount():
+				number = number-1
+			self.update_qualifier_selection(featurenumber, number)
+
+
+	def OnMoveQualifierUp(self, event):
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		number = self.qualifier_list.listview.GetFirstSelected()
+		genbank.gb.move_qualifier(feature, number, 'u')
+		self.updateUI()
+		if number != 0:
+			number = number-1
+		self.update_qualifier_selection(featurenumber, number)	
+
+
+	def OnMoveQualifierDown(self, event):
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		number = self.qualifier_list.listview.GetFirstSelected()
+		featurenumber = self.feature_list.listview.GetFirstSelected()
+		genbank.gb.move_qualifier(feature, number, 'd')
+		self.updateUI()
+		if number != self.qualifier_list.listview.GetItemCount()-1:
+			number = number+1
+		self.update_qualifier_selection(featurenumber, number)
+
+
+	def update_qualifier_selection(self, featurenumber, number):
+		'''Updates which feature is selected'''
+		self.update_feature_selection(featurenumber) #make sure the right feature is selected
+		self.qualifier_list.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
+		self.qualifier_list.listview.Select(number, True) #to select it
+		self.qualifier_list.listview.Focus(number) #to focus it
+
+
+
 		
 
 class MyPanel(wx.Panel):
@@ -98,11 +169,7 @@ class MyPanel(wx.Panel):
 		self.Bind(wx.EVT_BUTTON, self.OnMoveFeatureDown, id=5)
 #		self.Bind(wx.EVT_BUTTON, self.OnCopyTranslation, id=5)
 
-		#bind qualifier buttions
-		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
-		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
-		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
-		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
+
 		
 		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
 		splitter2 = wx.SplitterWindow(splitter1, -1, style=wx.SP_3D)
@@ -130,7 +197,7 @@ class MyPanel(wx.Panel):
 		splitter2.SplitHorizontally(self.feature_dlg, self.qualifier_list)
 
 
-################    Feature edit panel
+################    Feature edit panel #######################
 
 		
 		#feature label control
@@ -174,13 +241,17 @@ class MyPanel(wx.Panel):
 		locationtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
 		
 		#complement or not
-		complementtext = wx.StaticText(self.feature_dlg, id=1004, label='')
 		self.complementbox = wx.CheckBox(self.feature_dlg, label="Complement?")
-		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)
-		complementtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-		
-		
+		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)	
 
+		#Join or not
+		self.joinbox = wx.CheckBox(self.feature_dlg, label="Join?")
+		self.joinbox.Bind(wx.EVT_CHECKBOX, self.JoinCheckboxOnSelect)
+
+		#Order or not
+		self.orderbox = wx.CheckBox(self.feature_dlg, label="Order?")
+		self.orderbox.Bind(wx.EVT_CHECKBOX, self.OrderCheckboxOnSelect)
+		#need to add logic that only makes join and order available if there are more than one location for a feature...
 
 		hbox = wx.BoxSizer()
 		sizer = wx.GridSizer(rows=4, cols=3, )
@@ -188,7 +259,7 @@ class MyPanel(wx.Panel):
 		sizer.AddMany([self.featuretext, featuretext1, featuretext2])
 		sizer.AddMany([typetext, self.type_combobox, typetext2])
 		sizer.AddMany([locationtext, self.location, locationtext2])
-		sizer.AddMany([complementtext, self.complementbox, complementtext2])
+		sizer.AddMany([self.complementbox, self.joinbox, self.orderbox])
 
 
 		hbox.Add(sizer, wx.EXPAND, wx.EXPAND)
@@ -245,75 +316,102 @@ class MyPanel(wx.Panel):
 			n += 1
 		#self.autosize()	
 
-	def get_selection(self):
+	def get_selection(self): #change this to actually accessing the file
 		#get table content
-		listctrlcontent = []
-		for row in range(self.feature_list.listview.GetItemCount()):
-			featurename, featuretype, location, strand, qualifiers = [self.feature_list.listview.GetItem(row, col).GetText() for col in range(self.feature_list.listview.GetColumnCount())]
-			location = '[' + location + ']' #add brackets back
-			location =  ast.literal_eval(location) #convert to list
-			qualifiers = ast.literal_eval(qualifiers) #convert to list
 
-			if strand == 'leading': strand = False
-			elif strand == 'complement': strand = True
-			listctrlcontent.append(dict(feature=featurename, key=featuretype, location=location, complement=strand, qualifiers=qualifiers))
+
+#		listctrlcontent = []
+#		for row in range(self.feature_list.listview.GetItemCount()):
+#			featurename, featuretype, location, strand, qualifiers = [self.feature_list.listview.GetItem(row, col).GetText() for col in range(self.feature_list.listview.GetColumnCount())]
+#			location = '[' + location + ']' #add brackets back
+#			location =  ast.literal_eval(location) #convert to list
+#			qualifiers = ast.literal_eval(qualifiers) #convert to list
+#
+#			if strand == 'leading': strand = False
+#			elif strand == 'complement': strand = True
+#			listctrlcontent.append(dict(feature=featurename, key=featuretype, location=location, complement=strand, qualifiers=qualifiers))
 
 		#get the selected feature
 		featureposition = self.feature_list.listview.GetFocusedItem()
-		feature = listctrlcontent[featureposition]
+#		feature = genbank.gb.get_feature(featureposition)
+		return featureposition
 
-		return feature
 
 	def ListOnSelect(self, event):
 		'''Updates all fields depending on which feature is chosen'''
 	
 		#get selected feature
-		feature = self.get_selection()
+		index = self.get_selection()
 		
 		#update fields
-		self.featuretext.SetLabel(feature['feature'])
-		self.type_combobox.SetStringSelection(feature['key']) #update type
-		self.location.ChangeValue(str(feature['location'])) #update location
-		self.complementbox.SetValue(feature['complement']) #update complement
+		self.featuretext.SetLabel(genbank.gb.get_feature_label(index))
+		self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
+		self.location.ChangeValue(str(genbank.gb.get_feature_location(index))) #update location
+		self.complementbox.SetValue(genbank.gb.get_feature_complement(index)) #update complement
+		self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
+		self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
 		
 		#update qualifier field
 		self.qualifier_list.listview.DeleteAllItems()
 
-		for entry in genbank.gb.gbfile['features']:
-			if entry['qualifiers'][0].split('=')[1] == feature['feature']:
-				for qualifier in entry['qualifiers']:
-					#set content
-					col0, col1 = qualifier.split('=')
-					col0 = col0[1:]
-					self.qualifier_list.listview.Append([col0, col1])
-					self.qualifier_list.listview.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
-					self.qualifier_list.listview.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)					
+#		for entry in genbank.gb.gbfile['features']:
+#			if entry['qualifiers'][0].split('=')[1] == feature['feature']:
+
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		for qualifier in feature['qualifiers']:
+			#set content
+			col0, col1 = qualifier.split('=')
+			col0 = col0[1:]
+			self.qualifier_list.listview.Append([col0, col1])
+			self.qualifier_list.listview.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
+			self.qualifier_list.listview.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)					
 
 
 	def ComplementCheckboxOnSelect(self, event):
+		'''Toggle whether the feature is on the complement strand or not'''
 		newcomplement = self.complementbox.GetValue()
-		feature = self.get_selection()
-		genbank.gb.change_feature_complement(feature, newcomplement)
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		genbank.gb.set_feature_complement(feature, newcomplement)
+		self.updateUI()
+
+	def JoinCheckboxOnSelect(self, event):
+		'''Toggle whether a feature with multiple locations should be joined or not'''
+		newjoin = self.joinbox.GetValue()
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		genbank.gb.set_feature_join(feature, newjoin)
+		self.updateUI()
+
+	def OrderCheckboxOnSelect(self, event):
+		'''Toggle whether a feature with ultiple locations should be indicated as being in a certain order or not'''
+		neworder = self.orderbox.GetValue()
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		genbank.gb.set_feature_order(feature, neworder)
 		self.updateUI()
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
-		feature = self.get_selection()
-		genbank.gb.change_feature_type(feature, newkey)
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		genbank.gb.set_feature_type(feature, newkey)
 		self.updateUI()
 
 	def LocationFieldOnText(self, event): # fix  this! maybe use a different event to call it...
 		newlocation = self.location.GetLineText(0) #get location
 		print(type(newlocation))
 		print(newlocation)
-		feature = self.get_selection()
-		genbank.gb.set_location(feature, newlocation)
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
+		genbank.gb.set_feature_location(feature, newlocation)
 		self.updateUI()
 
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
-		genbank.gb.add_empty_feature()
+		genbank.gb.add_feature() #add arguments here!!!!!!!!!
 		self.updateUI()
 
 		number = self.feature_list.listview.GetItemCount()-1
@@ -323,7 +421,8 @@ class MyPanel(wx.Panel):
 	def OnDelete(self, event):
 		'''Delete selected feature'''
 		#identify feature, remove it and update interface
-		feature = self.get_selection()
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
 		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.remove_feature(feature)
 		self.updateUI()
@@ -336,7 +435,8 @@ class MyPanel(wx.Panel):
 
 	def OnMoveFeatureUp(self, event):
 		'''Move feature up one step'''
-		feature = self.get_selection()
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
 		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'u')	
 		self.updateUI()
@@ -347,7 +447,8 @@ class MyPanel(wx.Panel):
 
 	def OnMoveFeatureDown(self, event):
 		'''Move feature up down step'''
-		feature = self.get_selection()
+		index = self.get_selection()
+		feature = genbank.gb.get_feature(index)
 		number = self.feature_list.listview.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'd')
 		self.updateUI()
@@ -373,70 +474,6 @@ class MyPanel(wx.Panel):
 	def OnCopyTranslation(self, event):
 		pass
 
-
-	## qualifiers ##
-	
-	def OnAddQualifier(self, event):
-		feature = self.get_selection()
-		featurenumber = self.feature_list.listview.GetFirstSelected()
-		qualifier = '/label=testing' #change this 
-		genbank.gb.add_qualifier(feature, qualifier)
-		self.updateUI()
-
-		number = self.qualifier_list.listview.GetItemCount()-1
-		self.update_qualifier_selection(featurenumber, number)
-	
-
-	def OnRemoveQualifier(self, event):
-		feature = self.get_selection()
-		featurenumber = self.feature_list.listview.GetFirstSelected()
-		number = self.qualifier_list.listview.GetFirstSelected()
-		if self.qualifier_list.listview.GetItemCount() != 1: #don't delete last qualifier
-			genbank.gb.remove_qualifier(feature, number)
-			self.updateUI()
-
-			#set highlight, focus and selection
-			if number == self.qualifier_list.listview.GetItemCount():
-				number = number-1
-			self.update_qualifier_selection(featurenumber, number)
-
-
-	def OnMoveQualifierUp(self, event):
-		feature = self.get_selection()
-		featurenumber = self.feature_list.listview.GetFirstSelected()
-		number = self.qualifier_list.listview.GetFirstSelected()
-		genbank.gb.move_qualifier(feature, number, 'u')
-		self.updateUI()
-		if number != 0:
-			number = number-1
-		self.update_qualifier_selection(featurenumber, number)	
-
-
-	def OnMoveQualifierDown(self, event):
-		feature = self.get_selection()
-		number = self.qualifier_list.listview.GetFirstSelected()
-		featurenumber = self.feature_list.listview.GetFirstSelected()
-		genbank.gb.move_qualifier(feature, number, 'd')
-		self.updateUI()
-		if number != self.qualifier_list.listview.GetItemCount()-1:
-			number = number+1
-		self.update_qualifier_selection(featurenumber, number)
-
-
-	def update_qualifier_selection(self, featurenumber, number):
-		'''Updates which feature is selected'''
-		self.update_feature_selection(featurenumber) #make sure the right feature is selected
-		self.qualifier_list.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
-		self.qualifier_list.listview.Select(number, True) #to select it
-		self.qualifier_list.listview.Focus(number) #to focus it
-
-
-################# #################### ###############
-
-	### Buttons ###
-		
-
-			
 			
 
 

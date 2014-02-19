@@ -482,17 +482,17 @@ Put Table here
 		if viewerstart == -2 and viewerend == -2: # if not a selection
 			viewerstart = self.dnaview.gbviewer.GetInsertionPoint()
 			viewerend = viewerstart
-		gbstart, gbend = genbank.gb.get_selection()
+		gbstart, gbend = genbank.gb.get_dna_selection()
 		if viewerstart != gbstart or viewerend != gbend:
 			selection = (viewerstart, viewerend)
-			genbank.gb.set_selection(selection)
+			genbank.gb.set_dna_selection(selection)
 			#print(selection)
 
 	def update_viewer(self):
 		'''Accessory function for realizing changes to DNA'''
 		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 		self.dnaview.updateUI()
-		start, finish = genbank.gb.get_selection()
+		start, finish = genbank.gb.get_dna_selection()
 		if start != finish: self.dnaview.gbviewer.SetSelection(start, finish)
 		elif start == finish: self.dnaview.gbviewer.SetInsertionPoint(start)
 		self.dnaview.gbviewer.ShowPosition(start) 
@@ -677,7 +677,7 @@ Put Table here
 	
 		#nucleotide or amino acid
 		if typeof == 'Find':
-			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
+			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Position', 'Feature'], style=wx.CB_READONLY)
 		elif typeof == 'Mutate':
 			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid'], style=wx.CB_READONLY)
 		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
@@ -738,21 +738,21 @@ Put Table here
 		except:
 			pass
 
-		start, finish = genbank.gb.get_selection()
+		start, finish = genbank.gb.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
 		genbank.gb.find_previous()
-		start, finish = genbank.gb.get_selection()
+		start, finish = genbank.gb.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 
 	def find_next(self, evt):
 		'''Select next search hit'''
 		genbank.gb.find_next()
-		start, finish = genbank.gb.get_selection()
+		start, finish = genbank.gb.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 

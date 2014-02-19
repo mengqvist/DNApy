@@ -33,6 +33,8 @@
 #TODO
 #fix header parsing
 #fix undo/redo
+#fix qualifier buttons
+#integrate the feature selection variable (from the genbank file)
 
 import dna
 from copy import deepcopy
@@ -50,7 +52,8 @@ class gbobject():
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
 		self.search_hits = []	# variable for storing a list of search hits
-		self.selection = (0, 0)	 #variable for storing current DNA selection
+		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
+		self.feature_selection = False
 
 	def treat_input_line(self, tempstr):
 		'''Function for parsing a string containing feature information into the correct data format'''
@@ -203,31 +206,179 @@ class gbobject():
 		self.gbfile['header'] = ''
 		self.gbfile['filepath'] = ''
 
-##### Selection methods #####
 
-	def set_selection(self, selection):
+##### Get and Set methods #####
+	
+	#DNA#
+	def get_dna_selection(self):
+		'''Method for getting which DNA range is currently selected'''
+		return self.dna_selection[0], self.dna_selection[1]
+
+	def set_dna_selection(self, selection):
 		'''Method for selecting a certain DNA range'''
 		#input needs to be a touple of two values
-		self.selection = selection
+		self.dna_selection = selection
 		start = selection[0]
 		finish = selection[1]
 		print('Selection from %s to %s') % (start, finish)
 
-	def get_selection(self):
-		'''Method for getting which DNA range is currently selected'''
-		return self.selection[0], self.selection[1]
+
+	#Feature#
+	def get_feature(self, index):
+		"""Returns the entire feature from a certain index"""
+		try:
+			return self.gbfile['features'][index]
+		except:
+			print('This is not a valid index')
+			return False
+
+	def get_feature_index(self, feature):
+		'''Get the index of a feature in the self.gbfile data structure'''
+		if len(self.gbfile['features']) == 0:
+			print('Error, no index found')
+			return False
+		else:
+			for i in range(len(self.gbfile['features'])):
+				if self.gbfile['features'][i]['key'] != feature['key']: continue
+				if self.gbfile['features'][i]['location'] != feature['location']: continue
+				if self.gbfile['features'][i]['qualifiers'][0] != feature['qualifiers'][0]: continue
+				if self.gbfile['features'][i]['complement'] == feature['complement']: #it is == here
+					return i
+			print('Error, no index found')
+			return False		
+
+	def get_feature_selection(self):
+		'''Get index of currently selected feature, if any'''
+		return self.feature_selection 
+
+	def set_feature_selection(self, index):
+		'''Set currently selected feature'''
+		#this is currently independent from DNA selection
+		self.feature_selection = index
+		print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
+
+
+	def get_feature_label(self, index):
+		"""This method extracts the first qualifier and returns that as a label"""
+		try:
+			return self.gbfile['features'][index]['qualifiers'][0].split('=')[1]
+		except:
+			print('This is not a valid index')
+			return False
+				
+
+
+	def get_feature_type(self, index):
+		'''Get feature type (key) for feature with given index'''
+		try:
+			return self.gbfile['features'][index]['key']
+		except:
+			print('This is not a valid index')
+			return False
+
+	def set_feature_type(self, feature, newkey):
+		'''Changes feature type of the feature passed to method'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['key'] = newkey
+
+	def get_feature_complement(self, index):
+		'''Get whether a feature is on leading or complement DNA strand'''
+		try:
+			return self.gbfile['features'][index]['complement']
+		except:
+			print('This is not a valid index')
+			return False
+
+	def set_feature_complement(self, feature, complement):
+		'''Changes whether a feature is on leading or complement DNA strand'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['complement'] = complement 
+
+
+	def get_feature_join(self, index):
+		'''Get whether a feature with multiple locations should be joined or not'''
+		try:
+			return self.gbfile['features'][index]['join']
+		except:
+			print('This is not a valid index')
+			return False
+
+	def set_feature_join(self, feature, join):
+		'''Change whether a feature with multiple locations should be joined or not'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['join'] = join 
+
+
+	def get_feature_order(self, index):
+		'''Get whether a feature with multiple locations should be indicated as having the specified order or not'''
+		try:
+			return self.gbfile['features'][index]['order']
+		except:
+			print('This is not a valid index')
+			return False
+
+	def set_feature_order(self, feature, order):
+		'''Change whether a feature with multiple locations should be indicated as having the specified order or not'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['order'] = order 
+
+
+	def get_feature_location(self, index):
+		'''Gets all locations for a feature'''
+		try:
+			return self.gbfile['features'][index]['location']
+		except:
+			print('This is not a valid index')
+			return False
+
+	def set_feature_location(self, feature, newlocation):
+		'''Sets all location for a feature'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			self.gbfile['features'][index]['location'] = newlocation
+
+	def get_location(self, entry):
+		'''Returns start and end location for an entry of a location list'''
+		tempentry = ''
+		for n in range(len(entry)):
+			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
+		start, finish = tempentry.split('..')
+		return int(start), int(finish)
+
+
+	def remove_location(self, index, number):
+		'''Removes locaiton in self.gbfile['features'][index]['location'][number]'''
+		del self.gbfile['features'][index]['location'][number]
+		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
+			del self.gbfile['features'][index] 
+
+
 
 ##### DNA modification methods #####
 
 	def uppercase(self):
 		'''Change DNA selection to uppercase characters'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		string = self.get_dna()[start:finish]
 		self.changegbsequence(start, finish, 'r', string.upper())
 
 	def lowercase(self):
 		'''Change DNA selection to lowercase characters'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		string = self.get_dna()[start:finish]
 		self.changegbsequence(start, finish, 'r', string.lower())
 
@@ -252,7 +403,7 @@ class gbobject():
 
 	def reverse_complement_selection(self):
 		'''Reverse-complements current DNA selection'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
 			self.delete()
@@ -264,21 +415,21 @@ class gbobject():
 
 	def delete(self):
 		'''Deletes current DNA selection'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			deletedsequence = self.get_dna()[start:finish]
 			self.changegbsequence(start+1, finish+1, 'd', deletedsequence)
-		self.set_selection((start, start))
+		self.set_dna_selection((start, start))
 
 	def cut(self):
 		'''Cut current DNA selection and place it in clipboard together with any features present on that DNA'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
 			self.delete()
 
 	def cut_reverse_complement(self):
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
 			self.delete()
@@ -286,7 +437,7 @@ class gbobject():
 
 	def paste(self):
 		'''Paste DNA present in clipboard and any features present on that DNA'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #If a selection, remove sequence
 			self.delete()
 
@@ -308,7 +459,7 @@ class gbobject():
 
 	def copy(self):
 		'''Copy DNA and all the features for a certain selection'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			pyperclip.copy(self.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
 			self.clipboard = {}
@@ -334,54 +485,11 @@ class gbobject():
 		''' '''
 		self.copy()
 		self.reverse_complement_clipboard()
-		#something is not working with this method...
-
-##### Feature location methods #####
-
-	def get_location(self, entry):
-		'''Returns start and end location for an entry of a location list'''
-		tempentry = ''
-		for n in range(len(entry)):
-			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
-		start, finish = tempentry.split('..')
-		return int(start), int(finish)
-
-	def set_location(self, feature, newlocation):
-		index = self.identify_feature(feature)
-		self.gbfile['features'][index]['location'] = newlocation
-
-	def remove_location(self, index, number):
-		'''Removes locaiton in self.gbfile['features'][index]['location'][number]'''
-		del self.gbfile['features'][index]['location'][number]
-		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
-			del self.gbfile['features'][index] 
-
-############################
 
 
 
-	def add_empty_feature(self):
-		"""Function adds a feature to self.allgbfeatures"""
-		feature = {}
-		feature['key'] = ""
-		feature['qualifiers'] = ['/label=empty']
-		feature['location'] = []
-		feature['complement'] = False
-		self.gbfile['features'].append(feature) #change append to sth that works for dicts
 
-	
-	def identify_feature(self, feature):
-		'''Used to find the position of a feature in the self.gbfile data structure'''
-		if len(self.gbfile['features']) == 0:
-			return False
-		else:
-			for i in range(len(self.gbfile['features'])):
-				if self.gbfile['features'][i]['key'] != feature['key']: continue
-				if self.gbfile['features'][i]['location'] != feature['location']: continue
-				if self.gbfile['features'][i]['qualifiers'][0] != feature['qualifiers'][0]: continue
-				if self.gbfile['features'][i]['complement'] == feature['complement']: #it is == here
-					return i
-			return False
+#### Feature modification methods ####
 
 
 	def paste_feature(self, feature, insertlocation):
@@ -405,11 +513,56 @@ class gbobject():
 #			if featurestart > start:
 #				self.gbfile['features'].insert(i, feature)
 #				break	
-			
+
+
+
+	def add_feature(self, key, qualifiers, location, complement, join, order):
+		"""Method adds a new feature to the genbank file"""
+		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
+		feature = {}
+
+		if key in featuretypes: 
+			feature['key'] = key
+		else: 
+			print('Key error')
+			return False
+
+		if type(qualifiers) == 'list': 
+			feature['qualifiers'] = qualifiers
+		else:
+			print('Qualifiers error')
+			return  False
+		
+		if type(location) == 'list':	#need more checks here to make sure the numbers are ok
+			feature['location'] = location
+		else:
+			print('Location error')
+			return False
+
+		if complement == True or complement == False:
+			feature['complement'] = complement
+		else:
+			print('Complement error')
+			return False
+
+		if join == True or join == False:
+			feature['join'] = join
+		else: 
+			print('Join error')
+			return False
+		
+		if order == True or order == False:
+			feature['order'] = order
+		else:
+			print('Order error')
+			return False
+
+		self.gbfile['features'].append(feature) #change append to sth that works for dicts
+
 		
 	def remove_feature(self, feature):
-		"""Function removes a feature from self.allgbfeatures based on its ID (which is the first qualifier)"""
-		position = self.identify_feature(feature)
+		"""Function removes the feature that is passed to it from the genbank file"""
+		position = self.get_feature_index(feature)
 		
 		if position is False:
 			print('feature identify error')
@@ -419,7 +572,7 @@ class gbobject():
 
 	def move_feature(self, feature, upordown):
 		'''Moves a feature one step up or down the list (up defined as closer to the beginning)'''
-		index = self.identify_feature(feature)
+		index = self.get_feature_index(feature)
 		if upordown == 'u' and index != 0:
 			self.gbfile['features'][index-1], self.gbfile['features'][index] = self.gbfile['features'][index], self.gbfile['features'][index-1]
 
@@ -429,7 +582,7 @@ class gbobject():
 
 	def add_qualifier(self, feature, newqualifier):
 		'''Adds qualifier tag to existing feature'''
-		index = self.identify_feature(feature)
+		index = self.get_feature_index(feature)
 		if index is False:
 			print('Error, no index found')
 		else:
@@ -438,7 +591,7 @@ class gbobject():
 		
 	def remove_qualifier(self, feature, number):
 		'''Removes a qualifier tag from an existing feature'''
-		index = self.identify_feature(feature)
+		index = self.get_feature_index(feature)
 		if index is False:
 			print('Error, no index found')
 		else:
@@ -447,7 +600,7 @@ class gbobject():
 
 	def move_qualifier(self, feature, number, upordown):
 		'''Moves a qualifier one step up or down the list (up defined as closer to the beginning)'''
-		index = self.identify_feature(feature)
+		index = self.get_feature_index(feature)
 		if index is False:
 			print('Error, no index found')
 		else:
@@ -482,24 +635,6 @@ class gbobject():
 			index, number = deletionlist[-1]
 			del self.gbfile['features'][index]['qualifiers'][number]
 			del deletionlist[-1]
-
-
-	def change_feature_type(self, feature, newkey):
-		'''Changes feature type of the feature passed to method'''
-		index = self.identify_feature(feature)
-		if index is False:
-			print('Error, no index found')
-		else:
-			self.gbfile['features'][index]['key'] = newkey
-
-
-	def change_feature_complement(self, feature, complement):
-		'''Changes whether a feature is on leading or complement DNA strand'''
-		index = self.identify_feature(feature)
-		if index is False:
-			print('Error, no index found')
-		else:
-			self.gbfile['features'][index]['complement'] = complement 
 
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
@@ -613,6 +748,8 @@ class gbobject():
 		return featurelist
 
 
+#### Find methods ####
+
 	def find_dna(self, searchstring):
 		'''Method for finding a certain DNA sequence in the file. Degenerate codons are supported'''
 		dna_seq = self.get_dna()
@@ -633,7 +770,7 @@ class gbobject():
 					lm=len(match[2])
 					print('from %s to %s %s' % (match[0],match[1]+lm,match[2]))
 					self.search_hits.append((match[0],match[1]+lm))
-				self.set_selection(self.search_hits[0])
+				self.set_dna_selection(self.search_hits[0])
 			else:
 				print('Sorry, no matches were found')			
 
@@ -643,27 +780,29 @@ class gbobject():
 
 	def find_previous(self):
 		'''Switch to the previous search hit'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		for i in range(len(self.search_hits)):
 			if start < self.search_hits[0][0]:
-				self.set_selection(self.search_hits[-1])
+				self.set_dna_selection(self.search_hits[-1])
 				break
 			elif start <= self.search_hits[i][0]:
-				self.set_selection(self.search_hits[i-1])
+				self.set_dna_selection(self.search_hits[i-1])
 				break
 
 	def find_next(self):
 		'''Switch to the next search hit'''
-		start, finish = self.get_selection()
+		start, finish = self.get_dna_selection()
 		for i in range(len(self.search_hits)):
 			if start < self.search_hits[i][0]:
-				self.set_selection(self.search_hits[i])
+				self.set_dna_selection(self.search_hits[i])
 				break
 			elif i == len(self.search_hits)-1:
-				self.set_selection(self.search_hits[0])
+				self.set_dna_selection(self.search_hits[0])
 				break
 
 
+
+#################################
 
 	def mutate():
 		pass
