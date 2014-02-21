@@ -255,6 +255,7 @@ class gbobject():
 		'''Set currently selected feature'''
 		#this is currently independent from DNA selection
 		self.feature_selection = index
+		#add logic to find first and last position for feature and make DNA selection match.
 		print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
 
 
