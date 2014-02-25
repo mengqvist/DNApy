@@ -53,7 +53,7 @@ class gbobject():
 		self.clipboard['features'] = []
 		self.search_hits = []	# variable for storing a list of search hits
 		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
-		self.feature_selection = False
+		self.feature_selection = False #variable for storing current feature selection
 
 	def treat_input_line(self, tempstr):
 		'''Function for parsing a string containing feature information into the correct data format'''
@@ -451,6 +451,8 @@ class gbobject():
 		self.changegbsequence(start+1, start+1, 'i', DNA) #change dna sequence	
 		for i in range(len(temp_clipboard['features'])): #add features from clipboard
 			self.paste_feature(temp_clipboard['features'][i], start)
+		self.set_dna_selection((start, start+len(DNA))) #make pasted sequence selected
+
 
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA in clipboard'''

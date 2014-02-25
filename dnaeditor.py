@@ -54,7 +54,7 @@ import output
 import dna
 import genbank
 #import seqfiles
-#import featureeditor
+import featureviewer
 
 
 
@@ -90,14 +90,23 @@ class MyPanel(wx.Panel):
 #		self.linecount = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 #		self.linecount.SetEditable(False)
 
+		#create feature list view
+		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
+		self.feature_list = featureviewer.FeatureView(splitter1, id=wx.ID_ANY)
+		
+
 		#create dna view panel
-		self.gbviewer = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
+		self.gbviewer = output.create(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 		self.gbviewer.SetEditable(False)	
+
+		splitter1.SplitHorizontally(self.feature_list, self.gbviewer)
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 #		sizer.Add(splitter, -1, wx.EXPAND)
 #		sizer.Add(self.linecount, proportion=1, flag=wx.EXPAND)
-		sizer.Add(self.gbviewer, proportion=10, flag=wx.EXPAND)
+		sizer.Add(splitter1, -1, wx.EXPAND)
+#		sizer.Add(self.feature_list, proportion=1, flag=wx.EXPAND)
+#		sizer.Add(self.gbviewer, proportion=1, flag=wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
@@ -187,7 +196,14 @@ class MyPanel(wx.Panel):
 				self.attr.SetBackgroundColour(color)
 				self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 
+#I need to think carefully about where to place these...
+		#realize the current selection in the DNA editor
+		start, finish = genbank.gb.get_dna_selection()
+		self.gbviewer.SetSelection(start, finish) #update the graphical selection
+		self.gbviewer.ShowPosition(start) 
 
+		#update feature list
+		self.feature_list.updateUI()
 
 		#use this to get the first line characters 
 		##develop it##

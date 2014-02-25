@@ -46,6 +46,7 @@ import genbank
 
 #GUI components
 import dnaeditor
+import features
 import featureeditor
 import genbankfileview
 
@@ -79,7 +80,7 @@ class MyFrame(wx.Frame):
 	panel=[] #list of panels for the textbox
 
 	def __init__(self, parent, id, title):
-		wx.Frame.__init__(self, parent, id, title)
+		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
 		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
 		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
@@ -143,7 +144,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 
-		self.featureview = featureeditor.MyPanel(self.panel[number])
+		self.featureview = features.MyPanel(self.panel[number])
 	
 		self.tab_list.append(self.featureview)
 
@@ -478,6 +479,7 @@ Put Table here
 
 	def match_selection(self):
 		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
+		print('match selection')
 		viewerstart, viewerend = self.dnaview.gbviewer.GetSelection()
 		if viewerstart == -2 and viewerend == -2: # if not a selection
 			viewerstart = self.dnaview.gbviewer.GetInsertionPoint()
@@ -493,6 +495,8 @@ Put Table here
 		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 		self.dnaview.updateUI()
 		start, finish = genbank.gb.get_dna_selection()
+		print(start, finish)
+		print(self.dnaview.gbviewer.SetSelection(start, finish))
 		if start != finish: self.dnaview.gbviewer.SetSelection(start, finish)
 		elif start == finish: self.dnaview.gbviewer.SetInsertionPoint(start)
 		self.dnaview.gbviewer.ShowPosition(start) 
@@ -548,7 +552,7 @@ Put Table here
 		elif control == self.dnaview.gbviewer: #the main dna window
 			self.match_selection()
 			genbank.gb.paste()
-			self.update_viewer()
+			self.update_viewer() # need to fix so that pasted dna is still highlighted
 		
 	def paste_reverse_complement(self, evt):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
@@ -873,7 +877,7 @@ Put Table here
 		wx.EVT_MENU(self, 131, self.paste_reverse_complement)
 
 		#reverse-complement selection
-		self.edit.Append(141, "Rev-Comp selection\tCtrl+Shift+R", "Reverse-complement seleected DNA")
+		self.edit.Append(141, "Rev-Comp selection\tCtrl+R", "Reverse-complement seleected DNA")
 		wx.EVT_MENU(self,141, self.reverse_complement_selection)
 		self.edit.AppendSeparator() #________________________devider
 		

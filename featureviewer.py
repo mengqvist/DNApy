@@ -54,29 +54,50 @@ class FeatureView(wx.Panel):
 		self.listview.InsertColumn(1, "Type", format=wx.LIST_FORMAT_LEFT, width=100)
 		self.listview.InsertColumn(2, "Location on DNA", format=wx.LIST_FORMAT_LEFT, width=200)
 		self.listview.InsertColumn(3, "Strand", format=wx.LIST_FORMAT_LEFT, width=120)
-#		self.listview.InsertColumn(4, "Qualifiers", format=wx.LIST_FORMAT_LEFT, width=0)
 
 #		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
 #		self.listview.SetFont(font)
 		self.listview.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.ListOnSelect)
+		self.listview.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
 
 		
-		newfeature = wx.Button(self, 1, 'New Feature')
-		deletefeature = wx.Button(self, 2, 'Delete Feature')
-		moveup = wx.Button(self, 4, 'Move Up')
-		movedown = wx.Button(self, 5, 'Move Down')
+#		newfeature = wx.Button(self, 1, 'New Feature')
+#		deletefeature = wx.Button(self, 2, 'Delete Feature')
+#		moveup = wx.Button(self, 4, 'Move Up')
+#		movedown = wx.Button(self, 5, 'Move Down')
 #		copytranslation = wx.Button(self, 5, 'Copy Translation')
+
+		#buttons
+		imageFile = files['default_dir']+"/icon/new_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		newfeature = wx.BitmapButton(self, id=1, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/remove_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		deletefeature = wx.BitmapButton(self, id=2, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/move_up.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		moveup = wx.BitmapButton(self, id=4, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/move_down.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		movedown = wx.BitmapButton(self, id=5, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+
+		#bind feature list buttons
+		self.Bind(wx.EVT_BUTTON, self.OnNew, id=1)
+		self.Bind(wx.EVT_BUTTON, self.OnDelete, id=2)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveFeatureUp, id=4)
+		self.Bind(wx.EVT_BUTTON, self.OnMoveFeatureDown, id=5)
 		
-		
-		sizer = wx.BoxSizer(wx.HORIZONTAL)
+		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(newfeature)
 		sizer.Add(deletefeature)
 		sizer.Add(moveup)
 		sizer.Add(movedown)
-#		sizer.Add(copytranslation)
-
 		
-		sizer2 = wx.BoxSizer(wx.VERTICAL)
+		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
 		sizer2.Add(self.listview, 3, wx.EXPAND)
 		sizer2.Add(sizer, 0, wx.EXPAND)
 
@@ -92,6 +113,15 @@ class FeatureView(wx.Panel):
 		index = self.get_selection()
 		genbank.gb.set_feature_selection(index)
 
+	def ListOnActivate(self, event):
+		'''Updates feature AND DNA selection based on which feature is chosen'''
+		index = self.get_selection()
+		genbank.gb.set_feature_selection(index)
+
+		locations = genbank.gb.get_feature_location(index)
+		start = genbank.gb.get_location(locations[0])[0]
+		finish = genbank.gb.get_location(locations[-1])[1]
+		genbank.gb.set_dna_selection((start, finish))  #how to I propagate this to the DNA view???
 
 	def OnNew(self, event):
 		'''Make new feature'''
@@ -145,6 +175,7 @@ class FeatureView(wx.Panel):
 
 	def update_feature_selection(self, number):
 		'''Updates which feature is selected'''
+		genbank.gb.set_feature_selection(number)
 		self.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
 		self.listview.Select(number, True) #to select it
 		self.listview.Focus(number) #to focus it

@@ -60,32 +60,148 @@ execfile(settings) #gets all the pre-assigned settings
 class EditFeatureView(wx.Panel):
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
+
+#		splitter2 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
+
+		self.feature_dlg = wx.Panel(self, id=wx.ID_ANY)
+
+		#feature label control
+#		allfeatures = []
+#		for entry in genbank.gb.gbfile['features']:
+#			allfeatures.append(entry['qualifiers'][0].split('=')[1])
+		self.featuretext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Feature')
+		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		self.featuretext.SetFont(textfont)
+#		self.features_combobox = wx.ComboBox(self.feature_dlg, id=2001, size=(300, -1), choices=allfeatures, style=wx.CB_READONLY)
+		featuretext1 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+		featuretext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+
+		
+		#feature type control
+		typetext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Type:')
+		typetext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
+		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
+
+		#can I create submenus with these???		
+#		Genes: "promoter", "CDS", "exon", "intron", "gene", "5'UTR", "3'UTR", "polyA_site", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip"] 
+#		Signals: "rep_origin", "promoter", "enhancer", "polyA_site", "polyA_signal", "terminator", "CAAT_signal", "TATA_signal", "-35_signal", "-10_signal", "GC_signal", "RBS", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide",
+#		Binding: "primer_bind", "protein_bind", "misc_binding",
+#		Variation: "variation", "STS", "unsure", "conflict", "modified_base", "misc_difference", "old_sequence",
+#		Repeats: "LTR", "repeat_region", "repeat_unit", "satellite", 
+#		RNA: "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA",
+#		Misc.: "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop",
+#		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
+
+		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(150, -1), choices=featuretypes, style=wx.CB_READONLY)
+		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
+
+
+		typetext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+
+		#location
+		locationtext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Location:')
+		locationtext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
+		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(200,-1))
+		self.location.Bind(wx.EVT_TEXT, self.LocationFieldOnText)
+		locationtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+		
+		#complement or not
+		self.complementbox = wx.CheckBox(self.feature_dlg, label="Complement?")
+		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)	
+
+		#Join or not
+		self.joinbox = wx.CheckBox(self.feature_dlg, label="Join?")
+		self.joinbox.Bind(wx.EVT_CHECKBOX, self.JoinCheckboxOnSelect)
+
+		#Order or not
+		self.orderbox = wx.CheckBox(self.feature_dlg, label="Order?")
+		self.orderbox.Bind(wx.EVT_CHECKBOX, self.OrderCheckboxOnSelect)
+		#need to add logic that only makes join and order available if there are more than one location for a feature...
+
+		type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		type_sizer.Add(typetext)
+		type_sizer.Add(self.type_combobox)
+
+		location_sizer = wx.BoxSizer(wx.HORIZONTAL)		
+		location_sizer.Add(locationtext)
+		location_sizer.Add(self.location)
+
+		complement_sizer = wx.BoxSizer(wx.VERTICAL)
+		complement_sizer.Add(self.complementbox)
+		complement_sizer.Add(self.joinbox)
+		complement_sizer.Add(self.orderbox)
+
+		main_sizer = wx.BoxSizer(wx.VERTICAL)
+		main_sizer.Add(self.featuretext)
+		main_sizer.Add(featuretext2)
+		main_sizer.Add(type_sizer)
+		main_sizer.Add(location_sizer)
+		main_sizer.Add(complement_sizer)
+		self.feature_dlg.SetSizer(main_sizer)
+
+		##
+		#second panel
 		self.listview = wx.ListCtrl(self, -1, style=wx.LC_REPORT)
 		self.listview.InsertColumn(0, "Qualifier", format=wx.LIST_FORMAT_LEFT, width=120)
 		self.listview.InsertColumn(1, "Tag", format=wx.LIST_FORMAT_LEFT, width=250)
-		
-		addqual = wx.Button(self, 7, 'Add Qualifier')
-		deletequal = wx.Button(self, 8, 'Remove Qualifier')
-		qualup = wx.Button(self, 9, 'Move Up')
-		qualdown = wx.Button(self, 10, 'Move Down')		
 
-		sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+#		addqual = wx.Button(self, 7, 'Add Qualifier')
+#		deletequal = wx.Button(self, 8, 'Remove Qualifier')
+#		qualup = wx.Button(self, 9, 'Move Up')
+#		qualdown = wx.Button(self, 10, 'Move Down')
+
+		imageFile = files['default_dir']+"/icon/new_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		addqual = wx.BitmapButton(self, id=7, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/remove_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		deletequal = wx.BitmapButton(self, id=8, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/move_up.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		qualup = wx.BitmapButton(self, id=9, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		imageFile = files['default_dir']+"/icon/move_down.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		qualdown = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+
+		
+		
+
+		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(addqual)
 		sizer.Add(deletequal)
 		sizer.Add(qualup)
 		sizer.Add(qualdown)
 		
-		sizer2 = wx.BoxSizer(wx.VERTICAL)
+		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
 		sizer2.Add(self.listview, 3, wx.EXPAND)
 		sizer2.Add(sizer, 0, wx.EXPAND)
 
-		self.SetSizer(sizer2)
+#		self.SetSizer(sizer2)
 
 		#bind qualifier buttions
 		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
 		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
 		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
 		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
+
+		##
+		#third panel, for showing qualifiers
+#		self.qualifier_list = EditFeatureView(splitter2, -1)
+#		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
+#		self.qualifier_list.SetFont(font)
+
+#		splitter2.SplitVertically(self.feature_dlg, self.qualifier_list)
+
+		main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		main_sizer.Add(self.feature_dlg, -1, wx.EXPAND)
+
+		main_sizer.Add(sizer2, -1, wx.EXPAND)
+		self.SetSizer(main_sizer)
+		self.Centre()
 
 
 	def OnAddQualifier(self, event):
@@ -142,134 +258,13 @@ class EditFeatureView(wx.Panel):
 	def update_qualifier_selection(self, featurenumber, number):
 		'''Updates which feature is selected'''
 		self.update_feature_selection(featurenumber) #make sure the right feature is selected
+		###change this! it is not right
+
 		self.qualifier_list.listview.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
 		self.qualifier_list.listview.Select(number, True) #to select it
 		self.qualifier_list.listview.Focus(number) #to focus it
 	
 	
-
-		
-
-class MyPanel(wx.Panel):
-	def __init__(self, parent):
-		wx.Panel.__init__(self, parent)
-		
-		self.current_highlight_color = '#FFFFFF'
-		
-
-
-
-		
-		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
-		splitter2 = wx.SplitterWindow(splitter1, -1, style=wx.SP_3D)
-
-
-##################### basic setup
-
-		#first panel, for showing feature overview
-		self.feature_list = featureviewer.FeatureView(splitter1, id=wx.ID_ANY)
-
-		#bind feature list buttons
-		self.Bind(wx.EVT_BUTTON, self.feature_list.OnNew, id=1)
-		self.Bind(wx.EVT_BUTTON, self.feature_list.OnDelete, id=2)
-		self.Bind(wx.EVT_BUTTON, self.feature_list.OnMoveFeatureUp, id=4)
-		self.Bind(wx.EVT_BUTTON, self.feature_list.OnMoveFeatureDown, id=5)
-#		self.Bind(wx.EVT_BUTTON, self.feature_list.OnCopyTranslation, id=5)
-
-
-
-		#second panel, for editing features
-		self.feature_dlg = wx.Panel(splitter2, id=wx.ID_ANY)
-
-
-		#third panel, for showing qualifiers
-		self.qualifier_list = EditFeatureView(splitter2, -1)
-		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
-		self.qualifier_list.SetFont(font)
-
-		splitter1.SplitHorizontally(self.feature_list, splitter2)
-		splitter2.SplitVertically(self.feature_dlg, self.qualifier_list)
-
-
-################    Feature edit panel #######################
-
-		
-		#feature label control
-#		allfeatures = []
-#		for entry in genbank.gb.gbfile['features']:
-#			allfeatures.append(entry['qualifiers'][0].split('=')[1])
-		self.featuretext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Feature')
-		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-		self.featuretext.SetFont(textfont)
-#		self.features_combobox = wx.ComboBox(self.feature_dlg, id=2001, size=(300, -1), choices=allfeatures, style=wx.CB_READONLY)
-		featuretext1 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-		featuretext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-
-		
-		#feature type control
-		typetext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Type:')
-		typetext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
-		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
-
-		#can I create submenus with these???		
-#		Genes: "promoter", "CDS", "exon", "intron", "gene", "5'UTR", "3'UTR", "polyA_site", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip"] 
-#		Signals: "rep_origin", "promoter", "enhancer", "polyA_site", "polyA_signal", "terminator", "CAAT_signal", "TATA_signal", "-35_signal", "-10_signal", "GC_signal", "RBS", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide",
-#		Binding: "primer_bind", "protein_bind", "misc_binding",
-#		Variation: "variation", "STS", "unsure", "conflict", "modified_base", "misc_difference", "old_sequence",
-#		Repeats: "LTR", "repeat_region", "repeat_unit", "satellite", 
-#		RNA: "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA",
-#		Misc.: "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop",
-#		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
-
-		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(150, -1), choices=featuretypes, style=wx.CB_READONLY)
-		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
-
-
-		typetext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-
-		#location
-		locationtext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Location:')
-		locationtext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
-		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(300,-1))
-		self.location.Bind(wx.EVT_TEXT, self.LocationFieldOnText)
-		locationtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-		
-		#complement or not
-		self.complementbox = wx.CheckBox(self.feature_dlg, label="Complement?")
-		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)	
-
-		#Join or not
-		self.joinbox = wx.CheckBox(self.feature_dlg, label="Join?")
-		self.joinbox.Bind(wx.EVT_CHECKBOX, self.JoinCheckboxOnSelect)
-
-		#Order or not
-		self.orderbox = wx.CheckBox(self.feature_dlg, label="Order?")
-		self.orderbox.Bind(wx.EVT_CHECKBOX, self.OrderCheckboxOnSelect)
-		#need to add logic that only makes join and order available if there are more than one location for a feature...
-
-		hbox = wx.BoxSizer()
-		sizer = wx.GridSizer(rows=4, cols=3, )
-
-		sizer.AddMany([self.featuretext, featuretext1, featuretext2])
-		sizer.AddMany([typetext, self.type_combobox, typetext2])
-		sizer.AddMany([locationtext, self.location, locationtext2])
-		sizer.AddMany([self.complementbox, self.joinbox, self.orderbox])
-
-
-		hbox.Add(sizer, wx.EXPAND, wx.EXPAND)
-		self.feature_dlg.SetSizer(hbox)
-		
-		
-		globsizer = hbox = wx.BoxSizer()
-		globsizer.Add(splitter1, -1, wx.EXPAND)
-		self.SetSizer(globsizer)
-
-
-		self.Centre()
-
-
-	
-
 	def get_selection(self): #change this to actually accessing the file
 		#get table content
 
@@ -365,16 +360,13 @@ class MyPanel(wx.Panel):
 		self.feature_list.updateUI()
 
 
-	def updateUI(self):
-		"""Update feature list content"""
-		self.feature_list.updateUI()	
-
+	
 
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
 		frame = wx.Frame(None, -1, "featureedit.py")
-		frame.featureeditor = MyPanel(frame)
+		frame.featureeditor = EditFeatureView(frame, -1)
 		frame.Show(True)
 		self.SetTopWindow(frame)
 		return True
