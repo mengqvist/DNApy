@@ -7,6 +7,7 @@ This project aims to provide a powerful codebase for viewing, editing and creati
 
 The software is being developed on a Linux machine and works well in that environment. As the software matures I will start testing on Windows and Mac so make sure it is cross-platform. The only external library that is needed is wxPython. Launch main.py to give the software a go (it is still under heavy development though).
 
+![alt text](http://cdn.altrn.tv/s/daaeb008-e387-e311-84ee-002590a05f5f_1_full.png "DNApy DNA editing view")
 
 Software features
 =====

@@ -35,6 +35,8 @@ import genbank
 import sys, os
 from string import *
 
+import featureeditor
+
 files={}   #list with all configuration files
 
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -126,11 +128,25 @@ class FeatureView(wx.Panel):
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
-		genbank.gb.add_feature() #add arguments here!!!!!!!!!
-		self.updateUI()
 
-		number = self.listview.GetItemCount()-1
-		self.update_feature_selection(number)
+
+		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL)
+		self.feature_edit = featureeditor.EditFeatureView(dlg, id=wx.ID_ANY)
+
+
+		result = dlg.ShowModal()
+		dlg.Destroy()
+		if result == wx.ID_YES: #if yes, remove clutter
+			genbank.gb.clean_clutter()
+		
+		
+
+
+			genbank.gb.add_feature() #add arguments here!!!!!!!!!
+			self.updateUI()
+
+			number = self.listview.GetItemCount()-1
+			self.update_feature_selection(number)
 		
 
 	def OnDelete(self, event):

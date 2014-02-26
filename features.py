@@ -73,6 +73,7 @@ class MyPanel(wx.Panel):
 		#first panel, for showing feature overview
 		self.feature_list = featureviewer.FeatureView(splitter1, id=wx.ID_ANY)
 
+		##
 		#second panel, for editing
 		self.feature_edit = featureeditor.EditFeatureView(splitter1, id=wx.ID_ANY)
 
