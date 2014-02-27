@@ -836,7 +836,7 @@ Put Table here
 #		fileitem.AppendSeparator()
 
 		#quit
-		fileitem.Append(7, "Exit", "Exit program")
+		fileitem.Append(7, "Quit", "Quit program")
 		wx.EVT_MENU(self, 7, self.quit)
 
 		self.menubar.Append(fileitem, "&File")

@@ -231,7 +231,12 @@ class FeatureView(wx.Panel):
 			col0 = entry['qualifiers'][0].split('=')[1]
 	#		col0 = 'T7\terminator'
 			col1 = entry['key']
-			col2 = str(entry['location'])[1:-1]
+			locationstring = ''
+			for location in entry['location']:
+				if locationstring != '':
+					locationstring += ', '
+				locationstring += str(location)
+			col2 = locationstring
 			if entry['complement'] == True:
 				col3 = 'complement'
 			else:
