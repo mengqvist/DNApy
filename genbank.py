@@ -367,7 +367,17 @@ class gbobject():
 		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
 			del self.gbfile['features'][index] 
 
+	def get_qualifiers(self, index):
+		'''Returns all qualifiers for a feature'''
+		try:
+			return self.gbfile['features'][index]['qualifiers']
+		except:
+			print('This is not a valid index')
+			return False
 
+	def get_qualifier(self, index, number):
+		'''Returns specified qualifier for specified feature'''
+		pass
 
 ##### DNA modification methods #####
 
@@ -706,7 +716,7 @@ class gbobject():
 		'''Get the self.filepath for the opened file'''
 		return self.gbfile['filepath']
 	
-	def update_filepath(self, new_path):
+	def set_filepath(self, new_path):
 		'''Update the self.filepath where a file is saved'''
 		self.gbfile['filepath'] = new_path
 

@@ -47,7 +47,6 @@ import genbank
 #GUI components
 import dnaeditor
 import features
-import featureeditor
 import genbankfileview
 
 
@@ -144,7 +143,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 
-		self.featureview = features.MyPanel(self.panel[number])
+		self.featureview = features.FeatureCreate(self.panel[number], id=wx.ID_ANY, editor=True)
 	
 		self.tab_list.append(self.featureview)
 
@@ -268,7 +267,7 @@ class MyFrame(wx.Frame):
 			return
 		else:
 			#try:
-			genbank.gb.update_filepath(all_path)
+			genbank.gb.set_filepath(all_path)
 			self.save_file("")
 			#except:
 			#	error_window(7, self)

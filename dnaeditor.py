@@ -54,7 +54,7 @@ import output
 import dna
 import genbank
 #import seqfiles
-import featureviewer
+import features
 
 
 
@@ -92,7 +92,7 @@ class MyPanel(wx.Panel):
 
 		#create feature list view
 		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = featureviewer.FeatureView(splitter1, id=wx.ID_ANY)
+		self.feature_list = features.FeatureCreate(splitter1, id=wx.ID_ANY, editor=False)
 		
 
 		#create dna view panel
