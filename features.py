@@ -212,6 +212,10 @@ class FeatureEdit(wx.Panel):
 		if self.qualifier_list.GetItemCount() != 1: #don't delete last qualifier
 			genbank.gb.remove_qualifier(feature, number)
 			self.updateUI()
+			try:
+				self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			except:
+				pass
 
 			#set highlight, focus and selection
 			if number == self.qualifier_list.GetItemCount():
@@ -225,6 +229,11 @@ class FeatureEdit(wx.Panel):
 		number = self.qualifier_list.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'u')
 		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		except:
+			pass
+
 		if number != 0:
 			number = number-1
 		self.update_qualifier_selection(index, number)	
@@ -236,14 +245,23 @@ class FeatureEdit(wx.Panel):
 		number = self.qualifier_list.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'd')
 		self.updateUI()
-		if number != self.qualifier_list.GetItemCount()-1:
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		except:
+			pass
+
+		if number != self.qualifier_list.GetItemCount():
 			number = number+1
 		self.update_qualifier_selection(index, number)
 
 
 	def update_qualifier_selection(self, index, number):
 		'''Updates which feature is selected'''
-		self.update_feature_selection(index) #make sure the right feature is selected
+		try:
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #make sure the right feature is selected
+		except:
+			pass
+
 		###change this! it is not right
 
 		self.qualifier_list.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
@@ -257,6 +275,12 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_complement(feature, newcomplement)
 		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		except:
+			pass
+		
 
 	def JoinCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with multiple locations should be joined or not'''
@@ -265,6 +289,11 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_join(feature, newjoin)
 		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		except:
+			pass
 
 	def OrderCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with ultiple locations should be indicated as being in a certain order or not'''
@@ -273,6 +302,11 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_order(feature, neworder)
 		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		except:
+			pass
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
@@ -280,6 +314,11 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_type(feature, newkey)
 		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		except:
+			pass
 
 	def LocationFieldOnText(self, event): # fix  this! maybe use a different event to call it...
 		newlocation = self.location.GetLineText(0) #get location
@@ -289,7 +328,11 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_location(feature, newlocation)
 		self.updateUI()
-
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		except:
+			pass
 
 	def updateUI(self):
 		'''Updates all fields depending on which feature is chosen'''
@@ -393,7 +436,10 @@ class FeatureView(wx.Panel):
 		'''Updates selection depending on which feature is chosen'''
 		index = self.get_selection()
 		genbank.gb.set_feature_selection(index)
-#		feature_edit.updateUI
+		try:
+			self.GetParent().GetParent().feature_edit.updateUI() #update feature editor
+		except:
+			pass
 
 	def ListOnActivate(self, event):
 		'''Updates feature AND DNA selection based on which feature is chosen'''
@@ -410,23 +456,19 @@ class FeatureView(wx.Panel):
 		#make feature and update interface
 
 
-		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL)
+		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL, size=(600, 200))
 		self.feature_edit = FeatureEdit(dlg, id=wx.ID_ANY)
 
 
 		result = dlg.ShowModal()
 		dlg.Destroy()
-		if result == wx.ID_YES: #if yes, remove clutter
-			genbank.gb.clean_clutter()
-		
-		
-
+		if result == wx.ID_YES: 
 
 			genbank.gb.add_feature() #add arguments here!!!!!!!!!
 			self.updateUI()
 
-			number = self.feature_list.GetItemCount()-1
-			self.update_feature_selection(number)
+			index = self.feature_list.GetItemCount()-1
+			self.update_feature_selection(index)
 		
 
 	def OnDelete(self, event):
@@ -434,47 +476,47 @@ class FeatureView(wx.Panel):
 		#identify feature, remove it and update interface
 		index = self.get_selection()
 		feature = genbank.gb.get_feature(index)
-		number = self.feature_list.GetFirstSelected()
+		index = self.feature_list.GetFirstSelected()
 		genbank.gb.remove_feature(feature)
 		self.updateUI()
 	
 		#set highlight, focus and selection
-		if number == self.feature_list.GetItemCount():
-			number = number-1
-		self.update_feature_selection(number)
+		if index == self.feature_list.GetItemCount():
+			index = index-1
+		self.update_feature_selection(index)
 
 
 	def OnMoveFeatureUp(self, event):
 		'''Move feature up one step'''
 		index = self.get_selection()
 		feature = genbank.gb.get_feature(index)
-		number = self.feature_list.GetFirstSelected()
+		index = self.feature_list.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'u')	
 		self.updateUI()
-		if number != 0:
-			number = number-1
-		self.update_feature_selection(number)
+		if index != 0:
+			index = index-1
+		self.update_feature_selection(index)
 		
 
 	def OnMoveFeatureDown(self, event):
 		'''Move feature up down step'''
 		index = self.get_selection()
 		feature = genbank.gb.get_feature(index)
-		number = self.feature_list.GetFirstSelected()
+		index = self.feature_list.GetFirstSelected()
 		genbank.gb.move_feature(feature, 'd')
 		self.updateUI()
 	
-		if number != self.feature_list.GetItemCount()-1:
-			number = number+1
-		self.update_feature_selection(number)
+		if index != self.feature_list.GetItemCount()-1:
+			index = index+1
+		self.update_feature_selection(index)
 
 
-	def update_feature_selection(self, number):
+	def update_feature_selection(self, index):
 		'''Updates which feature is selected'''
-		genbank.gb.set_feature_selection(number)
-		self.feature_list.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
-		self.feature_list.Select(number, True) #to select it
-		self.feature_list.Focus(number) #to focus it
+		genbank.gb.set_feature_selection(index)
+		self.feature_list.SetItemState(index, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
+		self.feature_list.Select(index, True) #to select it
+		self.feature_list.Focus(index) #to focus it
 
 
 	def OnCopyFASTA(self, event):
@@ -572,6 +614,9 @@ class FeatureCreate(wx.Panel):
 	def updateUI(self):
 		"""Update feature list content"""
 		self.feature_list.updateUI()
-		self.feature_edit.updateUI()
+		try:
+			self.feature_edit.updateUI()
+		except:
+			pass
 
 

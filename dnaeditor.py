@@ -98,8 +98,7 @@ class MyPanel(wx.Panel):
 		#create dna view panel
 		self.gbviewer = output.create(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 		self.gbviewer.SetEditable(False)	
-
-		splitter1.SplitHorizontally(self.feature_list, self.gbviewer)
+		splitter1.SplitHorizontally(self.feature_list, self.gbviewer,sashPosition=-(windowsize[1]-270))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 #		sizer.Add(splitter, -1, wx.EXPAND)
