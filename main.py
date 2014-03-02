@@ -51,10 +51,11 @@ import genbankfileview
 
 
 #TODO
+#grey out things until a new file is made or one is opened
+#open new window for new files
 #test which functions are broken
 #add vector view
 #add pretty dna view
-#make selection stick across tabs
 #improve the feature editor (especially the "location" field)
 #make rightklick menus
 
@@ -84,6 +85,8 @@ class MyFrame(wx.Frame):
 		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
 		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
+
+
 		self.generate_dnaview_tab("")
 		self.generate_featureview_tab("")
 		self.generate_vectorview_tab("")
@@ -104,7 +107,8 @@ class MyFrame(wx.Frame):
 
 		self.do_layout()
 		self.Centre()
-
+	def OnKeyPress(self, evt):
+		print('keypress')
 
 	def do_layout(self):
 		'''Pack toolbar and the tabs in their sizers'''
@@ -137,6 +141,7 @@ class MyFrame(wx.Frame):
 		self.DNApy.AddPage(self.panel[number], "DNA")
 		self.panel[number].SetSizer(sizer_1)
 
+		
 
 	def generate_featureview_tab(self, evt):
 		number=len(self.tab_list)

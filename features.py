@@ -449,7 +449,9 @@ class FeatureView(wx.Panel):
 		locations = genbank.gb.get_feature_location(index)
 		start = genbank.gb.get_location(locations[0])[0]
 		finish = genbank.gb.get_location(locations[-1])[1]
-		genbank.gb.set_dna_selection((start, finish))  #how to I propagate this to the DNA view???
+		genbank.gb.set_dna_selection((start-1, finish))  #how to I propagate this to the DNA view???
+		self.GetTopLevelParent().dnaview.gbviewer.SetSelection(start-1, finish) #update DNA selection
+		self.GetTopLevelParent().dnaview.gbviewer.ShowPosition(start) #show the selection
 
 	def OnNew(self, event):
 		'''Make new feature'''

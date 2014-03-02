@@ -41,7 +41,10 @@ class create(rt.RichTextCtrl):
 		self.SetEditable(False) #make it not editable
 		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Source Code Pro', encoding=wx.FONTENCODING_DEFAULT) #could also use Inconsolata
 		self.SetFont(font)
+		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
 
+	def OnKeyPress(self, evt):
+		print('keypress')
 
 	def clear(self):
 		'''Remove any text already in the Output Panel'''

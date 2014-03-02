@@ -81,7 +81,6 @@ class MyPanel(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		
-#		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
 
 		#create splitter
 		splitter = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
@@ -96,8 +95,18 @@ class MyPanel(wx.Panel):
 		
 
 		#create dna view panel
-		self.gbviewer = output.create(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
+		self.gbviewer = rt.RichTextCtrl(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE)
+
+#		self.gbviewer = output.create(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 		self.gbviewer.SetEditable(False)	
+		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Source Code Pro', encoding=wx.FONTENCODING_DEFAULT) #could also use Inconsolata
+		self.gbviewer.SetFont(font)
+		self.gbviewer.Bind(wx.EVT_CHAR, self.OnKeyPress) #any key press
+		self.gbviewer.Bind(rt.EVT_RICHTEXT_SELECTION_CHANGED, self.OnSelChange)#these don't work!
+		self.gbviewer.Bind(rt.EVT_RICHTEXT_SELECTION_CHANGED, self.OnSelChange)
+
+
+
 		splitter1.SplitHorizontally(self.feature_list, self.gbviewer,sashPosition=-(windowsize[1]-270))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -110,7 +119,29 @@ class MyPanel(wx.Panel):
 		
 		self.Centre()
 
+	def OnKeyPress(self, evt):
+		key = evt.GetUniChar()
+		print(key)
+#		shift = evt.ShiftDown()
+		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
+			start, finish = self.gbviewer.GetSelection()
+			
 
+			if start == -2 and finish == -2: # if not a selection
+				start = self.gbviewer.GetInsertionPoint()
+				genbank.gb.changegbsequence(start+1, start+1, 'i', chr(key))
+				self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.updateUI()
+				self.gbviewer.SetInsertionPoint(start+1)
+				self.gbviewer.ShowPosition(start+1) 
+
+
+#		if key == 8: #backspace
+
+#		if key == 127: #delete
+
+	def OnSelChange(self, evt):
+		print('sel changed')
 ##########################
 	def make_outputpopup(self):
 		'''Creates a popup window in which output can be printed'''
