@@ -529,7 +529,8 @@ Put Table here
 	def delete(self):
 		'''Deletes a selection and updates dna and features'''
 		self.match_selection()
-		genbank.gb.delete()
+		start, finish = genbank.gb.get_dna_selection()
+		genbank.gb.delete(start, finish)
 		self.update_viewer()
 
 	def cut(self, evt):

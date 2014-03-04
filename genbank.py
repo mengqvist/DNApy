@@ -417,16 +417,15 @@ class gbobject():
 		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
-			self.delete()
+			self.delete(start, finish)
 			self.reverse_complement_clipboard()		
 			self.paste()
 
 
 
 
-	def delete(self):
+	def delete(self, start, finish):
 		'''Deletes current DNA selection'''
-		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			deletedsequence = self.get_dna()[start:finish]
 			self.changegbsequence(start+1, finish+1, 'd', deletedsequence)
@@ -437,20 +436,20 @@ class gbobject():
 		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
-			self.delete()
+			self.delete(start, finish)
 
 	def cut_reverse_complement(self):
 		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
-			self.delete()
+			self.delete(start, finish)
 			self.reverse_complement_clipboard()
 
 	def paste(self):
 		'''Paste DNA present in clipboard and any features present on that DNA'''
 		start, finish = self.get_dna_selection()
 		if start != finish: #If a selection, remove sequence
-			self.delete()
+			self.delete(start, finish)
 
 		temp_clipboard = deepcopy(self.clipboard) #creates a deep copy which is needed to copy nested lists
 		if temp_clipboard['dna'] != pyperclip.paste(): #if internal and system clipboard is not same then system clipboard takes presidence
@@ -926,11 +925,11 @@ class gbobject():
 		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly"""
 		#this does not yet handle split features... need to fix that!!!
 
-		if changetype == 'r': #replacement
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
+#		if changetype == 'r': #replacement
+#			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
 			#need to add feature modifications here!!!!!!
 					
-		elif changetype == 'i': #insertion
+		if changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
