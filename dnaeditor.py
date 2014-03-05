@@ -32,10 +32,6 @@
 
 
 
-#TODO
-#rig catg keys so that when keys are pressed the dna actually goes into the file (and backspace and del keys too)
-#clean up functions, organize them and take away everything that is not needed
-
 
 
 from copy import deepcopy

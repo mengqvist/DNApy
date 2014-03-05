@@ -39,7 +39,7 @@ from wxPython.lib.buttons import *
 from wxPython.lib.colourselect import *
 
 import pyperclip
-
+import subprocess
 
 import dna
 import genbank
@@ -78,14 +78,15 @@ class MyFrame(wx.Frame):
 	tab_list=[] #list of tabs 
 	current_tab=0 #contains the current tab
 	panel=[] #list of panels for the textbox
-
+	
+	
 	def __init__(self, parent, id, title):
 		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
 		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
 		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
-
+		self.fileopen = False #used to see if a file is open
 
 		self.generate_dnaview_tab("")
 		self.generate_featureview_tab("")
@@ -184,20 +185,23 @@ class MyFrame(wx.Frame):
 
 	def new_file(self, evt):
 		'''Create new gb file'''
-		gb = genbank.new_file() #make new gb in panel	
-		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
-		self.SetTitle('NewFile - DNApy')
-		self.page_change("")
+		if self.fileopen == False: #if no file is open, make blank gb file
+			gb = genbank.new_file() #make new gb in panel	
+			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+			self.SetTitle('NewFile - DNApy')
+			self.page_change("")
 
-		self.frame_1_toolbar.EnableTool(502, 1)
-		self.frame_1_toolbar.EnableTool(503, 1)
-		self.frame_1_toolbar.EnableTool(504, 1)
-		self.frame_1_toolbar.EnableTool(505, 1)
-		self.frame_1_toolbar.EnableTool(506, 1)
-		self.frame_1_toolbar.EnableTool(511, 1)
-		self.frame_1_toolbar.EnableTool(512, 1)
-		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
-
+			self.frame_1_toolbar.EnableTool(502, 1)
+			self.frame_1_toolbar.EnableTool(503, 1)
+			self.frame_1_toolbar.EnableTool(504, 1)
+			self.frame_1_toolbar.EnableTool(505, 1)
+			self.frame_1_toolbar.EnableTool(506, 1)
+			self.frame_1_toolbar.EnableTool(511, 1)
+			self.frame_1_toolbar.EnableTool(512, 1)
+			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+			self.fileopen = True
+		elif self.fileopen == True: #if a file IS open, make a new window
+			subprocess.Popen("python ~/Python_files/DNApy/main.py 1", shell=True)
 
 	def open_file(self, evt):
 		'''Function for opening file'''
@@ -231,7 +235,7 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(506, 1)
 			self.frame_1_toolbar.EnableTool(511, 1)
 			self.frame_1_toolbar.EnableTool(512, 1)
-
+			self.fileopen = True
 		else:
 			print("error, not a gb file")		
 
