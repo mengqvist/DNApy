@@ -52,7 +52,7 @@ import genbank
 #import seqfiles
 import features
 
-
+#fix selection so that the statusbar matches the real
 
 
 

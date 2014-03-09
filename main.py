@@ -48,11 +48,10 @@ import genbank
 import dnaeditor
 import features
 import genbankfileview
-
+import redundant_codon_design_GUI
 
 #TODO
 #grey out things until a new file is made or one is opened
-#open new window for new files
 #test which functions are broken
 #add vector view
 #add pretty dna view
@@ -468,8 +467,14 @@ Put Table here
 		self.make_outputpopup()	
 		self.output.write(string+'\n', 'Text')
 		self.outputframe.Show()
- 
 
+	def redundant_codon_dlg(self, event):
+		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL, size=(600, 200))
+		self.redundant_codon = redundant_codon_design_GUI.RedundantCodon(dlg)
+
+
+		result = dlg.ShowModal()
+		dlg.Destroy()
 
 
 ################ genbank methods ###############
@@ -904,9 +909,16 @@ Put Table here
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
+		#Find redundant codon
+		self.edit.Append(135, "Find redundant codon", "Find redundant codon")
+		wx.EVT_MENU(self, 135, self.redundant_codon_dlg)
+		
+
+
+
 		self.menubar.Append(self.edit, "Edit DNA")
 		
-	
+			
 	
 		######## Features menu item ########
 		self.features = wx.Menu()

@@ -925,11 +925,11 @@ class gbobject():
 		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly"""
 		#this does not yet handle split features... need to fix that!!!
 
-#		if changetype == 'r': #replacement
-#			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
-			#need to add feature modifications here!!!!!!
+		if changetype == 'r': #replacement
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
+			
 					
-		if changetype == 'i': #insertion
+		elif changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
@@ -969,7 +969,7 @@ class gbobject():
 				self.remove_location(index, number)
 				del deletionlist[-1]
 		else:
-			print('%s is not a valid argument for changetype' % changtype)
+			print('%s is not a valid argument for changetype' % changetype)
 
 
 	def make_gbstring(self):
