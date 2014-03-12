@@ -48,7 +48,7 @@ import genbank
 import dnaeditor
 import features
 import genbankfileview
-import redundant_codon_design_GUI
+import mixed_base_codons_GUI
 
 #TODO
 #grey out things until a new file is made or one is opened
@@ -468,13 +468,12 @@ Put Table here
 		self.output.write(string+'\n', 'Text')
 		self.outputframe.Show()
 
-	def redundant_codon_dlg(self, event):
-		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL, size=(600, 200))
-		self.redundant_codon = redundant_codon_design_GUI.RedundantCodon(dlg)
-
-
-		result = dlg.ShowModal()
-		dlg.Destroy()
+	def mixed_base_codon_dlg(self, event):
+		"""Make popup dialog where amino acids can be chosen and the resulting mixed base codon is computed"""
+		self.dlg = wx.Frame(None, title="Find mixed base codons", size=(400, 500)) # creation of a Frame with a title
+		self.mixed_base_codon = mixed_base_codons_GUI.MixedBaseCodon(self.dlg)	
+		self.dlg.Show()
+		self.dlg.Center()
 
 
 ################ genbank methods ###############
@@ -492,7 +491,6 @@ Put Table here
 
 	def match_selection(self):
 		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
-		print('match selection')
 		viewerstart, viewerend = self.dnaview.gbviewer.GetSelection()
 		if viewerstart == -2 and viewerend == -2: # if not a selection
 			viewerstart = self.dnaview.gbviewer.GetInsertionPoint()
@@ -909,9 +907,9 @@ Put Table here
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
-		#Find redundant codon
-		self.edit.Append(135, "Find redundant codon", "Find redundant codon")
-		wx.EVT_MENU(self, 135, self.redundant_codon_dlg)
+		#Find mixed base codon
+		self.edit.Append(135, "Find mixed base codon", "Find mixed base codon")
+		wx.EVT_MENU(self, 135, self.mixed_base_codon_dlg)
 		
 
 

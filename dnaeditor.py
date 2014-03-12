@@ -325,7 +325,8 @@ class MyPanel(wx.Panel):
 		xyposition = self.gbviewer.ScreenToClient(wx.GetMousePosition())
 		#event.GetPosition() #this can be used if it controlled by an event..
 		mposition = self.gbviewer.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
-
+#		mposition += 6
+#		print(mposition)
 		#which feature corresponds to this pos?
 		Feature = genbank.gb.get_featurename_for_pos(mposition)
 		return mposition, Feature

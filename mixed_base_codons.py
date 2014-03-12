@@ -31,6 +31,9 @@
 #
 
 
+#TODO 
+#this code is awful, I'll need to re-write it so that others, and myself can understand it..
+
 DesiredAA = [] #list that holds the desired amino acids
 
 def AAtocodons(AAlist, option):
@@ -464,8 +467,8 @@ def getinput():
 	
 	
 
-def evaluate(chosenAA):	
-	DesiredCodons = AAtocodons(chosenAA[0], str(chosenAA[1])) #get triplet codons for the desired AA
+def evaluate(chosenAA, codon_restriction):	
+	DesiredCodons = AAtocodons(chosenAA, codon_restriction) #get triplet codons for the desired AA
 	allcodons = sumupcodons(DesiredCodons) #takes the triplets and splits them up into their first, second and third positions
 
 	degenerate1 = degenerate(allcodons[0]) #Gets degenerate codon that represents all bases at position 1
@@ -483,13 +486,13 @@ def evaluate(chosenAA):
 	###now I just need to convert this to a list of real codons and then check to which aa they match
 	Realcodons = combinelists(checkdegenerate(triplet[0]), checkdegenerate(triplet[1]), checkdegenerate(triplet[2])) #condense the different codons for position 1, 2, and 3 to a list of triplets
 	ResultingAA = translatecodonlist(Realcodons) #Check which AA these codons code for
-	result = chosenvsresulting(DesiredAA[0], ResultingAA) #Check which of these AA were desired and which were not
-	return triplet, result
+	result = chosenvsresulting(chosenAA, ResultingAA) #Check which of these AA were desired and which were not
+	return (triplet, result)
 
 def test_alternate(DesiredAA, AA, triplet, result):
 	'''Sees whether alternate codons causes less off-target amino acids'''
 	alternateAA = []
-	alternateAA.append(DesiredAA[0])
+	alternateAA.append(DesiredAA)
 	for n in range(len(AA)): #make all combinations of codons
 		tempAA = [x[:] for x in alternateAA] #creates a deep copy which is needed to copy nested lists
 		for i in range(len(tempAA)):
@@ -501,35 +504,74 @@ def test_alternate(DesiredAA, AA, triplet, result):
 		alternateAA.extend(tempAA)
 	
 	for entry in alternateAA: #test which combination gives least off-target hits
-		testset = []
-		testset.append(entry)
-		testset.append(DesiredAA[1])
-		temptriplet, tempresult = evaluate(testset)
+		testset = entry
+		temptriplet, tempresult = evaluate(testset, 'n')
 		if len(tempresult[1]) < len(result[1]):
 			DesiredAA = testset
 			result = tempresult
 			triplet = temptriplet
 	return (triplet, result)
 
-def run(AA):	
+def next_steps(targetAA, offtargetAA):
+	"""Function for finding which other amino acids can be selected without introducion further off-target ones"""
+	possibleAA = [] #for storing which ones are possible
+	testset = [] #which AA should be tested
+	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G'];
+	
+	for AA in AllNaturalAA: #check which ones should be added to the new testset
+		if AA in targetAA:
+			pass
+		else:
+			testset.append(AA)	
+
+	for AA in testset:
+		print(AA)
+		testingAA = targetAA #start with the set that was already chosen
+		targetAA_plus_one = testingAA.append(AA)
+		new_codon, new_target, new_offtarget = get_codon_for_chosen_AA(targetAA_plus_one)
+		for i in range(len(new_offtarget)):
+			if (new_offtarget[i] in offtarget) == True:
+				pass
+			elif (new_offtarget[i] in offtarget) == False:
+				break
+			elif i == len(new_offtarget)-1:
+				possibleAA.append(AA)
+	print(possibleAA)
+	return possibleAA
+
+def get_codon_for_chosen_AA(AA):	
 	#DesiredAA containst list of amino acids and also the option wheter codons should be excluded or not.
 	global DesiredAA
-	DesiredAA = (AA, 'n')
+	DesiredAA = AA
+	codon_restriction = 'n'	
 
-	triplet, result = evaluate(DesiredAA)
+	triplet, result = evaluate(DesiredAA, codon_restriction)
 	AA = ''
-	if ('S' in DesiredAA[0]):
+	if ('S' in DesiredAA):
 		AA += 'S'
-	if ('R' in DesiredAA[0]):
+	if ('R' in DesiredAA):
 		AA += 'R'
-	if ('L' in DesiredAA[0]):
+	if ('L' in DesiredAA):
 		AA += 'L'
 	triplet, result = test_alternate(DesiredAA, AA, triplet, result)
-	
-	
+
 #	print('Degenerate codon: ', triplet)
 #	print('For the chosen AA: ', result[0])
 #	print('And the off-target AA: ', result[1])
+	
+	return (triplet, result[0], result[1]) #codon, target, offtarget
+	
+	
 
-	return (triplet, result[0], result[1])
+def run(AA):
+	triplet, target, offtarget = get_codon_for_chosen_AA(AA)
+
+
+	#now find which aa are possible without adding  off-target hits
+#	possibleAA = next_steps(target, offtarget)
+	possibleAA = ['A', 'C']
+
+
+
+	return (triplet, target, offtarget, possibleAA) #codon, target, offtarget, possibleAA
 

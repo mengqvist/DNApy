@@ -31,9 +31,9 @@
 #
 
 import wx
-import redundant_codon_design as rcd
+import mixed_base_codons as mbc
 
-class RedundantCodon(wx.Panel):
+class MixedBaseCodon(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 #		self.dlg = wx.Panel(self, id=wx.ID_ANY)
@@ -111,10 +111,20 @@ class RedundantCodon(wx.Panel):
 		sizer5 = wx.BoxSizer(wx.HORIZONTAL)		
 		sizer5.Add(self.Reset)
 
+		spacer0 = wx.StaticText(self, id=wx.ID_ANY, label='codon')
+		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		spacer0.SetFont(textfont)
+		spacer0.SetLabel('')
+
 		self.codontext = wx.StaticText(self, id=wx.ID_ANY, label='codon')
 		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.codontext.SetFont(textfont)
 		self.codontext.SetLabel('None')
+
+#		self.codontext = wx.TextCtrl(self, id=wx.ID_ANY)
+#		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+#		self.codontext.SetFont(textfont)
+#		self.codontext.SetValue('None')
 		
 		spacer1 = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -142,6 +152,7 @@ class RedundantCodon(wx.Panel):
 		globsizer.Add(sizer3)
 		globsizer.Add(sizer4)
 		globsizer.Add(sizer5)
+		globsizer.Add(spacer0)
 		globsizer.Add(self.codontext)
 		globsizer.Add(spacer1)
 		globsizer.Add(self.target_hits)
@@ -152,39 +163,208 @@ class RedundantCodon(wx.Panel):
 	def OnToggle(self, evt):
 		'''When any togglebutton is pressed'''
 		AA = []
-		if self.Ala.GetValue(): AA.append('A')
-		if self.Val.GetValue(): AA.append('V')
-		if self.Ile.GetValue(): AA.append('I')
-		if self.Leu.GetValue(): AA.append('L')
-		if self.Met.GetValue(): AA.append('M')
-		if self.Phe.GetValue(): AA.append('F')
-		if self.Tyr.GetValue(): AA.append('Y')
-		if self.Trp.GetValue(): AA.append('W')
-		if self.Asp.GetValue(): AA.append('D')
-		if self.Glu.GetValue(): AA.append('E')
-		if self.Asn.GetValue(): AA.append('N')
-		if self.Gln.GetValue(): AA.append('Q')
-		if self.Ser.GetValue(): AA.append('S')
-		if self.Thr.GetValue(): AA.append('T')
-		if self.Arg.GetValue(): AA.append('R')
-		if self.His.GetValue(): AA.append('H')
-		if self.Lys.GetValue(): AA.append('K')
-		if self.Cys.GetValue(): AA.append('C')
-		if self.Gly.GetValue(): AA.append('G')
-		if self.Pro.GetValue(): AA.append('P')
+		clicked_color = '#A2CD5A'
+		unclicked_color = '#EEEEEE'
+		if self.Ala.GetValue(): 
+			AA.append('A')
+			self.Ala.SetBackgroundColour(clicked_color)
+		else:
+			self.Ala.SetBackgroundColour(unclicked_color)
+
+		if self.Val.GetValue(): 
+			AA.append('V')
+			self.Val.SetBackgroundColour(clicked_color)
+		else:
+			self.Val.SetBackgroundColour(unclicked_color)
+
+		if self.Ile.GetValue(): 
+			AA.append('I')
+			self.Ile.SetBackgroundColour(clicked_color)
+		else:
+			self.Ile.SetBackgroundColour(unclicked_color)
+
+		if self.Leu.GetValue(): 
+			AA.append('L')
+			self.Leu.SetBackgroundColour(clicked_color)
+		else:
+			self.Leu.SetBackgroundColour(unclicked_color)
+
+		if self.Met.GetValue(): 
+			AA.append('M')
+			self.Met.SetBackgroundColour(clicked_color)
+		else:
+			self.Met.SetBackgroundColour(unclicked_color)
+
+		if self.Phe.GetValue(): 
+			AA.append('F')
+			self.Phe.SetBackgroundColour(clicked_color)
+		else:
+			self.Phe.SetBackgroundColour(unclicked_color)
+
+		if self.Tyr.GetValue(): 
+			AA.append('Y')
+			self.Tyr.SetBackgroundColour(clicked_color)
+		else:
+			self.Tyr.SetBackgroundColour(unclicked_color)
+
+		if self.Trp.GetValue(): 
+			AA.append('W')
+			self.Trp.SetBackgroundColour(clicked_color)
+		else:
+			self.Trp.SetBackgroundColour(unclicked_color)
+
+		if self.Asp.GetValue(): 
+			AA.append('D')
+			self.Asp.SetBackgroundColour(clicked_color)
+		else:
+			self.Asp.SetBackgroundColour(unclicked_color)
+
+		if self.Glu.GetValue(): 
+			AA.append('E')
+			self.Glu.SetBackgroundColour(clicked_color)
+		else:
+			self.Glu.SetBackgroundColour(unclicked_color)
+
+		if self.Asn.GetValue(): 
+			AA.append('N')
+			self.Asn.SetBackgroundColour(clicked_color)
+		else:
+			self.Asn.SetBackgroundColour(unclicked_color)
+
+		if self.Gln.GetValue(): 
+			AA.append('Q')
+			self.Gln.SetBackgroundColour(clicked_color)
+		else:
+			self.Gln.SetBackgroundColour(unclicked_color)
+
+		if self.Ser.GetValue(): 
+			AA.append('S')
+			self.Ser.SetBackgroundColour(clicked_color)
+		else:
+			self.Ser.SetBackgroundColour(unclicked_color)
+
+		if self.Thr.GetValue(): 
+			AA.append('T')
+			self.Thr.SetBackgroundColour(clicked_color)
+		else:
+			self.Thr.SetBackgroundColour(unclicked_color)
+
+		if self.Arg.GetValue(): 
+			AA.append('R')
+			self.Arg.SetBackgroundColour(clicked_color)
+		else:
+			self.Arg.SetBackgroundColour(unclicked_color)
+
+		if self.His.GetValue(): 
+			AA.append('H')
+			self.His.SetBackgroundColour(clicked_color)
+		else:
+			self.His.SetBackgroundColour(unclicked_color)
+
+		if self.Lys.GetValue(): 
+			AA.append('K')
+			self.Lys.SetBackgroundColour(clicked_color)
+		else:
+			self.Lys.SetBackgroundColour(unclicked_color)
+
+		if self.Cys.GetValue(): 
+			AA.append('C')
+			self.Cys.SetBackgroundColour(clicked_color)
+		else:
+			self.Cys.SetBackgroundColour(unclicked_color)
+
+		if self.Gly.GetValue(): 
+			AA.append('G')
+			self.Gly.SetBackgroundColour(clicked_color)
+		else:
+			self.Gly.SetBackgroundColour(unclicked_color)
+
+		if self.Pro.GetValue(): 
+			AA.append('P')
+			self.Pro.SetBackgroundColour(clicked_color)
+		else:
+			self.Pro.SetBackgroundColour(unclicked_color)
+
 		if len(AA) > 0:
-			codon, target, offtarget = rcd.run(AA)
+			codon, target, offtarget, possibleAA = mbc.run(AA)
 			self.codontext.SetLabel(codon)
 			targetstring = ''
-			for entry in target:
+			for entry in target: #make string with the target AA
 				targetstring += entry+' '
 			offtargetstring = ''
-			for entry in offtarget:
+			for entry in offtarget: #make string with the offtarget AA
 				offtargetstring += entry+' '
 			self.target_hits.SetLabel('Target amino acids: '+targetstring)
 			self.offtarget_hits.SetLabel('Off-target amino acids: '+offtargetstring)	
+	
+	
+			#set the yellow buttons to indicate which AA are possible without further off-target hits	
+			possible_color = '#FFFF99'	
+			if 'A' in possibleAA and self.Ala.GetValue() == False: 
+				self.Ala.SetBackgroundColour(possible_color)
+
+			if  'V' in possibleAA and self.Val.GetValue() == False: 
+				self.Val.SetBackgroundColour(possible_color)
+
+			if  'I' in possibleAA and self.Ile.GetValue() == False: 
+				self.Ile.SetBackgroundColour(possible_color)
+
+			if  'L' in possibleAA and self.Leu.GetValue() == False: 
+				self.Leu.SetBackgroundColour(possible_color)
+
+			if  'M' in possibleAA and self.Met.GetValue() == False: 
+				self.Met.SetBackgroundColour(possible_color)
+
+			if  'F' in possibleAA and self.Phe.GetValue() == False: 
+				self.Phe.SetBackgroundColour(possible_color)
+
+			if  'Y' in possibleAA and self.Tyr.GetValue() == False: 
+				self.Tyr.SetBackgroundColour(possible_color)
+
+			if  'W' in possibleAA and self.Trp.GetValue() == False: 
+				self.Trp.SetBackgroundColour(possible_color)
+
+			if  'D' in possibleAA and self.Asp.GetValue() == False: 
+				self.Asp.SetBackgroundColour(possible_color)
+
+			if  'E' in possibleAA and self.Glu.GetValue() == False: 
+				self.Glu.SetBackgroundColour(possible_color)
+
+			if  'N' in possibleAA and self.Asn.GetValue() == False: 
+				self.Asn.SetBackgroundColour(possible_color)
+
+			if  'Q' in possibleAA and self.Gln.GetValue() == False: 
+				self.Gln.SetBackgroundColour(possible_color)
+
+			if  'S' in possibleAA and self.Ser.GetValue() == False: 
+				self.Ser.SetBackgroundColour(possible_color)
+
+			if  'T' in possibleAA and self.Thr.GetValue() == False: 
+				self.Thr.SetBackgroundColour(possible_color)
+
+			if  'R' in possibleAA and self.Arg.GetValue() == False: 
+				self.Arg.SetBackgroundColour(possible_color)
+
+			if  'H' in possibleAA and self.His.GetValue() == False: 
+				self.His.SetBackgroundColour(possible_color)
+
+			if  'K' in possibleAA and self.Lys.GetValue() == False: 
+				self.Lys.SetBackgroundColour(possible_color)
+
+			if  'C' in possibleAA and self.Cys.GetValue() == False: 
+				self.Cys.SetBackgroundColour(possible_color)
+
+			if  'G' in possibleAA and self.Gly.GetValue() == False: 
+				self.Gly.SetBackgroundColour(possible_color)
+
+			if  'P' in possibleAA and self.Pro.GetValue() == False: 
+				self.Pro.SetBackgroundColour(possible_color)
+
 		else:
-			self.OnReset('')
+			self.codontext.SetLabel('None')
+			self.target_hits.SetLabel('Target amino acids: ')
+			self.offtarget_hits.SetLabel('Off-target amino acids: ')
+
 	
 	def OnReset(self, evt):
 		'''Reset all buttons so that they are unclicked'''
@@ -211,10 +391,11 @@ class RedundantCodon(wx.Panel):
 		self.codontext.SetLabel('None')
 		self.target_hits.SetLabel('Target amino acids: ')
 		self.offtarget_hits.SetLabel('Off-target amino acids: ')	
+		self.OnToggle("")
 
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
-	frame = wx.Frame(None, title="Redundant Codon Design") # creation of a Frame with a title
-	frame.RCD = RedundantCodon(frame) # creation of a richtextctrl in the frame
+	frame = wx.Frame(None, title="Mixed Base Codons") # creation of a Frame with a title
+	frame.MBC = MixedBaseCodon(frame) # creation of a richtextctrl in the frame
 	frame.Show() # frames are invisible by default so we use Show() to make them visible
 	app.MainLoop() # here the app enters a loop waiting for user input

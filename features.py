@@ -456,21 +456,18 @@ class FeatureView(wx.Panel):
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
+		self.GetTopLevelParent().match_selection()
 
+		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(600, 200)) # creation of a Frame with a title
+		self.feature_edit = FeatureEdit(self.NewFeatureFrame, id=wx.ID_ANY)		
 
-		dlg = wx.Dialog(self, style=wx.YES_NO|wx.CANCEL, size=(600, 200))
-		self.feature_edit = FeatureEdit(dlg, id=wx.ID_ANY)
+#		self.OK = wx.Button(self.NewFeatureFrame, 7, 'OK')
+#		self.sizer = wx.BoxSizer(wx.VERTICAL)
+#		self.sizer.Add(self.feature_edit)
+#		self.sizer.Add(self.OK)
 
-
-		result = dlg.ShowModal()
-		dlg.Destroy()
-		if result == wx.ID_YES: 
-
-			genbank.gb.add_feature() #add arguments here!!!!!!!!!
-			self.updateUI()
-
-			index = self.feature_list.GetItemCount()-1
-			self.update_feature_selection(index)
+		self.NewFeatureFrame.Show()
+		self.NewFeatureFrame.Center()
 		
 
 	def OnDelete(self, event):
