@@ -122,10 +122,11 @@ class MyPanel(wx.Panel):
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.delete(start+1, finish+1)
+				genbank.gb.changegbsequence(start, finish, 'r', chr(key))
+				#genbank.gb.delete(start+1, finish+1)
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-			genbank.gb.changegbsequence(start+1, start+1, 'i', chr(key))
+				genbank.gb.changegbsequence(start, start, 'i', chr(key))
 			self.gbviewer.SetValue(genbank.gb.get_dna())
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(start+1)
@@ -135,22 +136,26 @@ class MyPanel(wx.Panel):
 		if key == 8: #backspace
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.delete(start+1, finish+1)
+				genbank.gb.delete(start, finish)
+				self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.updateUI()
+				self.gbviewer.SetInsertionPoint(start)
+				self.gbviewer.ShowPosition(start) 
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				genbank.gb.delete(start, start+1)
-			self.gbviewer.SetValue(genbank.gb.get_dna())
-			self.updateUI()
-			self.gbviewer.SetInsertionPoint(start-1)
-			self.gbviewer.ShowPosition(start-1) 
+				genbank.gb.delete(start-1, start)
+				self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.updateUI()
+				self.gbviewer.SetInsertionPoint(start-1)
+				self.gbviewer.ShowPosition(start-1) 
 
 		if key == 127: #delete
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.delete(start+1, finish+1)
+				genbank.gb.delete(start, finish)
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				genbank.gb.delete(start+1, start+2)
+				genbank.gb.delete(start, start+1)
 			self.gbviewer.SetValue(genbank.gb.get_dna())
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(start)

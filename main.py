@@ -249,7 +249,7 @@ class MyFrame(wx.Frame):
 		'''Function for saving file'''
 #		try:
 
-
+		print(genbank.gb.get_filepath())
 		genbank.gb.write_file(genbank.gb.get_filepath())
 		
 
@@ -271,12 +271,17 @@ class MyFrame(wx.Frame):
 		fileName=dlg.GetFilename()
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
+
 		if (fileName == None or fileName == ""):
 			return
 		else:
+			if fileName[-3:] != '.gb': #make sure it has gb file ending
+				all_path += '.gb'
+				fileName += '.gb'
 			#try:
 			genbank.gb.set_filepath(all_path)
 			self.save_file("")
+			self.SetTitle(fileName+' - DNApy')
 			#except:
 			#	error_window(7, self)
 

@@ -428,7 +428,7 @@ class gbobject():
 		'''Deletes current DNA selection'''
 		if start != finish: #must be a selection
 			deletedsequence = self.get_dna()[start:finish]
-			self.changegbsequence(start+1, finish+1, 'd', deletedsequence)
+			self.changegbsequence(start, finish, 'd', deletedsequence)
 		self.set_dna_selection((start, start))
 
 	def cut(self):
@@ -457,7 +457,7 @@ class gbobject():
 			temp_clipboard['dna'] = pyperclip.paste()
 
 		DNA = str(temp_clipboard['dna'])
-		self.changegbsequence(start+1, start+1, 'i', DNA) #change dna sequence	
+		self.changegbsequence(start, start, 'i', DNA) #change dna sequence	
 		for i in range(len(temp_clipboard['features'])): #add features from clipboard
 			self.paste_feature(temp_clipboard['features'][i], start)
 		self.set_dna_selection((start, start+len(DNA))) #make pasted sequence selected
@@ -922,8 +922,8 @@ class gbobject():
 				
 		
 	def changegbsequence(self, changestart, changeend, changetype, change):
-		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly"""
-		#this does not yet handle split features... need to fix that!!!
+		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly."""
+		#assumes that changestart and changeend are list positions
 
 		if changetype == 'r': #replacement
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
@@ -931,11 +931,13 @@ class gbobject():
 					
 		elif changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
 			for i in range(len(self.gbfile['features'])): #change features already present
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
+					start -= 1
+					finish -= 1
 					if start<changestart<=finish: #if change is within the feature
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'f')
 					elif changestart<=start<=finish: #if change is before feature
@@ -945,24 +947,31 @@ class gbobject():
 		elif changetype == 'd': #deletion
 			deletionlist = []
 			olddnalength = len(self.gbfile['dna']) #for changing header
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + self.gbfile['dna'][changeend-1:]
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + self.gbfile['dna'][changeend:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
 			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
+					start -= 1
+					finish -= 1
 					if i >= len(self.gbfile['features']):
 						break
-					if start<=changestart<=int(changeend)<=finish: #if change is within the feature, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f')
-					elif changestart<=start<=changeend<=finish: #if change encompasses start, change start and finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend-start, 's')						
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')
-					elif start<changestart<=finish<=changeend: #if change encompasses finish, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart-1), 'f')	
-					elif changestart<=start<=finish<=changeend or changestart==start<=finish==changefinish: #if change encompasses whole feature, add to deletion list
+					if start<changestart and changeend<=finish: #if change is within the feature, change finish
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f') #finish
+						print('within feature')
+					elif changestart<=start and start<=changeend<=finish: #if change encompasses start, change start and finish
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend-start, 's')	#start					
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
+						print('encopass start')
+					elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart+1), 'f')	
+						print('encopass finish')
+					elif changestart<=start and finish<changeend: #if change encompasses whole feature, add to deletion list
 						deletionlist.append(deepcopy((i, n)))
-					elif changestart<=changeend<=start<=finish: #if change is before feature, change start and finish
+						print('encopass all')
+					elif changestart<start and changeend<start: #if change is before feature, change start and finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')				
+						print('before start')
 			#execute deletions (if any)
 			while len(deletionlist)>0:
 				index, number = deletionlist[-1]
@@ -1051,9 +1060,6 @@ class gbobject():
 		pass
 	
 	def protein_to_dna():
-		pass
-	
-	def minilib_design():
 		pass
 	
 	def find_barcode():

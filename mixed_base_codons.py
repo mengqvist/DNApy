@@ -34,6 +34,8 @@
 #TODO 
 #this code is awful, I'll need to re-write it so that others, and myself can understand it..
 
+from copy import deepcopy
+
 DesiredAA = [] #list that holds the desired amino acids
 
 def AAtocodons(AAlist, option):
@@ -515,33 +517,35 @@ def test_alternate(DesiredAA, AA, triplet, result):
 def next_steps(targetAA, offtargetAA):
 	"""Function for finding which other amino acids can be selected without introducion further off-target ones"""
 	possibleAA = [] #for storing which ones are possible
-	testset = [] #which AA should be tested
 	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G'];
-	
-	for AA in AllNaturalAA: #check which ones should be added to the new testset
+	unusedAA = [] #get the unused amino acids
+
+	for AA in AllNaturalAA:
 		if AA in targetAA:
 			pass
 		else:
-			testset.append(AA)	
+			unusedAA.append(AA)
 
-	for AA in testset:
-		print(AA)
-		testingAA = targetAA #start with the set that was already chosen
-		targetAA_plus_one = testingAA.append(AA)
-		new_codon, new_target, new_offtarget = get_codon_for_chosen_AA(targetAA_plus_one)
-		for i in range(len(new_offtarget)):
-			if (new_offtarget[i] in offtarget) == True:
+	if len(unusedAA)>0:
+		for AA in unusedAA : #check which ones should be added to the new testset
+			TrueFalseList = []
+			testAA = deepcopy(targetAA)
+			testAA.append(AA)
+			new_codon, new_target, new_offtarget = get_codon_for_chosen_AA(testAA)   
+			for i in range(len(new_offtarget)):
+				if (new_offtarget[i] in offtargetAA) == True:
+					TrueFalseList.append(True)
+				elif (new_offtarget[i] in offtargetAA) == False:
+					TrueFalseList.append(False)
+			if False in TrueFalseList:
 				pass
-			elif (new_offtarget[i] in offtarget) == False:
-				break
-			elif i == len(new_offtarget)-1:
+			else:
 				possibleAA.append(AA)
-	print(possibleAA)
+	#print('possibleAA', possibleAA)
 	return possibleAA
 
 def get_codon_for_chosen_AA(AA):	
 	#DesiredAA containst list of amino acids and also the option wheter codons should be excluded or not.
-	global DesiredAA
 	DesiredAA = AA
 	codon_restriction = 'n'	
 
@@ -566,10 +570,9 @@ def get_codon_for_chosen_AA(AA):
 def run(AA):
 	triplet, target, offtarget = get_codon_for_chosen_AA(AA)
 
-
+#	print(next_steps(target, offtarget))
 	#now find which aa are possible without adding  off-target hits
-#	possibleAA = next_steps(target, offtarget)
-	possibleAA = ['A', 'C']
+	possibleAA = next_steps(target, offtarget)
 
 
 
