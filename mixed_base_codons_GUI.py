@@ -33,6 +33,17 @@
 import wx
 import mixed_base_codons as mbc
 
+
+from numpy import arange, sin, pi
+import matplotlib as mpl
+mpl.use('WXAgg')
+
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import numpy as np
+
 class MixedBaseCodon(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -119,7 +130,7 @@ class MixedBaseCodon(wx.Panel):
 		self.codontext = wx.StaticText(self, id=wx.ID_ANY, label='codon')
 		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.codontext.SetFont(textfont)
-		self.codontext.SetLabel('None')
+		self.codontext.SetLabel('Mixed base codon: None')
 
 #		self.codontext = wx.TextCtrl(self, id=wx.ID_ANY)
 #		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -134,7 +145,7 @@ class MixedBaseCodon(wx.Panel):
 		self.target_hits = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.target_hits.SetFont(textfont)
-		self.target_hits.SetLabel('Target amino acids: ')
+		self.target_hits.SetLabel('Target AA: ')
 
 		spacer2 = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -144,8 +155,27 @@ class MixedBaseCodon(wx.Panel):
 		self.offtarget_hits = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.offtarget_hits.SetFont(textfont)
-		self.offtarget_hits.SetLabel('Off-target amino acids: ')
+		self.offtarget_hits.SetLabel('Off-target AA: ')
 
+
+		#make graph
+		self.figure = plt.figure(facecolor='none', figsize=(5,2))
+		self.canvas = FigureCanvas(self, -1, self.figure)
+		self.axes = self.figure.add_subplot(111)
+#		self.axes = self.figure.add_axes([0,0,1,1])		
+
+		self.ind = (0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20) # the x locations for the groups
+		self.axes.set_ylabel('Number')
+		self.axes.set_title('Prevalence of each AA')
+		self.axes.set_xticks(self.ind)
+		labels = ('A', 'C', 'E', 'D', 'G', 'F', 'I', 'H', 'K', 'M', 'L', 'N', 'Q', 'P', 'S', 'R', 'T', 'W', 'V', 'Y', 'St')
+		self.axes.set_xticklabels(labels)
+		bar_width = 0.75
+		x = (1, 1, 1, 2, 1, 1, 1,3, 1, 2, 1, 1, 1, 1, 2, 1, 1, 6, 1, 2, 1)
+		self.rects = self.axes.bar(self.ind, x, bar_width, color='#333333', align='center')	
+		self.update_plot({'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0})	
+
+		#sizers
 		globsizer = wx.BoxSizer(wx.VERTICAL)
 		globsizer.Add(sizer1)
 		globsizer.Add(sizer2)
@@ -158,7 +188,19 @@ class MixedBaseCodon(wx.Panel):
 		globsizer.Add(self.target_hits)
 		globsizer.Add(spacer2)
 		globsizer.Add(self.offtarget_hits)
+		globsizer.Add(spacer1)
+		globsizer.Add(self.canvas, flag=wx.ALIGN_CENTER)
 		self.SetSizer(globsizer)
+
+	def update_plot(self, AA_count):
+
+		x = (AA_count['A'], AA_count['C'], AA_count['E'], AA_count['D'], AA_count['G'], AA_count['F'], AA_count['I'], AA_count['H'], AA_count['K'], AA_count['M'], AA_count['L'], AA_count['N'], AA_count['Q'], AA_count['P'], AA_count['S'], AA_count['R'], AA_count['T'], AA_count['W'], AA_count['V'], AA_count['Y'], AA_count['stop'])
+
+		for rect, h in zip(self.rects, x):
+		    rect.set_height(h)
+		self.canvas.draw()
+
+
 
 	def OnToggle(self, evt):
 		'''When any togglebutton is pressed'''
@@ -287,15 +329,21 @@ class MixedBaseCodon(wx.Panel):
 
 		if len(AA) > 0:
 			codon, target, offtarget, possibleAA = mbc.run(AA)
-			self.codontext.SetLabel(codon)
+			self.codontext.SetLabel('Mixed base codon: %s' % codon)
 			targetstring = ''
 			for entry in target: #make string with the target AA
-				targetstring += entry+' '
+				if targetstring == '':
+					targetstring += entry
+				else:
+					targetstring += ', '+entry
 			offtargetstring = ''
 			for entry in offtarget: #make string with the offtarget AA
-				offtargetstring += entry+' '
-			self.target_hits.SetLabel('Target amino acids: '+targetstring)
-			self.offtarget_hits.SetLabel('Off-target amino acids: '+offtargetstring)	
+				if offtargetstring == '':
+					offtargetstring += entry
+				else:
+					offtargetstring += ', '+entry
+			self.target_hits.SetLabel('Target AA: '+targetstring)
+			self.offtarget_hits.SetLabel('Off-target AA: '+offtargetstring)	
 	
 	
 			#set the yellow buttons to indicate which AA are possible without further off-target hits	
@@ -365,7 +413,18 @@ class MixedBaseCodon(wx.Panel):
 			self.target_hits.SetLabel('Target amino acids: ')
 			self.offtarget_hits.SetLabel('Off-target amino acids: ')
 
-	
+
+
+		#make list of all codons in degenerate triplet
+		codonlist = mbc.combinelists(mbc.checkdegenerate(codon[0]), mbc.checkdegenerate(codon[1]), mbc.checkdegenerate(codon[2]))
+		
+		#count how many times each AA is coded for by these codons
+		AA_count = mbc.count_codon_list(codonlist)
+		
+		#plot graph
+		self.update_plot(AA_count)
+		
+
 	def OnReset(self, evt):
 		'''Reset all buttons so that they are unclicked'''
 		self.Ala.SetValue(False)

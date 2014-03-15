@@ -38,6 +38,7 @@ from copy import deepcopy
 
 DesiredAA = [] #list that holds the desired amino acids
 
+
 def AAtocodons(AAlist, option):
 	"""Fetches codons for a given AA. Optionally pass 'y' if a restricted codon table without rare codons should be used"""
 	codonlist = []
@@ -327,7 +328,7 @@ def checkdegenerate(codon):
 
 
 def combinelists(list1, list2, list3):
-	"""Function makes every combination of list1, list2, and list3, but retains their internal order."""
+	"""Function makes every combination of list1, list2, and list3 to make actual codons out of them, but retains their internal order."""
 	some_var = []
 	for i in range(0, len(list1)):
 		some_var.append(list1[i])
@@ -343,8 +344,80 @@ def combinelists(list1, list2, list3):
 			some_var3.append(some_var2[n] + list3[i])
 	return some_var3
 
+def count_codon_list(codonlist):
+	"""Takes a list of codons and counts how many of each AA are coded for. Returns a dictionary."""
+	F = ['TTT', 'TTC'];
+	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
+	S = [ 'AGC', 'AGT', 'TCT', 'TCC', 'TCA', 'TCG'];
+	Y = ['TAT', 'TAC'];
+	stop = ['TAA', 'TAG', 'TGA'];
+	C = ['TGT', 'TGC'];
+	W = ['TGG'];
+	P = ['CCT', 'CCA', 'CCG', 'CCC'];
+	H = ['CAT', 'CAC'];
+	E = ['GAA', 'GAG'];
+	R = ['CGT', 'CGA', 'CGG', 'CGC', 'AGG', 'AGA'];
+	I = ['ATT', 'ATC', 'ATA'];
+	M = ['ATG'];
+	T = ['ACG', 'ACC', 'ACA', 'ACT'];
+	N = ['AAT', 'AAC'];
+	K = ['AAA', 'AAG'];
+	V = ['GTT', 'GTA', 'GTG', 'GTC'];
+	A = ['GCG', 'GCC', 'GCA', 'GCT'];
+	D = ['GAT', 'GAC'];
+	Q = ['CAG', 'CAA'];
+	G = ['GGA', 'GGT', 'GGC', 'GGG']
+
+	ResultingAA = {'F':0,'L':0,'S':0,'Y':0,'C':0,'W':0,'P':0,'H':0,'E':0,'R':0,'I':0,'M':0,'T':0,'N':0,'K':0,'V':0,'A':0,'D':0,'Q':0,'G':0, 'stop':0}
+	for i in range(0, len(codonlist)):
+		if any(codonlist[i] in s for s in F):
+			ResultingAA['F'] += 1
+		elif any(codonlist[i] in s for s in L):
+			ResultingAA['L'] += 1
+		elif any(codonlist[i] in s for s in S):
+			ResultingAA['S'] += 1
+		elif any(codonlist[i] in s for s in Y):
+			ResultingAA['Y'] += 1
+		elif any(codonlist[i] in s for s in stop):
+			ResultingAA['stop'] += 1
+		elif any(codonlist[i] in s for s in C):
+			ResultingAA['C'] += 1
+		elif any(codonlist[i] in s for s in W):
+			ResultingAA['W'] += 1
+		elif any(codonlist[i] in s for s in P):
+			ResultingAA['P'] += 1
+		elif any(codonlist[i] in s for s in H):
+			ResultingAA['H'] += 1
+		elif any(codonlist[i] in s for s in E):
+			ResultingAA['E'] += 1
+		elif any(codonlist[i] in s for s in R):
+			ResultingAA['R'] += 1
+		elif any(codonlist[i] in s for s in I):
+			ResultingAA['I'] += 1
+		elif any(codonlist[i] in s for s in M):
+			ResultingAA['M'] += 1
+		elif any(codonlist[i] in s for s in T):
+			ResultingAA['T'] += 1
+		elif any(codonlist[i] in s for s in N):
+			ResultingAA['N'] += 1
+		elif any(codonlist[i] in s for s in K):
+			ResultingAA['K'] += 1
+		elif any(codonlist[i] in s for s in V):
+			ResultingAA['V'] += 1
+		elif any(codonlist[i] in s for s in A):
+			ResultingAA['A'] += 1
+		elif any(codonlist[i] in s for s in D):
+			ResultingAA['D'] += 1
+		elif any(codonlist[i] in s for s in Q):
+			ResultingAA['Q'] += 1
+		elif any(codonlist[i] in s for s in G):
+			ResultingAA['G'] += 1
+		else:
+			print('Error, this is not an amino acid codon')
+	return ResultingAA	
 
 def translatecodonlist(codonlist):
+	"""Takes a list of codons and returns the amino acids encoded by them"""
 	F = ['TTT', 'TTC'];
 	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
 	S = [ 'AGC', 'AGT', 'TCT', 'TCC', 'TCA', 'TCG'];
@@ -517,7 +590,7 @@ def test_alternate(DesiredAA, AA, triplet, result):
 def next_steps(targetAA, offtargetAA):
 	"""Function for finding which other amino acids can be selected without introducion further off-target ones"""
 	possibleAA = [] #for storing which ones are possible
-	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G'];
+	AllNaturalAA = ['F','L', 'L2','S', 'S2', 'Y','C','W','P','H','E','R', 'R2','I','M','T','N','K','V','A','D','Q','G'];
 	unusedAA = [] #get the unused amino acids
 
 	for AA in AllNaturalAA:
@@ -542,6 +615,16 @@ def next_steps(targetAA, offtargetAA):
 			else:
 				possibleAA.append(AA)
 	#print('possibleAA', possibleAA)
+
+	#change S2 to S and L2 to L
+#	new_possibleAA = []
+#	for AA in possibleAA:
+#		if AA == 'S2' and ('S' in new_possibleAA) == False:
+#			new_possibleAA.append('S')
+#		elif AA == 'L2' and ('L' in new_possibleAA) == False:
+#			new_possibleAA.append('L')
+#		else:
+#			new_possibleAA.append(AA)
 	return possibleAA
 
 def get_codon_for_chosen_AA(AA):	
