@@ -193,13 +193,12 @@ class MixedBaseCodon(wx.Panel):
 		self.SetSizer(globsizer)
 
 	def update_plot(self, AA_count):
-
+		'''Updates bar heights of an already existing plot'''
 		x = (AA_count['A'], AA_count['C'], AA_count['E'], AA_count['D'], AA_count['G'], AA_count['F'], AA_count['I'], AA_count['H'], AA_count['K'], AA_count['M'], AA_count['L'], AA_count['N'], AA_count['Q'], AA_count['P'], AA_count['S'], AA_count['R'], AA_count['T'], AA_count['W'], AA_count['V'], AA_count['Y'], AA_count['stop'])
-
-		for rect, h in zip(self.rects, x):
+		for rect, h in zip(self.rects, x): #change height of all bars
 		    rect.set_height(h)
 		self.canvas.draw()
-
+		#need to stop axes from being redrawn
 
 
 	def OnToggle(self, evt):

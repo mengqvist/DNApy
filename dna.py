@@ -31,12 +31,12 @@
 #
 
 
-def reverse(dna):
+def rev(dna):
 	"""Returns the reverse of a DNA string"""
 	dna = dna.replace('\n','')
 	return dna[::-1]  #makes the reverse of the input string
 		
-def complement(dna):
+def comp(dna):
 	"""Returns the complement of a DNA string"""
 	dna = dna.replace('\n','')
 	compdna = ''
@@ -80,9 +80,9 @@ def complement(dna):
 	return compdna
 	
 	
-def reversecomplement(dna):
+def revcomp(dna):
 	"""Returns the reverse complement of a DNA string"""
-	return reverse(complement(dna))
+	return rev(comp(dna))
 
 
 def translate(dna):
@@ -164,17 +164,98 @@ def translate(dna):
 				protein = protein + '?'
 	return protein	
 
-#add seq analyzer
+#add randomize dna
 
 
 #add abireader function
 
 #add function for fetching dna from uniprot, ncbi...
 
-#add function for blasting a sequence
 
 
 
+def pair_ident(Seq1, Seq2):
+	'''Takes two aligned sequences and returns their percent identity.
+Assumes that Seq1 and Seq2 are sequence strings'''
+
+	l=0.0 # counts alignment length, excluding identical gaps
+	i=0.0 # counts identity hits
+
+	for j in range(len(Seq2)): 
+		if Seq1[j] == '-' and Seq2[j] == '-': #DON'T count identical gaps towards alignment length
+			pass
+		else:
+			if Seq2[j] == Seq1[j]:
+				i += 1
+			l += 1
+
+	percent = round(100*(i/l),1) #calculate identity
+	return percent
+
+
+
+
+#### Analyze alignments ####
+def single_ident(align_file):
+	'''Get identities for all protines compared to one reference sequence in aligned FASTA file.
+Assumes that align_file is a fasta-formatted alignment.
+Assumes that reference sequence is the first one.
+Returns a touple of the results.'''
+
+	from Bio import AlignIO
+	results = ()
+
+	input_handle = open(align_file, "rU")
+	alignment = AlignIO.read(input_handle, "fasta")
+	input_handle.close()
+	for record2 in range(1, len(alignment)):
+		percent = pair_ident(alignment[0].seq, alignment[record2].seq)
+		results += (alignment[0].id + ' vs ' + alignment[record2].id+' '+str(percent),)
+	return results
+
+def all_ident(align_file):
+	'''Get identities for all combinations of proteins in aligned FASTA file.
+Assumes that align_file is a fasta-formatted alignment.
+Returns a touple of the results.'''
+
+	from Bio import AlignIO
+	results = ()
+
+	input_handle = open(align_file, "rU")
+	alignment = AlignIO.read(input_handle, "fasta")
+	input_handle.close()
+	for record in range(len(alignment)):
+		for record2 in range(record+1, len(alignment)):
+			percent = pair_ident(alignment[record].seq, alignment[record2].seq)
+			results += (alignment[record].id + ' vs ' + alignment[record2].id+' '+str(percent),)
+	return results
+
+########
+
+
+def blast(blast_type, database, seq): #function for blasting 
+	'''Blasts a sequence against the NCBI database'''
+	#"tblastn", "nt", seq
+	#add asserts...
+	from Bio.Blast import NCBIWWW
+	from Bio.Blast import NCBIXML
+	from copy import deepcopy
+
+	result_handle = NCBIWWW.qblast(blast_type, database, seq) #perform the BLAST
+	blast_record = NCBIXML.read(result_handle)
+	string = ''
+
+	for alignment in blast_record.alignments: #print all seq IDs and sequences in the fasta file
+		for hsp in alignment.hsps:
+			subject = hsp.sbjct[0:]
+			nodash = subject.replace("-", "")
+			string += ">"+alignment.title+"\n"+nodash+"\n"
+	return string
+	result_handle.close()
+#	save_file = open(protname+"_my_blast_nt.xml", "w")
+#	save_file.write(result_handle.read())
+#	save_file.close()
+	
 
 
 def smithwaterman(dna1, dna2):

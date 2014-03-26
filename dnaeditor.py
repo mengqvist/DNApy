@@ -299,7 +299,7 @@ class MyPanel(wx.Panel):
 	def translate_selection_reverse_complement(self, evt):
 		'''Translate reverse-complement of selected DNA'''
 		DNA = self.gbviewer.GetStringSelection()
-		protein = dna.translate(dna.reversecomplement(DNA))
+		protein = dna.translate(dna.revcomp(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
 
 #update this one...

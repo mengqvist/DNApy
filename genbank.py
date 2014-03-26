@@ -396,7 +396,7 @@ class gbobject():
 
 	def reverse_complement_clipboard(self):	
 		'''Reverse-complements the DNA and all features in clipboard'''
-		self.clipboard['dna'] = dna.reversecomplement(self.clipboard['dna']) #change dna sequence
+		self.clipboard['dna'] = dna.revcomp(self.clipboard['dna']) #change dna sequence
 		pyperclip.copy(self.clipboard['dna'])	
 		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
 			if self.clipboard['features'][i]['complement'] == True: self.clipboard['features'][i]['complement'] = False
@@ -704,7 +704,7 @@ class gbobject():
 				DNA += self.gbfile['dna'][start+1:finish+1] + '\n'
 		
 		if self.gbfile['features'][index]['complement'] == True:
-			DNA = dna.reversecomplement(DNA)
+			DNA = dna.revcomp(DNA)
 		return DNA
 
 	def get_dna(self):
