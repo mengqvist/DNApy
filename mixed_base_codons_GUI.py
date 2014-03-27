@@ -34,20 +34,10 @@ import wx
 import mixed_base_codons as mbc
 
 
-from numpy import arange, sin, pi
-import matplotlib as mpl
-mpl.use('WXAgg')
-
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.backends.backend_wx import NavigationToolbar2Wx
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import numpy as np
-
 class MixedBaseCodon(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
-#		self.dlg = wx.Panel(self, id=wx.ID_ANY)
+		self.AA_count = {'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0}
 
 		self.Ala = wx.ToggleButton(self, 1, 'Ala (A)')
 		self.Ala.Bind(wx.EVT_TOGGLEBUTTON, self.OnToggle, id=1)
@@ -158,23 +148,6 @@ class MixedBaseCodon(wx.Panel):
 		self.offtarget_hits.SetLabel('Off-target AA: ')
 
 
-		#make graph
-		self.figure = plt.figure(facecolor='none', figsize=(5,2))
-		self.canvas = FigureCanvas(self, -1, self.figure)
-		self.axes = self.figure.add_subplot(111)
-#		self.axes = self.figure.add_axes([0,0,1,1])		
-
-		self.ind = (0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20) # the x locations for the groups
-		self.axes.set_ylabel('Number')
-		self.axes.set_title('Prevalence of each AA')
-		self.axes.set_xticks(self.ind)
-		labels = ('A', 'C', 'E', 'D', 'G', 'F', 'I', 'H', 'K', 'M', 'L', 'N', 'Q', 'P', 'S', 'R', 'T', 'W', 'V', 'Y', 'St')
-		self.axes.set_xticklabels(labels)
-		bar_width = 0.75
-		x = (1, 1, 1, 2, 1, 1, 1,3, 1, 2, 1, 1, 1, 1, 2, 1, 1, 6, 1, 2, 1)
-		self.rects = self.axes.bar(self.ind, x, bar_width, color='#333333', align='center')	
-		self.update_plot({'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0})	
-
 		#sizers
 		globsizer = wx.BoxSizer(wx.VERTICAL)
 		globsizer.Add(sizer1)
@@ -183,22 +156,81 @@ class MixedBaseCodon(wx.Panel):
 		globsizer.Add(sizer4)
 		globsizer.Add(sizer5)
 		globsizer.Add(spacer0)
-		globsizer.Add(self.codontext)
+		globsizer.Add(self.codontext, flag=wx.LEFT, border=10)
 		globsizer.Add(spacer1)
-		globsizer.Add(self.target_hits)
+		globsizer.Add(self.target_hits, flag=wx.LEFT, border=10)
 		globsizer.Add(spacer2)
-		globsizer.Add(self.offtarget_hits)
+		globsizer.Add(self.offtarget_hits, flag=wx.LEFT, border=10)
 		globsizer.Add(spacer1)
-		globsizer.Add(self.canvas, flag=wx.ALIGN_CENTER)
 		self.SetSizer(globsizer)
+		self.Center()
 
-	def update_plot(self, AA_count):
-		'''Updates bar heights of an already existing plot'''
-		x = (AA_count['A'], AA_count['C'], AA_count['E'], AA_count['D'], AA_count['G'], AA_count['F'], AA_count['I'], AA_count['H'], AA_count['K'], AA_count['M'], AA_count['L'], AA_count['N'], AA_count['Q'], AA_count['P'], AA_count['S'], AA_count['R'], AA_count['T'], AA_count['W'], AA_count['V'], AA_count['Y'], AA_count['stop'])
-		for rect, h in zip(self.rects, x): #change height of all bars
-		    rect.set_height(h)
-		self.canvas.draw()
-		#need to stop axes from being redrawn
+	def update_plot(self):
+		'''Draws a graph displaying how many codons for each amino acid is selection'''
+		self.Refresh()
+		self.Update()
+
+		AA_order = ('A', 'C', 'E', 'D', 'G', 'F', 'I', 'H', 'K', 'M', 'L', 'N', 'Q', 'P', 'S', 'R', 'T', 'W', 'V', 'Y', 'stop')
+		x = (self.AA_count[AA_order[0]], self.AA_count[AA_order[1]], self.AA_count[AA_order[2]], self.AA_count[AA_order[3]], self.AA_count[AA_order[4]], self.AA_count[AA_order[5]], self.AA_count[AA_order[6]], self.AA_count[AA_order[7]], self.AA_count[AA_order[8]], self.AA_count[AA_order[9]], self.AA_count[AA_order[10]], self.AA_count[AA_order[11]], self.AA_count[AA_order[12]], self.AA_count[AA_order[13]], self.AA_count[AA_order[14]], self.AA_count[AA_order[15]], self.AA_count[AA_order[16]], self.AA_count[AA_order[17]], self.AA_count[AA_order[18]], self.AA_count[AA_order[19]], self.AA_count[AA_order[20]])
+
+		originx = 50
+		originy = 450
+		sizex = 300
+		sizey = 120
+		xspacing = float(sizex)/float(21)
+		yspacing = sizey/7
+		tick_size = 5
+
+		title = 'Codon count for each AA'
+	
+		self.dc = wx.PaintDC(self)		
+		self.dc.SetDeviceOrigin(originx, originy)
+		self.dc.SetAxisOrientation(True, True)
+ 
+		self.dc.SetPen(wx.Pen('#333333'))
+		self.font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, 'Courier 10 Pitch')
+		self.dc.SetFont(self.font)
+
+		#title
+		self.dc.DrawText(title, sizex/4, sizey+20)
+
+		#x labels (amino acids)		
+		for i in range(1, 22):	
+			self.dc.DrawText(str(AA_order[i-1]), 0+(xspacing*i)-xspacing/1.5, -5)
+
+		#y labels (count)
+		for i in range(1, 7):	
+			self.dc.DrawText(str(i), -10, 0+(yspacing*i)+9)	
+
+
+		self.dc.SetPen(wx.Pen('#FFFFFF'))
+		self.dc.DrawRectangle(0, 0, sizex, sizey)
+
+		#frame
+		self.dc.SetPen(wx.Pen('#000000'))
+		self.dc.DrawLine(0, 0, sizex, 0) #bottom line... #DrawLine(self, x1, y1, x2, y2)
+		self.dc.DrawLine(0, sizey, sizex, sizey) #top line
+		self.dc.DrawLine(sizex, 0, sizex, sizey) #right line
+		self.dc.DrawLine(0, 0, 0, sizey) #left line
+
+		#x ticks
+		for i in range(1, 22):
+			self.dc.DrawLine(0+(xspacing*i), 0, 0+(xspacing*i), tick_size)
+			self.dc.DrawLine(0+(xspacing*i), sizey, 0+(xspacing*i), sizey-tick_size)
+
+		#y ticks
+		for i in range(1, 7):
+			self.dc.DrawLine(0, 0+(yspacing*i), tick_size, 0+(yspacing*i))
+			self.dc.DrawLine(sizex, 0+(yspacing*i), sizex-tick_size, 0+(yspacing*i))
+		
+		#draw bars
+		self.dc.SetBrush(wx.Brush('#666666', wx.SOLID))
+		for i in range(1, 22):	
+			self.dc.DrawRectangle(0+(xspacing*(i-1))+2, 0, xspacing*0.8, x[i-1]*yspacing) #(x, y, w, h)
+
+
+
+		
 
 
 	def OnToggle(self, evt):
@@ -407,21 +439,21 @@ class MixedBaseCodon(wx.Panel):
 			if  'P' in possibleAA and self.Pro.GetValue() == False: 
 				self.Pro.SetBackgroundColour(possible_color)
 
+			#make list of all codons in degenerate triplet
+			codonlist = mbc.combinelists(mbc.checkdegenerate(codon[0]), mbc.checkdegenerate(codon[1]), mbc.checkdegenerate(codon[2]))
+		
+			#count how many times each AA is coded for by these codons
+			self.AA_count = mbc.count_codon_list(codonlist)
+		
+			#plot graph
+			self.update_plot()
+
 		else:
 			self.codontext.SetLabel('None')
 			self.target_hits.SetLabel('Target amino acids: ')
 			self.offtarget_hits.SetLabel('Off-target amino acids: ')
-
-
-
-		#make list of all codons in degenerate triplet
-		codonlist = mbc.combinelists(mbc.checkdegenerate(codon[0]), mbc.checkdegenerate(codon[1]), mbc.checkdegenerate(codon[2]))
-		
-		#count how many times each AA is coded for by these codons
-		AA_count = mbc.count_codon_list(codonlist)
-		
-		#plot graph
-		self.update_plot(AA_count)
+			self.AA_count = {'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0}
+			self.update_plot()	
 		
 
 	def OnReset(self, evt):

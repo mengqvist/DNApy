@@ -455,8 +455,8 @@ def translatecodonlist(codonlist):
 			if any('Y' in s for s in ResultingAA) == False:
 				ResultingAA.append('Y')
 		elif any(codonlist[i] in s for s in stop):
-			if any('Stop' in s for s in ResultingAA) == False:	
-				ResultingAA.append('Stop')
+			if any('stop' in s for s in ResultingAA) == False:	
+				ResultingAA.append('stop')
 		elif any(codonlist[i] in s for s in C):
 			if any('C' in s for s in ResultingAA) == False:
 				ResultingAA.append('C')
