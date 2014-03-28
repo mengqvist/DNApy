@@ -31,13 +31,13 @@
 #
 
 import wx
+import wx.stc
 import mixed_base_codons as mbc
 
 
 class MixedBaseCodon(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
-		self.AA_count = {'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0}
 
 		self.Ala = wx.ToggleButton(self, 1, 'Ala (A)')
 		self.Ala.Bind(wx.EVT_TOGGLEBUTTON, self.OnToggle, id=1)
@@ -117,10 +117,29 @@ class MixedBaseCodon(wx.Panel):
 		spacer0.SetFont(textfont)
 		spacer0.SetLabel('')
 
-		self.codontext = wx.StaticText(self, id=wx.ID_ANY, label='codon')
+		self.codontext = wx.StaticText(self, id=wx.ID_ANY)
 		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.codontext.SetFont(textfont)
-		self.codontext.SetLabel('Mixed base codon: None')
+		self.codontext.SetLabel('Mixed base codon:')
+
+		#make box that displays the mixed base codon
+		self.mixed_base_codon = wx.stc.StyledTextCtrl(self, size=(100,30), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+		self.mixed_base_codon.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#EEEEEE') #set background color of everything that is not text
+		self.mixed_base_codon.StyleSetBackground(style=0, back='#EEEEEE') #set background color of text
+		self.mixed_base_codon.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#EEEEEE') #sets color of left margin
+		self.mixed_base_codon.SetUseHorizontalScrollBar(show=False) #hide scrollbar
+		face = textfont.GetFaceName()
+		size = textfont.GetPointSize()
+		self.mixed_base_codon.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
+		
+		#draw box around this textbox.
+		#make box interactive
+		#anything more or less than three letters should give text in red
+		#three letters should update the display to black uppercase letters and make the appropriate changes to the amino acid buttons
+
+		sizer6 = wx.BoxSizer(wx.HORIZONTAL)		
+		sizer6.Add(self.codontext)
+		sizer6.Add(self.mixed_base_codon)
 
 #		self.codontext = wx.TextCtrl(self, id=wx.ID_ANY)
 #		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -135,7 +154,7 @@ class MixedBaseCodon(wx.Panel):
 		self.target_hits = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.target_hits.SetFont(textfont)
-		self.target_hits.SetLabel('Target AA: ')
+		self.target_hits.SetLabel('Target amino acids: ')
 
 		spacer2 = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -145,7 +164,7 @@ class MixedBaseCodon(wx.Panel):
 		self.offtarget_hits = wx.StaticText(self, id=wx.ID_ANY, label='')
 		textfont = wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 		self.offtarget_hits.SetFont(textfont)
-		self.offtarget_hits.SetLabel('Off-target AA: ')
+		self.offtarget_hits.SetLabel('Off-target amino acids: ')
 
 
 		#sizers
@@ -156,7 +175,7 @@ class MixedBaseCodon(wx.Panel):
 		globsizer.Add(sizer4)
 		globsizer.Add(sizer5)
 		globsizer.Add(spacer0)
-		globsizer.Add(self.codontext, flag=wx.LEFT, border=10)
+		globsizer.Add(sizer6, flag=wx.LEFT, border=10)
 		globsizer.Add(spacer1)
 		globsizer.Add(self.target_hits, flag=wx.LEFT, border=10)
 		globsizer.Add(spacer2)
@@ -360,7 +379,7 @@ class MixedBaseCodon(wx.Panel):
 
 		if len(AA) > 0:
 			codon, target, offtarget, possibleAA = mbc.run(AA)
-			self.codontext.SetLabel('Mixed base codon: %s' % codon)
+			self.mixed_base_codon.SetText(codon)
 			targetstring = ''
 			for entry in target: #make string with the target AA
 				if targetstring == '':
@@ -373,8 +392,8 @@ class MixedBaseCodon(wx.Panel):
 					offtargetstring += entry
 				else:
 					offtargetstring += ', '+entry
-			self.target_hits.SetLabel('Target AA: '+targetstring)
-			self.offtarget_hits.SetLabel('Off-target AA: '+offtargetstring)	
+			self.target_hits.SetLabel('Target amino acids: '+targetstring)
+			self.offtarget_hits.SetLabel('Off-target amino acids: '+offtargetstring)	
 	
 	
 			#set the yellow buttons to indicate which AA are possible without further off-target hits	
@@ -449,7 +468,7 @@ class MixedBaseCodon(wx.Panel):
 			self.update_plot()
 
 		else:
-			self.codontext.SetLabel('None')
+			self.mixed_base_codon.SetText('None')
 			self.target_hits.SetLabel('Target amino acids: ')
 			self.offtarget_hits.SetLabel('Off-target amino acids: ')
 			self.AA_count = {'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0}
@@ -478,14 +497,14 @@ class MixedBaseCodon(wx.Panel):
 		self.Cys.SetValue(False)
 		self.Gly.SetValue(False)
 		self.Pro.SetValue(False)
-		self.codontext.SetLabel('None')
+		self.mixed_base_codon.SetText(codon)
 		self.target_hits.SetLabel('Target amino acids: ')
 		self.offtarget_hits.SetLabel('Off-target amino acids: ')	
 		self.OnToggle("")
 
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
-	frame = wx.Frame(None, title="Mixed Base Codons") # creation of a Frame with a title
+	frame = wx.Frame(None, title="Mixed Base Codons", size=(420,600)) # creation of a Frame with a title
 	frame.MBC = MixedBaseCodon(frame) # creation of a richtextctrl in the frame
 	frame.Show() # frames are invisible by default so we use Show() to make them visible
 	app.MainLoop() # here the app enters a loop waiting for user input
