@@ -497,14 +497,14 @@ class MixedBaseCodon(wx.Panel):
 		self.Cys.SetValue(False)
 		self.Gly.SetValue(False)
 		self.Pro.SetValue(False)
-		self.mixed_base_codon.SetText(codon)
+		self.mixed_base_codon.SetText('None')
 		self.target_hits.SetLabel('Target amino acids: ')
 		self.offtarget_hits.SetLabel('Off-target amino acids: ')	
 		self.OnToggle("")
 
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
-	frame = wx.Frame(None, title="Mixed Base Codons", size=(420,600)) # creation of a Frame with a title
+	frame = wx.Frame(None, title="Mixed Base Codons", size=(420,500)) # creation of a Frame with a title
 	frame.MBC = MixedBaseCodon(frame) # creation of a richtextctrl in the frame
 	frame.Show() # frames are invisible by default so we use Show() to make them visible
 	app.MainLoop() # here the app enters a loop waiting for user input
