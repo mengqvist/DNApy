@@ -35,6 +35,11 @@ import wx.stc
 import mixed_base_codons as mbc
 
 
+#TODO 
+#finish coding for the edit button
+#add mixed base codon table
+#add ability to find the lowest number of mixed base codons to code chosen AA without off-targets. Probably a recursive function may work.
+
 class MixedBaseCodon(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -122,8 +127,13 @@ class MixedBaseCodon(wx.Panel):
 		self.codontext.SetFont(textfont)
 		self.codontext.SetLabel('Mixed base codon:')
 
-		#make box that displays the mixed base codon
-		self.mixed_base_codon = wx.stc.StyledTextCtrl(self, size=(100,30), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+		self.edit_codon = wx.ToggleButton(self, 13, 'Edit')
+		self.edit_codon.Bind(wx.EVT_TOGGLEBUTTON, self.OnEditToggle, id=22)
+		self.edit_codon.SetValue(False)
+		
+
+		#make box that displays the mixed base codon for editing
+		self.mixed_base_codon = wx.stc.StyledTextCtrl(self, size=(85,30), style = wx.NO_FULL_REPAINT_ON_RESIZE)
 		self.mixed_base_codon.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#EEEEEE') #set background color of everything that is not text
 		self.mixed_base_codon.StyleSetBackground(style=0, back='#EEEEEE') #set background color of text
 		self.mixed_base_codon.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#EEEEEE') #sets color of left margin
@@ -131,7 +141,13 @@ class MixedBaseCodon(wx.Panel):
 		face = textfont.GetFaceName()
 		size = textfont.GetPointSize()
 		self.mixed_base_codon.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
-		
+
+		if self.edit_codon.GetValue() == True:
+			self.mixed_base_codon.SetReadOnly(False)
+		elif self.edit_codon.GetValue() == False:
+			self.mixed_base_codon.SetReadOnly(True)
+	
+	
 		#draw box around this textbox.
 		#make box interactive
 		#anything more or less than three letters should give text in red
@@ -140,6 +156,7 @@ class MixedBaseCodon(wx.Panel):
 		sizer6 = wx.BoxSizer(wx.HORIZONTAL)		
 		sizer6.Add(self.codontext)
 		sizer6.Add(self.mixed_base_codon)
+		sizer6.Add(self.edit_codon, flag=wx.LEFT, border=5)
 
 #		self.codontext = wx.TextCtrl(self, id=wx.ID_ANY)
 #		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -248,7 +265,9 @@ class MixedBaseCodon(wx.Panel):
 			self.dc.DrawRectangle(0+(xspacing*(i-1))+2, 0, xspacing*0.8, x[i-1]*yspacing) #(x, y, w, h)
 
 
-
+	def OnEditToggle(self, evt):
+		'''When edit togglebutton is pressed'''
+		pass
 		
 
 
@@ -379,7 +398,9 @@ class MixedBaseCodon(wx.Panel):
 
 		if len(AA) > 0:
 			codon, target, offtarget, possibleAA = mbc.run(AA)
+			self.mixed_base_codon.SetReadOnly(False)
 			self.mixed_base_codon.SetText(codon)
+			self.mixed_base_codon.SetReadOnly(True)
 			targetstring = ''
 			for entry in target: #make string with the target AA
 				if targetstring == '':
@@ -468,7 +489,9 @@ class MixedBaseCodon(wx.Panel):
 			self.update_plot()
 
 		else:
+			self.mixed_base_codon.SetReadOnly(False)
 			self.mixed_base_codon.SetText('None')
+			self.mixed_base_codon.SetReadOnly(True)
 			self.target_hits.SetLabel('Target amino acids: ')
 			self.offtarget_hits.SetLabel('Off-target amino acids: ')
 			self.AA_count = {'A':0, 'C':0, 'E':0, 'D':0, 'G':0, 'F':0, 'I':0, 'H':0, 'K':0, 'M':0, 'L':0, 'N':0, 'Q':0, 'P':0, 'S':0, 'R':0, 'T':0, 'W':0, 'V':0, 'Y':0, 'stop':0}
@@ -497,7 +520,9 @@ class MixedBaseCodon(wx.Panel):
 		self.Cys.SetValue(False)
 		self.Gly.SetValue(False)
 		self.Pro.SetValue(False)
+		self.mixed_base_codon.SetReadOnly(False)
 		self.mixed_base_codon.SetText('None')
+		self.mixed_base_codon.SetReadOnly(True)
 		self.target_hits.SetLabel('Target amino acids: ')
 		self.offtarget_hits.SetLabel('Off-target amino acids: ')	
 		self.OnToggle("")

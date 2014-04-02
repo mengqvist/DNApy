@@ -523,13 +523,13 @@ def chosenvsresulting(DesiredAA, AAlist):
 
 
 def getinput():
-	input_var = input('Would you like to exclude the rare codons CGA, CGG, AGA, AGG, CUA, AUA, GGA, and CCC (y/n)? ')
+	input_var = raw_input('Would you like to exclude the rare codons CGA, CGG, AGA, AGG, CUA, AUA, GGA, and CCC (y/n)? ')
 	###This is where I decide which AA I want
 	DesiredAA = [];
 	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G'];
 	AA = 'x'
 	while AA != '':
-		AA = input('Input single AA in single letter code. If done, press enter: ')
+		AA = raw_input('Input single AA in single letter code. If done, press enter: ')
 		AA = AA.upper()	
 		if AA == '':
 			pass	
@@ -538,7 +538,7 @@ def getinput():
 		else:
 			print('This is not a valid AA')
 	#print(DesiredAA)
-	return (DesiredAA, input_var)
+	return DesiredAA
 	
 	
 
@@ -642,22 +642,101 @@ def get_codon_for_chosen_AA(AA):
 		AA += 'L'
 	triplet, result = test_alternate(DesiredAA, AA, triplet, result)
 
+
 #	print('Degenerate codon: ', triplet)
 #	print('For the chosen AA: ', result[0])
 #	print('And the off-target AA: ', result[1])
 	
 	return (triplet, result[0], result[1]) #codon, target, offtarget
-	
-	
+
+
+def find_multiple_codons(target_AA):	
+	'''For difficult desired AA, find a combination of codons that will give you no off-targets'''
+	target_AA.sort()
+	codon_restriction = 'n'
+	symbols = 'ATGCRYMKSWHBVDN'
+	two_codons = []
+	three_codons = []
+	four_codons = []
+	five_codons = []
+	for i in target_AA:
+		for j in target_AA:
+			if i == j:
+				pass
+			for k in target_AA:
+				for l in target_AA:	
+					
+					
+					two_codons1.append([i])
+					
+					three_codons = []
+					four_codons = []
+					five_codons = []
+
+				codons = []
+				mixed_base_codon = i+j+k
+				codons.append(mixed_base_codon)
+				AA_list = translate(checkdegenerate(mixed_base_codon)) #get AA for given codon
+				codon, target, offtarget = get_codon_for_chosen_AA(AA_list)
+				triplet, result = evaluate(AA_list, codon_restriction)
+				target = result[0].sort()
+				offtarget = result[1]
+				if len(offtarget) == 0 and target == target_AA: #if no offtarget aa are present and all target aa are present
+					return codons
+				elif len(offtarget) == 0 and len(target) < len(target_AA): #codon matches some of the aa, with no offtargets
+					remaining_AA = []
+					for aa in target:
+						if aa in target_AA:
+							pass
+						else:	
+							remaining_AA.append(aa)
+					triplet, result = evaluate(remaining_AA, codon_restriction)
+					target = result[0].sort()
+					offtarget = result[1]
+					if len(offtarget) == 0 and target == remaining_AA: #if no offtarget aa are present and all target aa are present
+						codons.append(triplet)
+						return codons
+
+
+					
+
+#	checkdegenerate()
+
+#	codons = []
+#	triplet, target, offtarget = get_codon_for_chosen_AA(target_AA)
+#	if len(offtarget) == 0:
+#		return triplet
+#	else:
+#		print('New round')
+#		for i in range(len(target_AA)):
+#			test_AA = target_AA[:]
+#			del test_AA[i]
+#			codons = find_multiple_codons(test_AA[:]) + find_multiple_codons(target_AA[i])
+#			if codon1 != None and codon2 != None:
+#				print(codon1)
+#				print(codon2)
+#				print('')
+#				break
+#			elif i == len(target_AA)-1:
+#				print('Not found')
+				
 
 def run(AA):
 	triplet, target, offtarget = get_codon_for_chosen_AA(AA)
 
-#	print(next_steps(target, offtarget))
+
 	#now find which aa are possible without adding  off-target hits
 	possibleAA = next_steps(target, offtarget)
 
-
+#	if len(offtarget) != 0: #if there are offtargets, find a combination of codons that will give you no off-targets
+#		multiple_codons = find_multiple_codons(target)
 
 	return (triplet, target, offtarget, possibleAA) #codon, target, offtarget, possibleAA
 
+
+if __name__ == '__main__': #if script is run by itself and not loaded	
+	AA = getinput()
+	print("mixed base codon: " + str(run(AA)[0]))
+	print("target AA: " + str(run(AA)[1]))
+	print("off-target AA: " + str(run(AA)[2]))
+	print("AA that can be add w/o off-targets: " + str(run(AA)[3]))

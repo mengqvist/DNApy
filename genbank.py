@@ -40,7 +40,7 @@ import dna
 from copy import deepcopy
 import pyperclip
 import oligo_localizer
-
+import types
 
 
 class gbobject():
@@ -56,7 +56,9 @@ class gbobject():
 		self.feature_selection = False #variable for storing current feature selection
 
 	def treat_input_line(self, tempstr):
-		'''Function for parsing a string containing feature information into the correct data format'''
+		'''Function for parsing a string containing genbank feature information into the correct data format'''
+		assert type(tempstr) is types.StringType, "Error parsing genbank line. Input is not a string: %s" % str(tempstr)
+
 		templist = tempstr.split('  ')
 
 		templist[:] = [x for x in templist if x != ''] #remove empty entries
@@ -86,117 +88,125 @@ class gbobject():
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
-		a = open(filepath, 'r') #open it for reading
-		gbfile = a.read()
-		a.close()
+		assert type(filepath) is types.StringType, "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
+
+		try:
+			a = open(filepath, 'r') #open it for reading
+			gbfile = a.read()
+			a.close()
+
+		except IOError:
+			print('Error opening file: %s' % str(filepath))
+
+		else:
 		
-		#split the file
-		headerandfeatures, dna = gbfile.split('ORIGIN') #origin is the word in the file that seperates features from dna
-		header, features = headerandfeatures.split('FEATURES')
-		header = header[0:-1] #removes the \n at the end		
+			#split the file
+			headerandfeatures, dna = gbfile.split('ORIGIN') #origin is the word in the file that seperates features from dna
+			header, features = headerandfeatures.split('FEATURES')
+			header = header[0:-1] #removes the \n at the end		
 		
-		#get the header.....
-		self.gbfile['header'] = header
+			#get the header.....
+			self.gbfile['header'] = header
 		
 		
-		#get the DNA and clean it from numbering and spaces
-		DNA = '' 
-		for i in range(len(dna)):
-			if dna[i].lower() == 'a' or dna[i].lower() == 't' or dna[i].lower() == 'c' or dna[i].lower() == 'g':
-				DNA = DNA + dna[i]
-		self.gbfile['dna'] = DNA
+			#get the DNA and clean it from numbering and spaces
+			DNA = '' 
+			for i in range(len(dna)):
+				if dna[i].lower() == 'a' or dna[i].lower() == 't' or dna[i].lower() == 'c' or dna[i].lower() == 'g':
+					DNA = DNA + dna[i]
+			self.gbfile['dna'] = DNA
 		
-		#get the features
-		## need to add single base support!!!! ##
+			#get the features
+			## need to add single base support!!!! ##
 		
-		featurelist2 = []
-		featurelist = features.split('\n')
-		templist = []
-		tempstr = ''
+			featurelist2 = []
+			featurelist = features.split('\n')
+			templist = []
+			tempstr = ''
 		
-		if featurelist[-1] == '': del featurelist[-1] #last entry tends to be empty, if so, remove
+			if featurelist[-1] == '': del featurelist[-1] #last entry tends to be empty, if so, remove
 		
-		for line in range(1, len(featurelist)):
-			if ('..' in featurelist[line] and tempstr != '') == True:
-				if tempstr[-1] == ',': #to protect against numberings that extend over several rows
+			for line in range(1, len(featurelist)):
+				if ('..' in featurelist[line] and tempstr != '') == True:
+					if tempstr[-1] == ',': #to protect against numberings that extend over several rows
+						tempstr += featurelist[line]
+
+					elif line+1 == len(featurelist):
+						tempstr += featurelist[line]
+			
+					featurelist2.append(self.treat_input_line(tempstr))
+					tempstr = featurelist[line]
+				
+				elif '..' in featurelist[line] and tempstr == '': #first feature
+					tempstr = featurelist[line]
+
+				else:						#in-between features
 					tempstr += featurelist[line]
 
-				elif line+1 == len(featurelist):
-					tempstr += featurelist[line]
-			
-				featurelist2.append(self.treat_input_line(tempstr))
-				tempstr = featurelist[line]
-				
-			elif '..' in featurelist[line] and tempstr == '': #first feature
-				tempstr = featurelist[line]
-
-			else:						#in-between features
-				tempstr += featurelist[line]
-
-		#catch final entry
-		featurelist2.append(self.treat_input_line(tempstr))
+			#catch final entry
+			featurelist2.append(self.treat_input_line(tempstr))
 		
 
-		#now arrange features into the correct data structure
-		features = []
-		for i in range(len(featurelist2)):
-			Feature = {}
+			#now arrange features into the correct data structure
+			features = []
+			for i in range(len(featurelist2)):
+				Feature = {}
 			
-			#get key
-			Feature['key'] = featurelist2[i][0] #append type of feature
+				#get key
+				Feature['key'] = featurelist2[i][0] #append type of feature
 			
-			#get whether complement or not, join or not, order or not
-			if 'complement' in featurelist2[i][1]:
-				Feature['complement'] = True
-			else:
-				Feature['complement'] = False
+				#get whether complement or not, join or not, order or not
+				if 'complement' in featurelist2[i][1]:
+					Feature['complement'] = True
+				else:
+					Feature['complement'] = False
 
-			if 'join' in featurelist2[i][1]:
-				Feature['join'] = True
-			else:
-				Feature['join'] = False
+				if 'join' in featurelist2[i][1]:
+					Feature['join'] = True
+				else:
+					Feature['join'] = False
 				
-			if 'order' in featurelist2[i][1]:
-				Feature['order'] = True
-			else:
-				Feature['order'] = False
+				if 'order' in featurelist2[i][1]:
+					Feature['order'] = True
+				else:
+					Feature['order'] = False
 								
-			#get location
-			tempsites = []
-			commasplit = featurelist2[i][1].split(',')
-			for entry in commasplit:
-				tempstr = ''
-				for n in range(len(entry)):
-					if (entry[n] == '1' or
-						entry[n] == '2' or
-						entry[n] == '3' or
-						entry[n] == '4' or
-						entry[n] == '5' or
-						entry[n] == '6' or
-						entry[n] == '7' or
-						entry[n] == '8' or
-						entry[n] == '9' or
-						entry[n] == '0' or
-						entry[n] == '<' or
-						entry[n] == '>' or
-						entry[n] == '.'):			   
-						tempstr += entry[n]
-				tempsites.append(tempstr)
-			Feature['location'] = tempsites
+				#get location
+				tempsites = []
+				commasplit = featurelist2[i][1].split(',')
+				for entry in commasplit:
+					tempstr = ''
+					for n in range(len(entry)):
+						if (entry[n] == '1' or
+							entry[n] == '2' or
+							entry[n] == '3' or
+							entry[n] == '4' or
+							entry[n] == '5' or
+							entry[n] == '6' or
+							entry[n] == '7' or
+							entry[n] == '8' or
+							entry[n] == '9' or
+							entry[n] == '0' or
+							entry[n] == '<' or
+							entry[n] == '>' or
+							entry[n] == '.'):			   
+							tempstr += entry[n]
+					tempsites.append(tempstr)
+				Feature['location'] = tempsites
 					
 		
-			#add qualifiers		
-			templist = []
-			for n in range(2, len(featurelist2[i])): #get all other tags
-				templist.append(featurelist2[i][n])
-			Feature['qualifiers'] = templist
+				#add qualifiers		
+				templist = []
+				for n in range(2, len(featurelist2[i])): #get all other tags
+					templist.append(featurelist2[i][n])
+				Feature['qualifiers'] = templist
 			
-			#add dictionary to list
-			features.append(Feature)
+				#add dictionary to list
+				features.append(Feature)
 			
-		self.gbfile['features'] = features
-		self.gbfile['filepath'] = filepath
-		self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
+			self.gbfile['features'] = features
+			self.gbfile['filepath'] = filepath
+			self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
 
 	
 	def makegb(self):

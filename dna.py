@@ -40,7 +40,7 @@ def comp(dna):
 	"""Returns the complement of a DNA string"""
 	dna = dna.replace('\n','')
 	compdna = ''
-	for i in range(len(dna)):    #this loop makes the complement of the reverse string
+	for i in range(len(dna)):    #this loop makes the complement of a string
 		if dna[i] == 'a':
 			base = 't'
 			
@@ -174,29 +174,39 @@ def translate(dna):
 
 
 
-def pair_ident(Seq1, Seq2):
+def pair_ident(Seq1, Seq2, single_gaps):
 	'''Takes two aligned sequences and returns their percent identity.
 Assumes that Seq1 and Seq2 are sequence strings'''
 
-	l=0.0 # counts alignment length, excluding identical gaps
+	l=0.0 # counts alignment length, excluding identical gaps, but including single gaps
+	n=0.0 # count number of single gaps
 	i=0.0 # counts identity hits
+
 
 	for j in range(len(Seq2)): 
 		if Seq1[j] == '-' and Seq2[j] == '-': #DON'T count identical gaps towards alignment length
 			pass
 		else:
 			if Seq2[j] == Seq1[j]:
-				i += 1
-			l += 1
+				i += 1 #count matches
+			elif Seq2[j] == '-' or Seq1[j] == '-':
+				n += 1 #count number of single gaps
+			l += 1 #count total length with single gaps
 
-	percent = round(100*(i/l),1) #calculate identity
+	if single_gaps == 'y': #include single gaps 
+		percent = round(100*(i/l),1) #calculate identity
+	elif single_gaps == 'n': #exclude single gaps
+		if n == l: #if gaps same as total length identity is 0
+			percent = 0.0
+		else:	
+			percent = round(100*(i/(l-n)),1) #calculate identity
 	return percent
 
 
 
 
 #### Analyze alignments ####
-def single_ident(align_file):
+def single_ident(align_file, single_gaps):
 	'''Get identities for all protines compared to one reference sequence in aligned FASTA file.
 Assumes that align_file is a fasta-formatted alignment.
 Assumes that reference sequence is the first one.
@@ -209,11 +219,11 @@ Returns a touple of the results.'''
 	alignment = AlignIO.read(input_handle, "fasta")
 	input_handle.close()
 	for record2 in range(1, len(alignment)):
-		percent = pair_ident(alignment[0].seq, alignment[record2].seq)
+		percent = pair_ident(alignment[0].seq, alignment[record2].seq, single_gaps)
 		results += (alignment[0].id + ' vs ' + alignment[record2].id+' '+str(percent),)
 	return results
 
-def all_ident(align_file):
+def all_ident(align_file, single_gaps):
 	'''Get identities for all combinations of proteins in aligned FASTA file.
 Assumes that align_file is a fasta-formatted alignment.
 Returns a touple of the results.'''
@@ -226,7 +236,7 @@ Returns a touple of the results.'''
 	input_handle.close()
 	for record in range(len(alignment)):
 		for record2 in range(record+1, len(alignment)):
-			percent = pair_ident(alignment[record].seq, alignment[record2].seq)
+			percent = pair_ident(alignment[record].seq, alignment[record2].seq, single_gaps)
 			results += (alignment[record].id + ' vs ' + alignment[record2].id+' '+str(percent),)
 	return results
 
