@@ -9,7 +9,7 @@ The software is being developed on a Linux machine and works well in that enviro
 
 ![alt text](http://cdn.altrn.tv/s/daaeb008-e387-e311-84ee-002590a05f5f_1_full.png "DNApy DNA editing view")
 
-Software features
+Implemented Software features
 =====
 
 Visualization of DNA and sequence features
@@ -22,33 +22,35 @@ Addition/removal/modification of genbank features
 
 Addition/removal/modification of genbank qualifiers
 
+Design of mixed base codons for libraries
+
+Not Yet Implemented Software features
+=====
+
+Unlimited undo/redo 
+
+Addition/removal/modification of genbank header entries 
+
+Plasmid view visualization
+
+Easy mutation of genes by position or sequence
+
+Restriction enzyme finder
+
+NCBI blast for homologous genes 
+
+Fetch genes/genomes/plasmids from NCBI 
+
+DNA codon optimization 
 
 
-Unlimited undo/redo (not yet implemented)
+Primer design 
 
-Addition/removal/modification of genbank header entries (not yet implemented)
+Analysis of sequence reads in the .ab1 format
 
-Plasmid view visualization (not yet implemented)
+Automatic structure prediction of mutated proteins (using SwissModel) 
 
-Easy mutation of genes by position or sequence (not yet fully implemented)
-
-Restriction enzyme finder (not yet implemented)
-
-NCBI blast for homologous genes (not yet implemented)
-
-Fetch genes/genomes/plasmids from NCBI (not yet implemented)
-
-DNA codon optimization (not yet implemented)
-
-Automated design of degenerate codon libraries (not yet implemented)
-
-Primer design (not yet implemented)
-
-Analysis of sequence reads in the .ab1 format (not yet implemented)
-
-Automatic structure prediction of mutated proteins (using SwissModel) (not yet implemented)
-
-Calculation of ribosome binding strength (not yet implemented)
+Calculation of ribosome binding strength 
 
 
 Project Website
