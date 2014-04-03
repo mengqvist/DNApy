@@ -29,6 +29,21 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
+
+#TODO
+#set qualifier in dropdown menu
+#match features with qualifiers (mandatory and optional)
+#add a function that checks that everything is ok
+#connect ok and cancel buttons to sth useful
+#get values from qualifier dialog
+
+#add edit buttons to location and the first qualifier entry (which is used for name of feature)
+
+#add a way of actually adding a new feature...
+
+
+#make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
+
 import ast
 import wx
 import genbank
@@ -45,6 +60,68 @@ files['default_dir']=replace(files['default_dir'], "library.zip", "")
 
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
+
+class QualifierEdit(wx.Panel):
+	'''This class is for making a panel with two fields for choosing a qualifier type and to edit the tag associated with it.'''
+	def __init__(self, parent, qualifier, tag):
+		wx.Panel.__init__(self, parent)
+
+		#'qualifier'
+		self.qualifier_header = wx.StaticText(self, id=wx.ID_ANY)
+		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		self.qualifier_header.SetFont(textfont)
+		self.qualifier_header.SetLabel('Qualifier')
+
+		choicelist = ['allele', 'altitude', 'anticodon', 'artificial_location', 'bio_material', 'bound_moiety', 'cell_line', 'cell_type', 'chromosome', 'citation', 'clone', 'clone_lib', 'codon_start', 'collected_by', 'collection_date', 'compare', 'country', 'cultivar', 'culture_collection', 'db_xref', 'dev_stage', 'direction', 'EC_number', 'ecotype', 'environmental_sample', 'estimated_length', 'exception', 'experiment', 'focus', 'frequency', 'function', 'gap_type', 'gene', 'gene_synonym', 'germline', 'haplogroup', 'haplotype', 'host', 'identified_by', 'inference', 'isolate', 'isolation_source', 'lab_host', 'lat_lon', 'linkage_evidence', 'locus_tag', 'macronuclear', 'map', 'mating_type', 'mobile_element_type', 'mod_base', 'mol_type', 'ncRNA_class', 'note', 'number', 'old_locus_tag', 'operon', 'organelle', 'organism', 'partial', 'PCR_conditions', 'PCR_primers', 'phenotype', 'plasmid', 'pop_variant', 'product', 'protein_id', 'proviral', 'pseudo', 'pseudogene', 'rearranged', 'replace', 'ribosomal_slippage', 'rpt_family', 'rpt_type', 'rpt_unit_range', 'rpt_unit_seq', 'satellite', 'segment', 'serotype', 'serovar', 'sex', 'specimen_voucher', 'standard_name', 'strain', 'sub_clone', 'sub_species', 'sub_strain', 'tag_peptide', 'tissue_lib', 'tissue_type', 'transgenic', 'translation', 'transl_except', 'transl_table', 'trans_splicing', 'type_material', 'variety']
+		self.qualifier_combobox = wx.ComboBox(self, id=1002, size=(150, -1), choices=choicelist, style=wx.CB_READONLY)
+	#	self.qualifier_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
+
+		#spacer
+		self.spacer1 = wx.StaticText(self, id=wx.ID_ANY)
+		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		self.spacer1.SetFont(textfont)
+		self.spacer1.SetLabel('')
+
+
+		#'tag'
+		self.tag_header = wx.StaticText(self, id=wx.ID_ANY)
+		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		self.tag_header.SetFont(textfont)
+		self.tag_header.SetLabel('Tag')
+
+		#make box that displays the qualifier tag
+		textfont = wx.Font(12, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
+		self.tag = wx.stc.StyledTextCtrl(self, size=(300,100))
+		self.tag.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#FFFFFF') #set background color of everything that is not text
+		self.tag.StyleSetBackground(style=0, back='#FFFFFF') #set background color of text
+		self.tag.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#FFFFFF') #sets color of left margin
+		face = textfont.GetFaceName()
+		size = textfont.GetPointSize()
+		self.tag.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
+		self.tag.SetUseHorizontalScrollBar(True)
+		self.tag.SetUseVerticalScrollBar(True) 
+
+		#ok button
+		self.button_ok = wx.Button(self, 1, 'OK')
+#		self.button_ok.Bind(wx.EVT_BUTTON, self.OnToggle, id=1)
+
+		#cancel button
+		self.button_cancel = wx.Button(self, 2, 'Cancel')
+#		self.button_cancel.Bind(wx.EVT_BUTTON, self.OnToggle, id=1)	
+
+		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+		buttonsizer.Add(self.button_ok)
+		buttonsizer.Add(self.button_cancel)
+
+		globsizer = wx.BoxSizer(wx.VERTICAL)
+		globsizer.Add(self.qualifier_header, flag=wx.LEFT, border=10)
+		globsizer.Add(self.qualifier_combobox, flag=wx.LEFT, border=10)
+		globsizer.Add(self.spacer1, flag=wx.LEFT, border=10)
+		globsizer.Add(self.tag_header, flag=wx.LEFT, border=10)
+		globsizer.Add(self.tag, flag=wx.LEFT, border=10)
+		globsizer.Add(buttonsizer, flag=wx.LEFT, border=10)
+		self.SetSizer(globsizer)
+		self.Center()
 
 class FeatureEdit(wx.Panel):
 	def __init__(self, parent, id):
@@ -142,20 +219,23 @@ class FeatureEdit(wx.Panel):
 
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		addqual = wx.BitmapButton(self, id=7, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		addqual = wx.BitmapButton(self, id=7, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "new")
 
 		imageFile = files['default_dir']+"/icon/remove_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		deletequal = wx.BitmapButton(self, id=8, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		deletequal = wx.BitmapButton(self, id=8, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "remove")
 
 		imageFile = files['default_dir']+"/icon/move_up.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		qualup = wx.BitmapButton(self, id=9, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		qualup = wx.BitmapButton(self, id=9, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "move up")
 
 		imageFile = files['default_dir']+"/icon/move_down.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		qualdown = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		qualdown = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "move down")
 
+		imageFile = files['default_dir']+"/icon/edit.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		qualedit = wx.BitmapButton(self, id=11, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "edit")
 		
 		
 
@@ -164,6 +244,7 @@ class FeatureEdit(wx.Panel):
 		sizer.Add(deletequal)
 		sizer.Add(qualup)
 		sizer.Add(qualdown)
+		sizer.Add(qualedit)
 		
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
 		sizer2.Add(self.qualifier_list, 3, wx.EXPAND)
@@ -176,6 +257,7 @@ class FeatureEdit(wx.Panel):
 		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
 		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
 		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
+		self.Bind(wx.EVT_BUTTON, self.OnEditQualifier, id=11)
 
 		##
 		#third panel, for showing qualifiers
@@ -253,6 +335,31 @@ class FeatureEdit(wx.Panel):
 		if number != self.qualifier_list.GetItemCount():
 			number = number+1
 		self.update_qualifier_selection(index, number)
+
+	def OnEditQualifier(self, event):
+		index = genbank.gb.get_feature_selection()
+		feature = genbank.gb.get_feature(index)
+		number = self.qualifier_list.GetFirstSelected()
+		qualifier, tag = genbank.gb.get_qualifier(index, number) #get actual info for that qualifier
+
+		#make popup window
+		frame = wx.Frame(None, title="Edit Qualifier", size=(420,250)) # creation of a Frame with a title
+		frame.dialog = QualifierEdit(frame, qualifier, tag) # creation of a panel in the frame
+		frame.Show() # frames are invisible by default so we use Show() to make them visible
+	
+		frame.dialog.tag.SetText(tag)
+	
+		#add something to get new values
+		new_qualifier = 'nono'
+		new_tag = 'tagme'
+
+		#update file
+		genbank.gb.set_qualifier(index, number, new_qualifier, new_tag)
+		self.updateUI()
+		try:
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		except:
+			raise IOError('Error updating feature viewer UI') 
 
 
 	def update_qualifier_selection(self, index, number):

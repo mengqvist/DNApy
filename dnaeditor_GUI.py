@@ -50,7 +50,7 @@ import output
 import dna
 import genbank
 #import seqfiles
-import features
+import features_GUI as features
 
 #fix selection so that the statusbar matches the real
 

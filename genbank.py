@@ -40,8 +40,10 @@ import dna
 from copy import deepcopy
 import pyperclip
 import oligo_localizer
-import types
 
+#for asserts and tests
+import types
+import unittest
 
 class gbobject():
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
@@ -88,8 +90,9 @@ class gbobject():
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
-		assert type(filepath) is types.StringType, "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
-
+		assert (type(filepath) == types.StringType or type(filepath) is types.UnicodeType) , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
+#		unittest.assertTrue(type(filepath) is types.StringType or type(filepath) is types.UnicodeType)
+		
 		try:
 			a = open(filepath, 'r') #open it for reading
 			gbfile = a.read()
@@ -382,12 +385,26 @@ class gbobject():
 		try:
 			return self.gbfile['features'][index]['qualifiers']
 		except:
-			print('This is not a valid index')
-			return False
+			raise ValueError('This is not a valid index')
 
 	def get_qualifier(self, index, number):
 		'''Returns specified qualifier for specified feature'''
-		pass
+		try:
+			return self.gbfile['features'][index]['qualifiers'][number][1:].split('=')
+		except:
+			raise ValueError('Index or number is not valid')
+
+	def set_qualifier(self, index, number, qualifier, tag):
+		'''Sets the qualifier and tag for a given qualifier'''
+		assert type(index) is types.IntType, "Index is not an integer: %s" % str(index)
+		assert type(number) is types.IntType, "Number is not an integer: %s" % str(number)
+		assert type(qualifier) is types.StringType, "Qualifier is not a string: %s" % str(qualifier)
+		assert type(tag) is types.StringType, "Tag is not a string: %s" % str(tag)
+		try:
+			self.gbfile['features'][index]['qualifiers'][number] = '/%s=%s' % (qualifier, tag)
+		except:
+			raise IOError('Error setting qualifier')
+
 
 ##### DNA modification methods #####
 

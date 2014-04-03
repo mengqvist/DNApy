@@ -45,9 +45,9 @@ import dna
 import genbank
 
 #GUI components
-import dnaeditor
-import features
-import genbankfileview
+import dnaeditor_GUI as dnaeditor
+import features_GUI as features
+import genbank_GUI as genbankfileview
 import mixed_base_codons_GUI
 
 #TODO
@@ -216,6 +216,7 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension == 'gb':
+			print(type(all_path))
 			gb = genbank.open_file(all_path) #make a genbank object and read file
 			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 			self.SetTitle(fileName+' - DNApy')
