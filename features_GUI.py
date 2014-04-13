@@ -31,11 +31,9 @@
 
 
 #TODO
-#set qualifier in dropdown menu
 #match features with qualifiers (mandatory and optional)
 #add a function that checks that everything is ok
-#connect ok and cancel buttons to sth useful
-#get values from qualifier dialog
+
 
 #add edit buttons to location and the first qualifier entry (which is used for name of feature)
 
@@ -50,7 +48,9 @@ import genbank
 import sys, os
 from string import *
 
-
+#for asserts and tests
+import types
+import unittest
 
 files={}   #list with all configuration files
 
@@ -61,10 +61,13 @@ files['default_dir']=replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
 
-class QualifierEdit(wx.Panel):
+class QualifierEdit(wx.Dialog):
 	'''This class is for making a panel with two fields for choosing a qualifier type and to edit the tag associated with it.'''
-	def __init__(self, parent, qualifier, tag):
-		wx.Panel.__init__(self, parent)
+	def __init__(self, qualifier, tag):
+		wx.Dialog.__init__(self, None, id=wx.ID_ANY, title="Edit Qualifier", size=(420,250))
+		self.qualifier = qualifier
+		self.tag = tag
+
 
 		#'qualifier'
 		self.qualifier_header = wx.StaticText(self, id=wx.ID_ANY)
@@ -72,9 +75,11 @@ class QualifierEdit(wx.Panel):
 		self.qualifier_header.SetFont(textfont)
 		self.qualifier_header.SetLabel('Qualifier')
 
-		choicelist = ['allele', 'altitude', 'anticodon', 'artificial_location', 'bio_material', 'bound_moiety', 'cell_line', 'cell_type', 'chromosome', 'citation', 'clone', 'clone_lib', 'codon_start', 'collected_by', 'collection_date', 'compare', 'country', 'cultivar', 'culture_collection', 'db_xref', 'dev_stage', 'direction', 'EC_number', 'ecotype', 'environmental_sample', 'estimated_length', 'exception', 'experiment', 'focus', 'frequency', 'function', 'gap_type', 'gene', 'gene_synonym', 'germline', 'haplogroup', 'haplotype', 'host', 'identified_by', 'inference', 'isolate', 'isolation_source', 'lab_host', 'lat_lon', 'linkage_evidence', 'locus_tag', 'macronuclear', 'map', 'mating_type', 'mobile_element_type', 'mod_base', 'mol_type', 'ncRNA_class', 'note', 'number', 'old_locus_tag', 'operon', 'organelle', 'organism', 'partial', 'PCR_conditions', 'PCR_primers', 'phenotype', 'plasmid', 'pop_variant', 'product', 'protein_id', 'proviral', 'pseudo', 'pseudogene', 'rearranged', 'replace', 'ribosomal_slippage', 'rpt_family', 'rpt_type', 'rpt_unit_range', 'rpt_unit_seq', 'satellite', 'segment', 'serotype', 'serovar', 'sex', 'specimen_voucher', 'standard_name', 'strain', 'sub_clone', 'sub_species', 'sub_strain', 'tag_peptide', 'tissue_lib', 'tissue_type', 'transgenic', 'translation', 'transl_except', 'transl_table', 'trans_splicing', 'type_material', 'variety']
+		choicelist = ['allele', 'altitude', 'anticodon', 'artificial_location', 'bio_material', 'bound_moiety', 'cell_line', 'cell_type', 'chromosome', 'citation', 'clone', 'clone_lib', 'codon_start', 'collected_by', 'collection_date', 'compare', 'country', 'cultivar', 'culture_collection', 'db_xref', 'dev_stage', 'direction', 'EC_number', 'ecotype', 'environmental_sample', 'estimated_length', 'exception', 'experiment', 'focus', 'frequency', 'function', 'gap_type', 'gene', 'gene_synonym', 'germline', 'haplogroup', 'haplotype', 'host', 'identified_by', 'inference', 'isolate', 'isolation_source', 'label', 'lab_host', 'lat_lon', 'linkage_evidence', 'locus_tag', 'macronuclear', 'map', 'mating_type', 'mobile_element_type', 'mod_base', 'mol_type', 'ncRNA_class', 'note', 'number', 'old_locus_tag', 'operon', 'organelle', 'organism', 'partial', 'PCR_conditions', 'PCR_primers', 'phenotype', 'plasmid', 'pop_variant', 'product', 'protein_id', 'proviral', 'pseudo', 'pseudogene', 'rearranged', 'replace', 'ribosomal_slippage', 'rpt_family', 'rpt_type', 'rpt_unit_range', 'rpt_unit_seq', 'satellite', 'segment', 'serotype', 'serovar', 'sex', 'specimen_voucher', 'standard_name', 'strain', 'sub_clone', 'sub_species', 'sub_strain', 'tag_peptide', 'tissue_lib', 'tissue_type', 'transgenic', 'translation', 'transl_except', 'transl_table', 'trans_splicing', 'type_material', 'variety']
 		self.qualifier_combobox = wx.ComboBox(self, id=1002, size=(150, -1), choices=choicelist, style=wx.CB_READONLY)
-	#	self.qualifier_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
+
+		assert self.qualifier in choicelist, "Not a valid qualifier: %s" % str(self.qualifier)
+		self.qualifier_combobox.SetStringSelection(self.qualifier) #set selection as current qualifier
 
 		#spacer
 		self.spacer1 = wx.StaticText(self, id=wx.ID_ANY)
@@ -89,26 +94,29 @@ class QualifierEdit(wx.Panel):
 		self.tag_header.SetFont(textfont)
 		self.tag_header.SetLabel('Tag')
 
-		#make box that displays the qualifier tag
+		#make text field that displays the qualifier tag
 		textfont = wx.Font(12, wx.DECORATIVE, wx.NORMAL, wx.NORMAL)
-		self.tag = wx.stc.StyledTextCtrl(self, size=(300,100))
-		self.tag.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#FFFFFF') #set background color of everything that is not text
-		self.tag.StyleSetBackground(style=0, back='#FFFFFF') #set background color of text
-		self.tag.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#FFFFFF') #sets color of left margin
+		self.tag_field = wx.stc.StyledTextCtrl(self, size=(300,100))
+		self.tag_field.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#FFFFFF') #set background color of everything that is not text
+		self.tag_field.StyleSetBackground(style=0, back='#FFFFFF') #set background color of text
+		self.tag_field.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#FFFFFF') #sets color of left margin
 		face = textfont.GetFaceName()
 		size = textfont.GetPointSize()
-		self.tag.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
-		self.tag.SetUseHorizontalScrollBar(True)
-		self.tag.SetUseVerticalScrollBar(True) 
+		self.tag_field.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
+		self.tag_field.SetUseHorizontalScrollBar(True)
+		self.tag_field.SetUseVerticalScrollBar(True) 
+
+		self.tag_field.SetText(self.tag) #put tag in the text field
 
 		#ok button
 		self.button_ok = wx.Button(self, 1, 'OK')
-#		self.button_ok.Bind(wx.EVT_BUTTON, self.OnToggle, id=1)
+		self.button_ok.Bind(wx.EVT_BUTTON, self.OnOK, id=1)
 
 		#cancel button
 		self.button_cancel = wx.Button(self, 2, 'Cancel')
-#		self.button_cancel.Bind(wx.EVT_BUTTON, self.OnToggle, id=1)	
+		self.button_cancel.Bind(wx.EVT_BUTTON, self.OnCancel, id=2)	
 
+		#sizers
 		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
 		buttonsizer.Add(self.button_ok)
 		buttonsizer.Add(self.button_cancel)
@@ -118,10 +126,20 @@ class QualifierEdit(wx.Panel):
 		globsizer.Add(self.qualifier_combobox, flag=wx.LEFT, border=10)
 		globsizer.Add(self.spacer1, flag=wx.LEFT, border=10)
 		globsizer.Add(self.tag_header, flag=wx.LEFT, border=10)
-		globsizer.Add(self.tag, flag=wx.LEFT, border=10)
+		globsizer.Add(self.tag_field, flag=wx.LEFT, border=10)
 		globsizer.Add(buttonsizer, flag=wx.LEFT, border=10)
+
 		self.SetSizer(globsizer)
 		self.Center()
+		
+	def OnOK(self, evt):
+		'Return wx.ID_OK if ok button was pressed'
+		self.EndModal(wx.ID_OK)
+
+	def OnCancel(self, evt):
+		'Return wx.ID_CANCEL if cancel button was pressed'
+		self.EndModal(wx.ID_CANCEL)
+
 
 class FeatureEdit(wx.Panel):
 	def __init__(self, parent, id):
@@ -132,15 +150,23 @@ class FeatureEdit(wx.Panel):
 		self.feature_dlg = wx.Panel(self, id=wx.ID_ANY)
 
 		#feature label control
-#		allfeatures = []
-#		for entry in genbank.gb.gbfile['features']:
-#			allfeatures.append(entry['qualifiers'][0].split('=')[1])
-		self.featuretext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Feature')
-		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-		self.featuretext.SetFont(textfont)
-#		self.features_combobox = wx.ComboBox(self.feature_dlg, id=2001, size=(300, -1), choices=allfeatures, style=wx.CB_READONLY)
-		featuretext1 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
-		featuretext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+		featuretext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Feature:')
+		featuretext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
+
+
+		#make box that displays the mixed base codon for editing
+#		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+#		self.featuretext = wx.stc.StyledTextCtrl(self, size=(200,30), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+#		self.featuretext.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#FFFFFF') #set background color of everything that is not text
+#		self.featuretext.StyleSetBackground(style=0, back='#FFFFFF') #set background color of text
+##		self.featuretext.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#FFFFFF') #sets color of left margin
+#		self.featuretext.SetUseHorizontalScrollBar(show=False) #hide scrollbar
+#		face = textfont.GetFaceName()
+#		size = textfont.GetPointSize()
+#		self.featuretext.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
+
+		self.featuretext = wx.TextCtrl(self.feature_dlg, id=wx.ID_ANY, size=(200,-1))
+		self.featuretext.Bind(wx.EVT_TEXT, self.FeatureFieldOnText)
 
 		
 		#feature type control
@@ -158,51 +184,57 @@ class FeatureEdit(wx.Panel):
 #		Misc.: "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop",
 #		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
 
-		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(150, -1), choices=featuretypes, style=wx.CB_READONLY)
+		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(200, -1), choices=featuretypes, style=wx.CB_READONLY)
 		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
 
 
-		typetext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
+
 
 		#location
 		locationtext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Location:')
 		locationtext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
-		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(200,-1))
+		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(200,-1), style=wx.TE_RICH)
 		self.location.Bind(wx.EVT_TEXT, self.LocationFieldOnText)
-		locationtext2 = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='')
 		
 		#complement or not
-		self.complementbox = wx.CheckBox(self.feature_dlg, label="Complement?")
+		self.complementbox = wx.CheckBox(self.feature_dlg, id=3001, label="Complement")
 		self.complementbox.Bind(wx.EVT_CHECKBOX, self.ComplementCheckboxOnSelect)	
 
 		#Join or not
-		self.joinbox = wx.CheckBox(self.feature_dlg, label="Join?")
+		self.joinbox = wx.CheckBox(self.feature_dlg, id=3002, label="Join (location ranges should be joined)")
 		self.joinbox.Bind(wx.EVT_CHECKBOX, self.JoinCheckboxOnSelect)
 
 		#Order or not
-		self.orderbox = wx.CheckBox(self.feature_dlg, label="Order?")
+		self.orderbox = wx.CheckBox(self.feature_dlg, id=3003, label="Order (location ranges indicate order)")
 		self.orderbox.Bind(wx.EVT_CHECKBOX, self.OrderCheckboxOnSelect)
 		#need to add logic that only makes join and order available if there are more than one location for a feature...
 
+
+		label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		label_sizer.Add(item=featuretext, flag=wx.ALL, border=5)
+		label_sizer.Add(item=self.featuretext, flag=wx.LEFT, border=80-featuretext.GetSize()[0])
+
+
 		type_sizer = wx.BoxSizer(wx.HORIZONTAL)
-		type_sizer.Add(typetext)
-		type_sizer.Add(self.type_combobox)
+		type_sizer.Add(item=typetext, flag=wx.ALL, border=5)
+		type_sizer.Add(item=self.type_combobox, flag=wx.LEFT, border=80-typetext.GetSize()[0])
 
 		location_sizer = wx.BoxSizer(wx.HORIZONTAL)		
-		location_sizer.Add(locationtext)
-		location_sizer.Add(self.location)
+		location_sizer.Add(item=locationtext, flag=wx.ALL, border=5)
+		location_sizer.Add(item=self.location, flag=wx.LEFT, border=80-locationtext.GetSize()[0])
+
 
 		complement_sizer = wx.BoxSizer(wx.VERTICAL)
-		complement_sizer.Add(self.complementbox)
-		complement_sizer.Add(self.joinbox)
-		complement_sizer.Add(self.orderbox)
+		complement_sizer.Add(item=self.complementbox)
+		complement_sizer.Add(item=self.joinbox)
+		complement_sizer.Add(item=self.orderbox)
 
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
-		main_sizer.Add(self.featuretext)
-		main_sizer.Add(featuretext2)
-		main_sizer.Add(type_sizer)
-		main_sizer.Add(location_sizer)
-		main_sizer.Add(complement_sizer)
+		main_sizer.Add(item=label_sizer)
+		main_sizer.Add(item=type_sizer)
+		main_sizer.Add(item=location_sizer)
+		main_sizer.Add(item=(0,40))
+		main_sizer.Add(item=complement_sizer)
 		self.feature_dlg.SetSizer(main_sizer)
 
 		##
@@ -210,12 +242,7 @@ class FeatureEdit(wx.Panel):
 		self.qualifier_list = wx.ListCtrl(self, -1, style=wx.LC_REPORT)
 		self.qualifier_list.InsertColumn(0, "Qualifier", format=wx.LIST_FORMAT_LEFT, width=120)
 		self.qualifier_list.InsertColumn(1, "Tag", format=wx.LIST_FORMAT_LEFT, width=250)
-
-
-#		addqual = wx.Button(self, 7, 'Add Qualifier')
-#		deletequal = wx.Button(self, 8, 'Remove Qualifier')
-#		qualup = wx.Button(self, 9, 'Move Up')
-#		qualdown = wx.Button(self, 10, 'Move Down')
+#		self.qualifier_list.Bind(wx.EVT_LISTBOX_DCLICK, self.OnEditQualifier(None))
 
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -279,19 +306,34 @@ class FeatureEdit(wx.Panel):
 	def OnAddQualifier(self, event):
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
-		qualifier = '/label=testing' #change this 
-		genbank.gb.add_qualifier(feature, qualifier)
-		self.updateUI()
+		qualifier = 'label'
+		tag = 'None'
 
-		number = self.qualifier_list.GetItemCount()-1
-		self.update_qualifier_selection(index, number)
+		#make popup window with qualifier editing capabilities
+		dlg = QualifierEdit(qualifier, tag) # creation of a panel in the frame
+		output = dlg.ShowModal()
+		if output == wx.ID_OK:
+			qualifier = str(dlg.qualifier_combobox.GetValue())
+			tag = str(dlg.tag_field.GetText())
+		
+			genbank.gb.add_qualifier(feature, '/%s=%s' % (qualifier, tag))
+			self.updateUI()
+
+			number = self.qualifier_list.GetItemCount()-1
+			self.update_qualifier_selection(index, number)
+
+		dlg.Destroy()
+
+
 	
 
 	def OnRemoveQualifier(self, event):
-		index = genbank.gb.get_feature_selection()
+		index = genbank.gb.get_feature_selection() #feature selected
 		feature = genbank.gb.get_feature(index)
-		number = self.qualifier_list.GetFirstSelected()
-		if self.qualifier_list.GetItemCount() != 1: #don't delete last qualifier
+		number = self.qualifier_list.GetFirstSelected() #qualifier selected
+		items = self.qualifier_list.GetItemCount() #number of qualifiers
+
+		if items != 1: #don't delete last qualifier
 			genbank.gb.remove_qualifier(feature, number)
 			self.updateUI()
 			try:
@@ -300,7 +342,7 @@ class FeatureEdit(wx.Panel):
 				pass
 
 			#set highlight, focus and selection
-			if number == self.qualifier_list.GetItemCount():
+			if number == items-1: #if last item was deleted, selection is set as -1
 				number = number-1
 			self.update_qualifier_selection(index, number)
 
@@ -337,39 +379,38 @@ class FeatureEdit(wx.Panel):
 		self.update_qualifier_selection(index, number)
 
 	def OnEditQualifier(self, event):
+		'''Make popup window where qualifier and tag can be edited'''
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
 		qualifier, tag = genbank.gb.get_qualifier(index, number) #get actual info for that qualifier
 
-		#make popup window
-		frame = wx.Frame(None, title="Edit Qualifier", size=(420,250)) # creation of a Frame with a title
-		frame.dialog = QualifierEdit(frame, qualifier, tag) # creation of a panel in the frame
-		frame.Show() # frames are invisible by default so we use Show() to make them visible
-	
-		frame.dialog.tag.SetText(tag)
-	
-		#add something to get new values
-		new_qualifier = 'nono'
-		new_tag = 'tagme'
+		#make popup window with qualifier editing capabilities
+		dlg = QualifierEdit(qualifier, tag) # creation of a panel in the frame
+		output = dlg.ShowModal()
+		if output == wx.ID_OK:
+			qualifier = str(dlg.qualifier_combobox.GetValue())
+			tag = str(dlg.tag_field.GetText())
+		dlg.Destroy()
+
 
 		#update file
-		genbank.gb.set_qualifier(index, number, new_qualifier, new_tag)
+		genbank.gb.set_qualifier(index, number, qualifier, tag)
 		self.updateUI()
 		try:
 			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		except:
 			raise IOError('Error updating feature viewer UI') 
-
+		self.update_qualifier_selection(index, number)
 
 	def update_qualifier_selection(self, index, number):
-		'''Updates which feature is selected'''
+		'''Updates which feature and qualifier is selected'''
 		try:
 			self.GetParent().GetParent().feature_list.update_feature_selection(index) #make sure the right feature is selected
 		except:
 			pass
 
-		###change this! it is not right
+		###change this! it is not right. #edit# I cannot see what is wrong...
 
 		self.qualifier_list.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
 		self.qualifier_list.Select(number, True) #to select it
@@ -426,20 +467,65 @@ class FeatureEdit(wx.Panel):
 			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 		except:
 			pass
+		
+	def TestValidLocation(self, locationlist):
+		'''Takes a location list and tests whether it is valid'''
+		result = True		
+		try:
+			assert type(locationlist) == types.ListType
+			for location in locationlist:
+				start, finish = location.split('..')
+				start = int(start)
+				finish = int(finish)
+				assert start < finish
+				assert finish <= len(genbank.gb.get_dna())
+		except:
+			result = False
+		return result
 
-	def LocationFieldOnText(self, event): # fix  this! maybe use a different event to call it...
-		newlocation = self.location.GetLineText(0) #get location
-		print(type(newlocation))
-		print(newlocation)
+
+
+	def LocationFieldOnText(self, event):
+		'''When the location field is changed. Check if the entry is valid, if yes, then update features'''
+		newlocation = str(self.location.GetLineText(0)) #get location as string
+		newlocation.replace(' ', '') #get rid of spaces
+
+		#convert to list
+		if ',' in newlocation:
+			locationlist = newlocation.split(',')
+		else:
+			locationlist = [newlocation]
+
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
-		genbank.gb.set_feature_location(feature, newlocation)
-		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-		except:
-			pass
+		
+		
+		is_valid = self.TestValidLocation(locationlist) #test if location entry is valid
+		if is_valid == True:
+			print(locationlist)
+			print(type(locationlist))
+
+
+			self.location.SetForegroundColour(wx.BLACK)
+			genbank.gb.set_feature_location(feature, locationlist)
+
+######
+#Needs fixing! Changing location does not currently work the correct way. Almost there though
+#####
+
+#			self.updateUI()
+			try:
+				self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+#				self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+			except:
+				pass
+
+		elif is_valid == False:
+			self.location.SetForegroundColour(wx.RED)
+
+
+	def FeatureFieldOnText(self, event):
+		print('feature')
 
 	def updateUI(self):
 		'''Updates all fields depending on which feature is chosen'''
@@ -448,13 +534,24 @@ class FeatureEdit(wx.Panel):
 			index = genbank.gb.get_feature_selection()
 		
 			#update fields
-			self.featuretext.SetLabel(genbank.gb.get_feature_label(index))
+			self.featuretext.ChangeValue(genbank.gb.get_feature_label(index))
 			self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
-			self.location.ChangeValue(str(genbank.gb.get_feature_location(index))) #update location
+
+			locationstring = ''
+			for location in genbank.gb.get_feature_location(index):
+				if locationstring != '':
+					locationstring += ', '
+				locationstring += str(location)
+			self.location.ChangeValue(locationstring) #update location
+
 			self.complementbox.SetValue(genbank.gb.get_feature_complement(index)) #update complement
 			self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
 			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
 
+
+
+#			if self.joinbox:
+#				self.orderbox.EnableTool(512, 0)
 
 			#update qualifier field
 			self.qualifier_list.DeleteAllItems()
@@ -464,8 +561,8 @@ class FeatureEdit(wx.Panel):
 				col0, col1 = qualifier.split('=')
 				col0 = col0[1:]
 				self.qualifier_list.Append([col0, col1])
-				self.qualifier_list.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
-				self.qualifier_list.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)			
+#				self.qualifier_list.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
+#				self.qualifier_list.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)			
 
 		except:
 			pass
@@ -559,13 +656,16 @@ class FeatureView(wx.Panel):
 		genbank.gb.set_dna_selection((start-1, finish))  #how to I propagate this to the DNA view???
 		self.GetTopLevelParent().dnaview.gbviewer.SetSelection(start-1, finish) #update DNA selection
 		self.GetTopLevelParent().dnaview.gbviewer.ShowPosition(start) #show the selection
-
+######
+######
+######
+######
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
 		self.GetTopLevelParent().match_selection()
 
-		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(600, 200)) # creation of a Frame with a title
+		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(700, 200)) # creation of a Frame with a title
 		self.feature_edit = FeatureEdit(self.NewFeatureFrame, id=wx.ID_ANY)		
 
 #		self.OK = wx.Button(self.NewFeatureFrame, 7, 'OK')

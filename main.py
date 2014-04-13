@@ -695,7 +695,7 @@ Put Table here
 
 
 	def add_search_tools(self, typeof):
-		'''Adds tools to the find/mutate toolbar. A string "find" or "mutate" is passed to determine which tollbar to build'''
+		'''Adds tools to the find/mutate toolbar. A string "find" or "mutate" is passed to determine which toolbar to build'''
 	
 		#nucleotide or amino acid
 		if typeof == 'Find':

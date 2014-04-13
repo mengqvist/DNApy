@@ -360,6 +360,7 @@ class gbobject():
 	def set_feature_location(self, feature, newlocation):
 		'''Sets all location for a feature'''
 		index = self.get_feature_index(feature)
+		print('genbank newlocation', newlocation)
 		if index is False:
 			print('Error, no index found')
 		else:
