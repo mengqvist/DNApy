@@ -237,6 +237,9 @@ class gbobject():
 
 
 	#Feature#
+	def get_all_features(self):
+		return self.gbfile['features']
+
 	def get_feature(self, index):
 		"""Returns the entire feature from a certain index"""
 		try:
@@ -269,7 +272,7 @@ class gbobject():
 		#this is currently independent from DNA selection
 		self.feature_selection = index
 		#add logic to find first and last position for feature and make DNA selection match.
-		print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
+#		print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
 
 
 	def get_feature_label(self, index):
@@ -360,7 +363,6 @@ class gbobject():
 	def set_feature_location(self, feature, newlocation):
 		'''Sets all location for a feature'''
 		index = self.get_feature_index(feature)
-		print('genbank newlocation', newlocation)
 		if index is False:
 			print('Error, no index found')
 		else:
@@ -380,6 +382,21 @@ class gbobject():
 		del self.gbfile['features'][index]['location'][number]
 		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
 			del self.gbfile['features'][index] 
+
+	def IsValidLocation(self, locationlist):
+		'''Takes a location list and tests whether it is valid'''
+		result = True		
+		try:
+			assert type(locationlist) == types.ListType
+			for location in locationlist:
+				start, finish = location.split('..')
+				start = int(start)
+				finish = int(finish)
+				assert start < finish
+				assert finish <= len(self.get_dna())
+		except:
+			result = False
+		return result
 
 	def get_qualifiers(self, index):
 		'''Returns all qualifiers for a feature'''

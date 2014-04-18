@@ -85,14 +85,6 @@ class MyFrame(wx.Frame):
 		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
 		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
-		self.fileopen = False #used to see if a file is open
-
-		self.generate_dnaview_tab("")
-		self.generate_featureview_tab("")
-		self.generate_vectorview_tab("")
-		self.generate_sequencingview_tab('')
-		self.generate_genbankview_tab("")
-		
 		#create toolbars
 		self.__generate_toolbar()
 		self.__generate_searchandmutate_toolbar()
@@ -105,10 +97,23 @@ class MyFrame(wx.Frame):
 		self.statusbar = self.CreateStatusBar(2)
 		self.statusbar.SetStatusStyles(styles=[wx.SB_FLAT, wx.SB_FLAT])
 
+
+		self.fileopen = False #used to see if a file is open
+
+		self.new_file(None) #make blank file
+
+		self.generate_dnaview_tab("")
+		self.generate_featureview_tab("")
+		self.generate_vectorview_tab("")
+		self.generate_sequencingview_tab('')
+		self.generate_genbankview_tab("")
+		
+
+
 		self.do_layout()
 		self.Centre()
-	def OnKeyPress(self, evt):
-		print('keypress')
+	
+		
 
 	def do_layout(self):
 		'''Pack toolbar and the tabs in their sizers'''
@@ -186,7 +191,7 @@ class MyFrame(wx.Frame):
 		'''Create new gb file'''
 		if self.fileopen == False: #if no file is open, make blank gb file
 			gb = genbank.new_file() #make new gb in panel	
-			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+#			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 			self.SetTitle('NewFile - DNApy')
 			self.page_change("")
 
@@ -216,7 +221,6 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension == 'gb':
-			print(type(all_path))
 			gb = genbank.open_file(all_path) #make a genbank object and read file
 			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 			self.SetTitle(fileName+' - DNApy')
@@ -371,6 +375,56 @@ class MyFrame(wx.Frame):
 			self.SetStatusText('', 1)		
 
 
+######### cut, paste, copy methods ########
+
+	def cut(self, evt):
+		'''Check which panel is select and cut accordingly'''
+		control = wx.Window.FindFocus() #which field is selected?
+		if control == self.searchinput: #the searchbox
+			start, finish = self.searchinput.GetSelection()
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.searchinput.GetValue()[start:finish])
+				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
+		elif control == self.dnaview.gbviewer: #the main dna window	
+			self.dnaview.cut()
+
+
+	def paste(self, evt):
+		'''Check which panel is select and paste accordingly'''
+		control = wx.Window.FindFocus() #which field is selected?
+		if control == self.searchinput: #the searchbox
+			control.SetValue(pyperclip.paste())
+		elif control == self.dnaview.gbviewer: #the main dna window
+			self.dnaview.paste()		
+
+	def copy(self, evt):
+		'''Check which panel is select and copy accordingly'''
+		control = wx.Window.FindFocus() #which field is selected?
+		if control == self.searchinput: #the searchbox
+			start, finish = self.searchinput.GetSelection()
+			if start != -2 and finish != -2: #must be a selection
+				pyperclip.copy(self.searchinput.GetValue()[start:finish])
+		elif control == self.dnaview.gbviewer: #the main dna window	
+			self.dnaview.copy()
+
+	def cut_reverse_complement(self, evt):
+		self.dnaview.cut_reverse_complement()
+
+	def paste_reverse_complement(self, evt):
+		self.dnaview.paste_reverse_complement()
+
+	def copy_reverse_complement(self, evt):
+		self.dnaview.copy_reverse_complement()
+
+	def delete(self, evt):
+		self.dnaview.delete()
+
+	def reverse_complement_selection(self, evt):
+		self.dnaview.reverse_complement_selection()
+
+	def select_all(self, evt):
+		self.dnaview.select_all()
+
 ##########################################
 
 	def make_outputpopup(self):
@@ -481,122 +535,21 @@ Put Table here
 		self.dlg.Show()
 		self.dlg.Center()
 
+	def uppercase(self, event):
+		self.dnaview.uppercase()
 
-################ genbank methods ###############
-	def OnKeyPress(self, evt):
-		'''Checks which key is pressed and if one of them is A, T, C or G inserts the base into the file'''
-		#this is not working
-		print('ok')
-		print(evt)
+	def lowercase(self, event):
+		self.dnaview.lowercase()
 
-		keycode = event.GetUnicodeKey()
-#		if keycode == :
-#			insert...
-	
-		evt.Skip()
+	def translate_selection(self, event):
+		self.dnaview.translate_selection()
 
-	def match_selection(self):
-		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
-		viewerstart, viewerend = self.dnaview.gbviewer.GetSelection()
-		if viewerstart == -2 and viewerend == -2: # if not a selection
-			viewerstart = self.dnaview.gbviewer.GetInsertionPoint()
-			viewerend = viewerstart
-		gbstart, gbend = genbank.gb.get_dna_selection()
-		if viewerstart != gbstart or viewerend != gbend:
-			selection = (viewerstart, viewerend)
-			genbank.gb.set_dna_selection(selection)
-			#print(selection)
+	def translate_selection_reverse_complement(self, event):
+		self.dnaview.translate_selection_reverse_complement()
 
-	def update_viewer(self):
-		'''Accessory function for realizing changes to DNA'''
-		self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
-		self.dnaview.updateUI()
-		start, finish = genbank.gb.get_dna_selection()
-		print(start, finish)
-		print(self.dnaview.gbviewer.SetSelection(start, finish))
-		if start != finish: self.dnaview.gbviewer.SetSelection(start, finish)
-		elif start == finish: self.dnaview.gbviewer.SetInsertionPoint(start)
-		self.dnaview.gbviewer.ShowPosition(start) 
-
-	def select_all(self, evt):
-		pass
-
-	def uppercase(self, evt):
-		'''Change selection to uppercase'''
-		self.match_selection()
-		genbank.gb.uppercase()
-		self.update_viewer()
-		
-	def lowercase(self, evt):
-		'''Change selection to lowercase'''
-		self.match_selection()
-		genbank.gb.lowercase()
-		self.update_viewer() 
-
-	def reverse_complement_selection(self, evt):
-		'''Reverse-complement current selection'''
-		self.match_selection()
-		genbank.gb.reverse_complement_selection()
-		self.update_viewer()
-
-	def delete(self):
-		'''Deletes a selection and updates dna and features'''
-		self.match_selection()
-		start, finish = genbank.gb.get_dna_selection()
-		genbank.gb.delete(start, finish)
-		self.update_viewer()
-
-	def cut(self, evt):
-		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
-		self.match_selection()
-		genbank.gb.cut()
-		self.update_viewer()
-		#need to add logic to make sure the correct panel is selected
-			
-	def cut_reverse_complement(self, evt):
-		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
-		self.match_selection()
-		genbank.gb.cut_reverse_complement()
-		self.update_viewer()
-		#need to add logic to make sure the correct panel is selected
-		
-	def paste(self, evt):
-		'''Paste DNA and any features present on that DNA'''
-		control = wx.Window.FindFocus() #which field is selected?
-
-		if control == self.searchinput: #the searchbox
-			control.SetValue(pyperclip.paste())
-
-		elif control == self.dnaview.gbviewer: #the main dna window
-			self.match_selection()
-			genbank.gb.paste()
-			self.update_viewer() # need to fix so that pasted dna is still highlighted
-		
-	def paste_reverse_complement(self, evt):
-		'''Paste reverse complement of DNA and any features present on that DNA'''
-		self.match_selection()
-		genbank.gb.paste_reverse_complement()
-		self.update_viewer()
-		#need to add logic to make sure the correct panel is selected
-
-	def copy(self, evt):
-		'''Copy DNA and features into clipboard'''
-		control = wx.Window.FindFocus() #which field is selected?
-
-		if control == self.searchinput: #the searchbox
-			start, finish = self.searchinput.GetSelection()
-			if start != -2 and finish != -2: #must be a selection
-				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-
-		elif control == self.dnaview.gbviewer: #the main dna window	
-			self.match_selection()
-			genbank.gb.copy()
-
-	def copy_reverse_complement(self, evt):
-		'''Copy reverse complement of DNA'''
-		self.match_selection()
-		genbank.gb.copy_reverse_complement()
-		#need to add logic to make sure the correct panel is selected
+	def translate_feature(self, event):
+		self.dnaview.translate_feature()
+#####################################
 
 	def Undo(self, evt):
 		pass
@@ -942,15 +895,15 @@ Put Table here
 		
 		#translate
 		self.protein.Append(30, "Translate\tCtrl+T", "Translate DNA to protein")
-		wx.EVT_MENU(self,30, self.dnaview.translate_selection)
+		wx.EVT_MENU(self,30, self.translate_selection)
 
 		#translate reverse complement
 		self.protein.Append(31, "Translate Rev-Comp\tCtrl+Shift+T", "Translate DNA to protein")
-		wx.EVT_MENU(self,31, self.dnaview.translate_selection_reverse_complement)
+		wx.EVT_MENU(self,31, self.translate_selection_reverse_complement)
 
 		#translate feature
 		self.protein.Append(32, "Translate feature", "Translate DNA feature to protein")
-		wx.EVT_MENU(self,32, self.dnaview.translate_feature)
+		wx.EVT_MENU(self,32, self.translate_feature)
 
 		self.menubar.Append(self.protein, "Protein")
 

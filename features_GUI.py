@@ -34,16 +34,14 @@
 #match features with qualifiers (mandatory and optional)
 #add a function that checks that everything is ok
 
-
-#add edit buttons to location and the first qualifier entry (which is used for name of feature)
-
 #add a way of actually adding a new feature...
-
-
 #make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
+
 
 import ast
 import wx
+from wx.lib.agw import ultimatelistctrl as ULC
+
 import genbank
 import sys, os
 from string import *
@@ -239,7 +237,7 @@ class FeatureEdit(wx.Panel):
 
 		##
 		#second panel
-		self.qualifier_list = wx.ListCtrl(self, -1, style=wx.LC_REPORT)
+		self.qualifier_list = ULC.UltimateListCtrl(self, -1, agwStyle=ULC.ULC_REPORT|ULC.ULC_HAS_VARIABLE_ROW_HEIGHT|ULC.ULC_SINGLE_SEL)
 		self.qualifier_list.InsertColumn(0, "Qualifier", format=wx.LIST_FORMAT_LEFT, width=120)
 		self.qualifier_list.InsertColumn(1, "Tag", format=wx.LIST_FORMAT_LEFT, width=250)
 #		self.qualifier_list.Bind(wx.EVT_LISTBOX_DCLICK, self.OnEditQualifier(None))
@@ -467,22 +465,6 @@ class FeatureEdit(wx.Panel):
 			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 		except:
 			pass
-		
-	def TestValidLocation(self, locationlist):
-		'''Takes a location list and tests whether it is valid'''
-		result = True		
-		try:
-			assert type(locationlist) == types.ListType
-			for location in locationlist:
-				start, finish = location.split('..')
-				start = int(start)
-				finish = int(finish)
-				assert start < finish
-				assert finish <= len(genbank.gb.get_dna())
-		except:
-			result = False
-		return result
-
 
 
 	def LocationFieldOnText(self, event):
@@ -500,25 +482,11 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		
 		
-		is_valid = self.TestValidLocation(locationlist) #test if location entry is valid
+		is_valid = genbank.gb.IsValidLocation(locationlist) #test if location entry is valid
 		if is_valid == True:
-			print(locationlist)
-			print(type(locationlist))
-
-
 			self.location.SetForegroundColour(wx.BLACK)
 			genbank.gb.set_feature_location(feature, locationlist)
-
-######
-#Needs fixing! Changing location does not currently work the correct way. Almost there though
-#####
-
-#			self.updateUI()
-			try:
-				self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-#				self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-			except:
-				pass
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
 		elif is_valid == False:
 			self.location.SetForegroundColour(wx.RED)
@@ -529,10 +497,11 @@ class FeatureEdit(wx.Panel):
 
 	def updateUI(self):
 		'''Updates all fields depending on which feature is chosen'''
-		try:
-			#get selected feature
+		if len(genbank.gb.get_all_features()) == 0:
+			pass
+		else:
 			index = genbank.gb.get_feature_selection()
-		
+	
 			#update fields
 			self.featuretext.ChangeValue(genbank.gb.get_feature_label(index))
 			self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
@@ -548,25 +517,13 @@ class FeatureEdit(wx.Panel):
 			self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
 			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
 
-
-
-#			if self.joinbox:
-#				self.orderbox.EnableTool(512, 0)
-
 			#update qualifier field
 			self.qualifier_list.DeleteAllItems()
 			qualifiers = genbank.gb.get_qualifiers(index)
 			for qualifier in qualifiers:
-				print(qualifier)
 				col0, col1 = qualifier.split('=')
 				col0 = col0[1:]
 				self.qualifier_list.Append([col0, col1])
-#				self.qualifier_list.SetColumnWidth(col=0, width=wx.LIST_AUTOSIZE)
-#				self.qualifier_list.SetColumnWidth(col=1, width=wx.LIST_AUTOSIZE)			
-
-		except:
-			pass
-
 
 
 
@@ -574,7 +531,7 @@ class FeatureView(wx.Panel):
 	"""Class for viewing features as a list"""
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
-		self.feature_list = wx.ListCtrl(self, id=3001, style=wx.LC_REPORT|wx.LC_SINGLE_SEL)
+		self.feature_list = ULC.UltimateListCtrl(self, id=3001, agwStyle=ULC.ULC_REPORT|ULC.ULC_SINGLE_SEL)
 
 		self.feature_list.InsertColumn(0, "Feature", format=wx.LIST_FORMAT_LEFT, width=200)
 		self.feature_list.InsertColumn(1, "Type", format=wx.LIST_FORMAT_LEFT, width=100)
@@ -583,16 +540,10 @@ class FeatureView(wx.Panel):
 
 #		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
 #		self.feature_list.SetFont(font)
-		self.feature_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.ListOnSelect)
+		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
 
 		
-#		newfeature = wx.Button(self, 1, 'New Feature')
-#		deletefeature = wx.Button(self, 2, 'Delete Feature')
-#		moveup = wx.Button(self, 4, 'Move Up')
-#		movedown = wx.Button(self, 5, 'Move Down')
-#		copytranslation = wx.Button(self, 5, 'Copy Translation')
-
 		#buttons
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -632,13 +583,9 @@ class FeatureView(wx.Panel):
 		self.SetSizer(sizer2)
 		self.updateUI()
 
-	def get_selection(self):
-		"""Get currently selected feature"""
-		return self.feature_list.GetFocusedItem()
-
 	def ListOnSelect(self, event):	
 		'''Updates selection depending on which feature is chosen'''
-		index = self.get_selection()
+		index = self.feature_list.GetFirstSelected()
 		genbank.gb.set_feature_selection(index)
 		try:
 			self.GetParent().GetParent().feature_edit.updateUI() #update feature editor
@@ -647,7 +594,7 @@ class FeatureView(wx.Panel):
 
 	def ListOnActivate(self, event):
 		'''Updates feature AND DNA selection based on which feature is chosen'''
-		index = self.get_selection()
+		index = self.feature_list.GetFirstSelected()
 		genbank.gb.set_feature_selection(index)
 
 		locations = genbank.gb.get_feature_location(index)
@@ -663,7 +610,7 @@ class FeatureView(wx.Panel):
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
-		self.GetTopLevelParent().match_selection()
+#		self.GetTopLevelParent().match_selection()
 
 		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(700, 200)) # creation of a Frame with a title
 		self.feature_edit = FeatureEdit(self.NewFeatureFrame, id=wx.ID_ANY)		
@@ -679,10 +626,8 @@ class FeatureView(wx.Panel):
 
 	def OnDelete(self, event):
 		'''Delete selected feature'''
-		#identify feature, remove it and update interface
-		index = self.get_selection()
-		feature = genbank.gb.get_feature(index)
 		index = self.feature_list.GetFirstSelected()
+		feature = genbank.gb.get_feature(index)
 		genbank.gb.remove_feature(feature)
 		self.updateUI()
 	
@@ -694,11 +639,12 @@ class FeatureView(wx.Panel):
 
 	def OnMoveFeatureUp(self, event):
 		'''Move feature up one step'''
-		index = self.get_selection()
-		feature = genbank.gb.get_feature(index)
 		index = self.feature_list.GetFirstSelected()
+		feature = genbank.gb.get_feature(index)
 		genbank.gb.move_feature(feature, 'u')	
 		self.updateUI()
+
+		#set highlight, focus and selection
 		if index != 0:
 			index = index-1
 		self.update_feature_selection(index)
@@ -706,12 +652,12 @@ class FeatureView(wx.Panel):
 
 	def OnMoveFeatureDown(self, event):
 		'''Move feature up down step'''
-		index = self.get_selection()
-		feature = genbank.gb.get_feature(index)
 		index = self.feature_list.GetFirstSelected()
+		feature = genbank.gb.get_feature(index)
 		genbank.gb.move_feature(feature, 'd')
 		self.updateUI()
-	
+
+		#set highlight, focus and selection	
 		if index != self.feature_list.GetItemCount()-1:
 			index = index+1
 		self.update_feature_selection(index)
@@ -720,7 +666,12 @@ class FeatureView(wx.Panel):
 	def update_feature_selection(self, index):
 		'''Updates which feature is selected'''
 		genbank.gb.set_feature_selection(index)
-		self.feature_list.SetItemState(index, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
+#		self.focus_feature_selection()
+
+#	def focus_feature_selection(self):
+#		index = genbank.gb.get_feature_selection
+
+		self.feature_list.SetItemState(item=index, state=ULC.ULC_STATE_SELECTED, stateMask=wx.LIST_STATE_SELECTED) #for the highlight
 		self.feature_list.Select(index, True) #to select it
 		self.feature_list.Focus(index) #to focus it
 
@@ -750,14 +701,14 @@ class FeatureView(wx.Panel):
 
 	def updateUI(self):
 		'''Refreshes table from features stored in the genbank object'''
-		
+		print('feature_listUI updated')
 		#need to figure out how to do this without changing the selection....
 		try:
 			self.feature_list.DeleteAllItems()
-			n = 0 #for feautrecolor
-			for entry in genbank.gb.gbfile['features']:
+			item = 0 #for feautrecolor
+			features = genbank.gb.get_all_features()
+			for entry in features:
 				col0 = entry['qualifiers'][0].split('=')[1]
-		#		col0 = 'T7\terminator'
 				col1 = entry['key']
 				locationstring = ''
 				for location in entry['location']:
@@ -775,13 +726,22 @@ class FeatureView(wx.Panel):
 		
 				#coloring
 				self.get_feature_color(entry)
-				color = self.current_highlight_color
-				item = n
+				hexcolor = self.current_highlight_color #get hex color
+				r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
+				color = wx.Colour(r, g, b) #make color object
 				self.feature_list.SetItemBackgroundColour(item, color)	
-				n += 1
-			#self.autosize()
+				item += 1
 		except:
 			pass
+
+	def hex_to_rgb(self, value):
+		value = value.lstrip('#')
+		lv = len(value)
+		return tuple(int(value[i:i+lv/3], 16) for i in range(0, lv, lv/3))
+
+	def rgb_to_hex(self, rgb):
+		return '#%02x%02x%02x' % rgb
+
 
 class FeatureCreate(wx.Panel):
 	def __init__(self, parent, id, editor):

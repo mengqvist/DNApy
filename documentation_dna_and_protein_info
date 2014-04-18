@@ -1,0 +1,371 @@
+7.4.1 Nucleotide base codes (IUPAC)
+
+Authority       Nomenclature Committee of the International Union of 
+                Biochemistry 
+Reference       Cornish-Bowden, A.  Nucl Acid Res 13, 3021-3030 (1985)
+Contact         EMBL-EBI
+Scope           Location descriptors 
+
+Listing
+
+        Symbol  Meaning
+        ------  -------
+
+        a       a; adenine
+        c       c; cytosine
+        g       g; guanine
+        t       t; thymine in DNA; uracil in RNA
+        m       a or c
+        r       a or g
+        w       a or t
+        s       c or g
+        y       c or t
+        k       g or t
+        v       a or c or g; not t
+        h       a or c or t; not g
+        d       a or g or t; not c
+        b       c or g or t; not a
+        n       a or c or g or t
+
+
+7.4.2 Modified base abbreviations
+
+Authority       Sprinzl, M. and Gauss, D.H.
+Reference       Sprinzl, M. and Gauss, D.H.  Nucl Acid Res  10, r1 (1982).
+                (note that in Cornish_Bowden, A.  Nucl Acid Res  13, 3021-3030
+                (1985) the IUPAC-IUB declined to recommend a set of
+                abbreviations for modified nucleotides)
+Contact         NCBI
+Scope           /mod_base
+
+        Abbreviation    Modified base description
+        ------------    -------------------------
+        ac4c            4-acetylcytidine
+        chm5u           5-(carboxyhydroxylmethyl)uridine
+        cm              2'-O-methylcytidine
+        cmnm5s2u        5-carboxymethylaminomethyl-2-thiouridine
+        cmnm5u          5-carboxymethylaminomethyluridine
+        d               dihydrouridine
+        fm              2'-O-methylpseudouridine
+        gal q           beta,D-galactosylqueosine
+        gm              2'-O-methylguanosine
+        i               inosine
+        i6a             N6-isopentenyladenosine
+        m1a             1-methyladenosine
+        m1f             1-methylpseudouridine
+        m1g             1-methylguanosine
+        m1i             1-methylinosine
+        m22g            2,2-dimethylguanosine
+        m2a             2-methyladenosine
+        m2g             2-methylguanosine
+        m3c             3-methylcytidine
+        m5c             5-methylcytidine
+        m6a             N6-methyladenosine
+        m7g             7-methylguanosine
+        mam5u           5-methylaminomethyluridine
+        mam5s2u         5-methoxyaminomethyl-2-thiouridine
+        man q           beta,D-mannosylqueosine
+        mcm5s2u         5-methoxycarbonylmethyl-2-thiouridine
+        mcm5u           5-methoxycarbonylmethyluridine
+        mo5u            5-methoxyuridine
+        ms2i6a          2-methylthio-N6-isopentenyladenosine
+        ms2t6a          N-((9-beta-D-ribofuranosyl-2-methyltiopurine-6-yl)car
+                        bamoyl)threonine
+        mt6a            N-((9-beta-D-ribofuranosylpurine-6-yl)N-methyl-carbam
+                        oyl)threonine
+        mv              uridine-5-oxyacetic acid-methylester
+        o5u             uridine-5-oxyacetic acid (v)
+        osyw            wybutoxosine
+        p               pseudouridine
+        q               queosine
+        s2c             2-thiocytidine
+        s2t             5-methyl-2-thiouridine
+        s2u             2-thiouridine
+        s4u             4-thiouridine
+        m5u             5-methyluridine
+        t6a             N-((9-beta-D-ribofuranosylpurine-6-yl)carbamoyl)threo
+                        nine
+        tm              2'-O-methyl-5-methyluridine
+        um              2'-O-methyluridine
+        yw              wybutosine
+        x               3-(3-amino-3-carboxypropyl)uridine, (acp3)u
+        OTHER           (requires /note= qualifier)
+
+
+7.4.3 Amino acid abbreviations
+
+Authority       IUPAC-IUB Joint Commission on Biochemical Nomenclature.
+Reference       IUPAC-IUB Joint Commission on Biochemical Nomenclature.
+                Nomenclature   and    Symbolism   for   Amino   Acids   and
+                Peptides.
+                Eur. J. Biochem. 138:9-37(1984).
+                IUPAC-IUBMB JCBN Newsletter, 1999        
+                http://www.chem.qmul.ac.uk/iubmb/newsletter/1999/item3.html
+Scope           /anticodon, /transl_except
+Contact         EMBL-EBI
+
+Listing (note that the abbreviations are legal values for amino acids, not the full names)
+        Abbreviation    Amino acid name
+        ------------    ---------------
+
+        Ala     A       Alanine
+        Arg     R       Arginine
+        Asn     N       Asparagine
+        Asp     D       Aspartic acid (Aspartate)
+        Cys     C       Cysteine
+        Gln     Q       Glutamine
+        Glu     E       Glutamic acid (Glutamate)
+        Gly     G       Glycine
+        His     H       Histidine
+        Ile     I       Isoleucine
+        Leu     L       Leucine
+        Lys     K       Lysine
+        Met     M       Methionine
+        Phe     F       Phenylalanine
+        Pro     P       Proline
+        Pyl     O       Pyrrolysine
+        Ser     S       Serine
+        Sec     U       Selenocysteine
+        Thr     T       Threonine
+        Trp     W       Tryptophan
+        Tyr     Y       Tyrosine
+        Val     V       Valine
+        Asx     B       Aspartic acid or Asparagine
+        Glx     Z       Glutamine or Glutamic acid.
+        Xaa     X       Any amino acid.
+        Xle     J       Leucine or Isoleucine
+        TERM            termination codon
+
+
+7.4.4 Modified and unusual Amino Acids
+        Abbreviation    Amino acid
+        ------------    ---------
+
+        Aad             2-Aminoadipic acid
+        bAad            3-Aminoadipic acid
+        bAla            beta-Alanine, beta-Aminoproprionic acid
+        Abu             2-Aminobutyric acid
+        4Abu            4-Aminobutyric acid, piperidinic acid
+        Acp             6-Aminocaproic acid
+        Ahe             2-Aminoheptanoic acid
+        Aib             2-Aminoisobutyric acid
+        bAib            3-Aminoisobutyric acid
+        Apm             2-Aminopimelic acid
+        Dbu             2,4-Diaminobutyric acid
+        Des             Desmosine
+        Dpm             2,2'-Diaminopimelic acid
+        Dpr             2,3-Diaminoproprionic acid
+        EtGly           N-Ethylglycine
+        EtAsn           N-Ethylasparagine
+        Hyl             Hydroxylysine
+        aHyl            allo-Hydroxylysine
+        3Hyp            3-Hydroxyproline
+        4Hyp            4-Hydroxyproline
+        Ide             Isodesmosine
+        aIle            allo-Isoleucine
+        MeGly           N-Methylglycine, sarcosine
+        MeIle           N-Methylisoleucine
+        MeLys           6-N-Methyllysine
+        MeVal           N-Methylvaline
+        Nva             Norvaline
+        Nle             Norleucine
+        Orn             Ornithine
+        OTHER           (requires /note=)
+
+
+7.4.5 Genetic Code Tables
+
+Authority      International Nucleotide Sequence Database Collaboration
+Contact        NCBI
+Scope          /transl_table qualifier
+URL            http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi?mode=c
+
+  Genetic Code [1]
+  Standard Code (transl_table=1)  
+ 
+    AAs  = FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = ---M---------------M---------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+ 
+  Genetic Code [2]
+  Vertebrate Mitochondrial Code (transl_table=2)
+
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG
+  Starts = --------------------------------MMMM---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ 
+ 
+  Genetic Code [3]
+  Yeast Mitochondrial Code (transl_table=3)
+ 
+    AAs  = FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = ----------------------------------MM----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG 
+
+ 
+  Genetic Code [4]
+  Mold, Protozoan, Coelenterate Mitochondrial Code & Mycoplasma/Spiroplasma  
+  Code (transl_table=4) 
+  
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = --MM---------------M------------MMMM---------------M------------ 
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  
+  Genetic Code [5] 
+  Invertebrate Mitochondrial Code (transl_table=5) 
+  
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG
+  Starts = ---M----------------------------MMMM---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+
+  Genetic Code [6]
+  Ciliate, Dasycladacean and Hexamita Nuclear Code (transl_table=6) 
+    
+    AAs  = FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ 
+   
+  Genetic Code [9]  
+  Echinoderm and Flatworm Mitochondrial Code (transl_table=9)  
+       
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  Genetic Code [10]   
+  Euplotid Nuclear Code (transl_table=10) 
+    
+    AAs  = FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+  
+
+  Genetic Code [11]
+ Bacterial, Archaeal and Plant Plastid Code (transl_table=11) 
+ 
+    AAs  = FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = ---M---------------M------------MMMM---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  Genetic Code [12]
+  Alternative Yeast Nuclear Code (transl_table=12) 
+
+    AAs  = FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -------------------M---------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+                                                                   
+ 
+  Genetic Code [13]
+  Ascidian Mitochondrial Code (transl_table=13)
+
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG
+  Starts = ---M------------------------------MM---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+  Genetic Code [14]
+  Alternative Flatworm Mitochondrial Code (transl_table=14) 
+  
+    AAs  = FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  Genetic Code [15]
+  Blepharisma Nuclear Code (transl_table=15) 
+
+    AAs  = FFLLSSSSYY*QCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+ 
+  Genetic Code [16]
+  Chlorophycean Mitochondrial Code (transl_table=16)  
+
+    AAs  = FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+  
+  Genetic Code [21]
+  Trematode Mitochondrial Code (transl_table=21) 
+
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  Genetic Code [22]
+  Scenedesmus obliquus mitochondrial  
+
+    AAs  = FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = -----------------------------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+
+  Genetic Code [23]
+  Thraustochytrium Mitochondrial Code (transl_table=23) 
+  
+    AAs  = FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+  Starts = --------------------------------M--M---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+  
+  Genetic Code [24]
+  Pterobranchia mitochondrial code (transl_table=24)
+
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG
+  Starts = ---M---------------M---------------M---------------M------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+
+  Genetic Code [25]
+  Candidate Division SR1 and Gracilibacteria Code (transl_table=25)
+
+    AAs  = FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG
+  Starts = ---M---------------M---------------M----------------------------
+  Base1  = TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  Base2  = TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  Base3  = TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+

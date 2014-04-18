@@ -117,7 +117,7 @@ class MyPanel(wx.Panel):
 
 	def OnKeyPress(self, evt):
 		key = evt.GetUniChar()
-		print(key)
+#		print(key)
 #		shift = evt.ShiftDown()
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish = self.gbviewer.GetSelection()
@@ -188,6 +188,101 @@ class MyPanel(wx.Panel):
 #				self.output.write(('>%s "%s", ' % (feature['key'], feature['qualifiers'][0].split('=')[1])), 'Text')
 #			self.output.write('\n', 'Text')
 #		self.outputframe.Show()
+
+
+
+
+################ genbank methods ###############
+
+
+	def match_selection(self):
+		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
+		viewerstart, viewerend = self.gbviewer.GetSelection()
+		if viewerstart == -2 and viewerend == -2: # if not a selection
+			viewerstart = self.gbviewer.GetInsertionPoint()
+			viewerend = viewerstart
+		gbstart, gbend = genbank.gb.get_dna_selection()
+		if viewerstart != gbstart or viewerend != gbend:
+			selection = (viewerstart, viewerend)
+			genbank.gb.set_dna_selection(selection)
+			#print(selection)
+
+	def update_viewer(self):
+		'''Accessory function for realizing changes to DNA'''
+		self.gbviewer.SetValue(genbank.gb.get_dna())
+		self.updateUI()
+		start, finish = genbank.gb.get_dna_selection()
+		print(start, finish)
+		print(self.gbviewer.SetSelection(start, finish))
+		if start != finish: self.gbviewer.SetSelection(start, finish)
+		elif start == finish: self.gbviewer.SetInsertionPoint(start)
+		self.gbviewer.ShowPosition(start) 
+
+	def select_all(self):
+		pass
+
+	def uppercase(self):
+		'''Change selection to uppercase'''
+		self.match_selection()
+		genbank.gb.uppercase()
+		self.update_viewer()
+		
+	def lowercase(self):
+		'''Change selection to lowercase'''
+		self.match_selection()
+		genbank.gb.lowercase()
+		self.update_viewer() 
+
+	def reverse_complement_selection(self):
+		'''Reverse-complement current selection'''
+		self.match_selection()
+		genbank.gb.reverse_complement_selection()
+		self.update_viewer()
+
+	def delete(self):
+		'''Deletes a selection and updates dna and features'''
+		self.match_selection()
+		start, finish = genbank.gb.get_dna_selection()
+		genbank.gb.delete(start, finish)
+		self.update_viewer()
+
+	def cut(self):
+		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
+		self.match_selection()
+		genbank.gb.cut()
+		self.update_viewer()
+			
+	def cut_reverse_complement(self):
+		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
+		self.match_selection()
+		genbank.gb.cut_reverse_complement()
+		self.update_viewer()
+		
+	def paste(self):
+		'''Paste DNA and any features present on that DNA'''
+		self.match_selection()
+		genbank.gb.paste()
+		self.update_viewer() # need to fix so that pasted dna is still highlighted
+		
+	def paste_reverse_complement(self):
+		'''Paste reverse complement of DNA and any features present on that DNA'''
+		self.match_selection()
+		genbank.gb.paste_reverse_complement()
+		self.update_viewer()
+
+	def copy(self):
+		'''Copy DNA and features into clipboard'''
+		self.match_selection()
+		genbank.gb.copy()
+
+	def copy_reverse_complement(self):
+		'''Copy reverse complement of DNA'''
+		self.match_selection()
+		genbank.gb.copy_reverse_complement()
+
+
+#######################################################
+
 
 ######### Functions for updating text and text highlighting #############
 	def remove_styling(self):
@@ -290,20 +385,20 @@ class MyPanel(wx.Panel):
 		self.output.write(protein, 'Protein')
 		self.outputframe.Show()
 	
-	def translate_selection(self, evt):
+	def translate_selection(self):
 		'''Translate selected DNA'''
 		DNA = self.gbviewer.GetStringSelection()
 		protein = dna.translate(DNA)
 		self.translate_output(protein, DNA, 'leading strand')
 		
-	def translate_selection_reverse_complement(self, evt):
+	def translate_selection_reverse_complement(self):
 		'''Translate reverse-complement of selected DNA'''
 		DNA = self.gbviewer.GetStringSelection()
 		protein = dna.translate(dna.revcomp(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
 
 #update this one...
-	def translate_feature(self, evt):
+	def translate_feature(self):
 		'''Translate specified feature'''
 		feature = genbank.gb.allgbfeatures[2]
 		DNA = genbank.gb.getdnaforgbfeature(feature[4])
