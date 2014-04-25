@@ -652,7 +652,7 @@ Put Table here
 	
 		#nucleotide or amino acid
 		if typeof == 'Find':
-			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Position', 'Feature'], style=wx.CB_READONLY)
+			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
 		elif typeof == 'Mutate':
 			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid'], style=wx.CB_READONLY)
 		self.frame_2_toolbar.AddControl(self.nucleotideoraminoacid)
@@ -704,15 +704,18 @@ Put Table here
 
 	def find(self, evt):
 		'''Find nucleotide in molecule'''
-		self.nucleotideoraminoacid.GetValue()
-		self.featurebox.GetValue()
+		searchtype = self.nucleotideoraminoacid.GetValue() #type of search
+		searchframe = self.featurebox.GetValue() #where to search
 		searchstring = self.searchinput.GetValue()
-		genbank.gb.find_dna(searchstring)
-		try:
-			self.tab_list[self.current_tab].updateUI()
-		except:
-			pass
 
+		if searchtype == 'Nucleotide':
+			genbank.gb.FindNucleotide(searchstring, searchframe)
+		elif searchtype == 'Amino Acid':
+			genbank.gb.FindAminoAcid(searchstring, searchframe)
+		elif searchtype == 'Feature':
+			genbank.gb.FindFeature(searchstring)
+
+		self.tab_list[self.current_tab].updateUI()
 		start, finish = genbank.gb.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 

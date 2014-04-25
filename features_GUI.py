@@ -116,16 +116,16 @@ class QualifierEdit(wx.Dialog):
 
 		#sizers
 		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-		buttonsizer.Add(self.button_ok)
-		buttonsizer.Add(self.button_cancel)
+		buttonsizer.Add(item=self.button_ok)
+		buttonsizer.Add(item=self.button_cancel)
 
 		globsizer = wx.BoxSizer(wx.VERTICAL)
-		globsizer.Add(self.qualifier_header, flag=wx.LEFT, border=10)
-		globsizer.Add(self.qualifier_combobox, flag=wx.LEFT, border=10)
-		globsizer.Add(self.spacer1, flag=wx.LEFT, border=10)
-		globsizer.Add(self.tag_header, flag=wx.LEFT, border=10)
-		globsizer.Add(self.tag_field, flag=wx.LEFT, border=10)
-		globsizer.Add(buttonsizer, flag=wx.LEFT, border=10)
+		globsizer.Add(item=self.qualifier_header, flag=wx.LEFT, border=10)
+		globsizer.Add(item=self.qualifier_combobox, flag=wx.LEFT, border=10)
+		globsizer.Add(item=self.spacer1, flag=wx.LEFT, border=10)
+		globsizer.Add(item=self.tag_header, flag=wx.LEFT, border=10)
+		globsizer.Add(item=self.tag_field, flag=wx.LEFT, border=10)
+		globsizer.Add(item=buttonsizer, flag=wx.LEFT, border=10)
 
 		self.SetSizer(globsizer)
 		self.Center()
@@ -140,29 +140,18 @@ class QualifierEdit(wx.Dialog):
 
 
 class FeatureEdit(wx.Panel):
+	'''This class makes a panel with a field for editing feature properties and a list for displaying and editing qualifiers'''
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 
-#		splitter2 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
-
+		##
+		# first panel, for editing feature
+		##
 		self.feature_dlg = wx.Panel(self, id=wx.ID_ANY)
 
 		#feature label control
 		featuretext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Feature:')
 		featuretext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
-
-
-		#make box that displays the mixed base codon for editing
-#		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-#		self.featuretext = wx.stc.StyledTextCtrl(self, size=(200,30), style = wx.NO_FULL_REPAINT_ON_RESIZE)
-#		self.featuretext.StyleSetBackground(style=wx.stc.STC_STYLE_DEFAULT, back='#FFFFFF') #set background color of everything that is not text
-#		self.featuretext.StyleSetBackground(style=0, back='#FFFFFF') #set background color of text
-##		self.featuretext.StyleSetBackground(style=wx.stc.STC_STYLE_LINENUMBER, back='#FFFFFF') #sets color of left margin
-#		self.featuretext.SetUseHorizontalScrollBar(show=False) #hide scrollbar
-#		face = textfont.GetFaceName()
-#		size = textfont.GetPointSize()
-#		self.featuretext.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
-
 		self.featuretext = wx.TextCtrl(self.feature_dlg, id=wx.ID_ANY, size=(200,-1))
 		self.featuretext.Bind(wx.EVT_TEXT, self.FeatureFieldOnText)
 
@@ -171,6 +160,8 @@ class FeatureEdit(wx.Panel):
 		typetext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Type:')
 		typetext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
 		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
+		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(200, -1), choices=featuretypes, style=wx.CB_READONLY)
+		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
 
 		#can I create submenus with these???		
 #		Genes: "promoter", "CDS", "exon", "intron", "gene", "5'UTR", "3'UTR", "polyA_site", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip"] 
@@ -182,13 +173,8 @@ class FeatureEdit(wx.Panel):
 #		Misc.: "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop",
 #		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
 
-		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(200, -1), choices=featuretypes, style=wx.CB_READONLY)
-		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
 
-
-
-
-		#location
+		#location control
 		locationtext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Location:')
 		locationtext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
 		self.location = wx.TextCtrl(self.feature_dlg, id=1003, size=(200,-1), style=wx.TE_RICH)
@@ -208,10 +194,10 @@ class FeatureEdit(wx.Panel):
 		#need to add logic that only makes join and order available if there are more than one location for a feature...
 
 
+		#sizers
 		label_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		label_sizer.Add(item=featuretext, flag=wx.ALL, border=5)
 		label_sizer.Add(item=self.featuretext, flag=wx.LEFT, border=80-featuretext.GetSize()[0])
-
 
 		type_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		type_sizer.Add(item=typetext, flag=wx.ALL, border=5)
@@ -220,7 +206,6 @@ class FeatureEdit(wx.Panel):
 		location_sizer = wx.BoxSizer(wx.HORIZONTAL)		
 		location_sizer.Add(item=locationtext, flag=wx.ALL, border=5)
 		location_sizer.Add(item=self.location, flag=wx.LEFT, border=80-locationtext.GetSize()[0])
-
 
 		complement_sizer = wx.BoxSizer(wx.VERTICAL)
 		complement_sizer.Add(item=self.complementbox)
@@ -236,7 +221,8 @@ class FeatureEdit(wx.Panel):
 		self.feature_dlg.SetSizer(main_sizer)
 
 		##
-		#second panel
+		#second panel, for qualifiers
+		##
 		self.qualifier_list = ULC.UltimateListCtrl(self, -1, agwStyle=ULC.ULC_REPORT|ULC.ULC_HAS_VARIABLE_ROW_HEIGHT|ULC.ULC_SINGLE_SEL)
 		self.qualifier_list.InsertColumn(0, "Qualifier", format=wx.LIST_FORMAT_LEFT, width=120)
 		self.qualifier_list.InsertColumn(1, "Tag", format=wx.LIST_FORMAT_LEFT, width=250)
@@ -245,25 +231,30 @@ class FeatureEdit(wx.Panel):
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		addqual = wx.BitmapButton(self, id=7, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "new")
+		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
 
 		imageFile = files['default_dir']+"/icon/remove_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		deletequal = wx.BitmapButton(self, id=8, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "remove")
+		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
 
 		imageFile = files['default_dir']+"/icon/move_up.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		qualup = wx.BitmapButton(self, id=9, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "move up")
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
 
 		imageFile = files['default_dir']+"/icon/move_down.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		qualdown = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "move down")
+		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
 
 		imageFile = files['default_dir']+"/icon/edit.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		qualedit = wx.BitmapButton(self, id=11, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "edit")
+		self.Bind(wx.EVT_BUTTON, self.OnEditQualifier, id=11)	
+			
 		
-		
-
+		#sizers
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(addqual)
 		sizer.Add(deletequal)
@@ -275,23 +266,6 @@ class FeatureEdit(wx.Panel):
 		sizer2.Add(self.qualifier_list, 3, wx.EXPAND)
 		sizer2.Add(sizer, 0, wx.EXPAND)
 
-#		self.SetSizer(sizer2)
-
-		#bind qualifier buttions
-		self.Bind(wx.EVT_BUTTON, self.OnAddQualifier, id=7)
-		self.Bind(wx.EVT_BUTTON, self.OnRemoveQualifier, id=8)
-		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierUp, id=9)
-		self.Bind(wx.EVT_BUTTON, self.OnMoveQualifierDown, id=10)
-		self.Bind(wx.EVT_BUTTON, self.OnEditQualifier, id=11)
-
-		##
-		#third panel, for showing qualifiers
-#		self.qualifier_list = FeatureEdit(splitter2, -1)
-#		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
-#		self.qualifier_list.SetFont(font)
-
-#		splitter2.SplitVertically(self.feature_dlg, self.qualifier_list)
-
 		main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		main_sizer.Add(self.feature_dlg, -1, wx.EXPAND)
 
@@ -301,7 +275,9 @@ class FeatureEdit(wx.Panel):
 
 		self.updateUI()
 
+
 	def OnAddQualifier(self, event):
+		'''For adding new qualifier'''
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
 		qualifier = 'label'
@@ -321,11 +297,10 @@ class FeatureEdit(wx.Panel):
 			self.update_qualifier_selection(index, number)
 
 		dlg.Destroy()
-
-
 	
 
 	def OnRemoveQualifier(self, event):
+		'''For removing existing qualifier'''
 		index = genbank.gb.get_feature_selection() #feature selected
 		feature = genbank.gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected() #qualifier selected
@@ -334,10 +309,7 @@ class FeatureEdit(wx.Panel):
 		if items != 1: #don't delete last qualifier
 			genbank.gb.remove_qualifier(feature, number)
 			self.updateUI()
-			try:
-				self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			except:
-				pass
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
 			#set highlight, focus and selection
 			if number == items-1: #if last item was deleted, selection is set as -1
@@ -346,15 +318,13 @@ class FeatureEdit(wx.Panel):
 
 
 	def OnMoveQualifierUp(self, event):
+		'''Move qualifier up one step in the list'''
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'u')
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
 		if number != 0:
 			number = number-1
@@ -362,19 +332,18 @@ class FeatureEdit(wx.Panel):
 
 
 	def OnMoveQualifierDown(self, event):
+		'''Move qualifier down one step in the list'''
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
 		genbank.gb.move_qualifier(feature, number, 'd')
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
 		if number != self.qualifier_list.GetItemCount():
 			number = number+1
 		self.update_qualifier_selection(index, number)
+
 
 	def OnEditQualifier(self, event):
 		'''Make popup window where qualifier and tag can be edited'''
@@ -391,28 +360,24 @@ class FeatureEdit(wx.Panel):
 			tag = str(dlg.tag_field.GetText())
 		dlg.Destroy()
 
-
 		#update file
 		genbank.gb.set_qualifier(index, number, qualifier, tag)
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-		except:
-			raise IOError('Error updating feature viewer UI') 
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.update_qualifier_selection(index, number)
+
 
 	def update_qualifier_selection(self, index, number):
 		'''Updates which feature and qualifier is selected'''
-		try:
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #make sure the right feature is selected
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.update_feature_selection(index) #make sure the right feature is selected
+
 
 		###change this! it is not right. #edit# I cannot see what is wrong...
 
 		self.qualifier_list.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
 		self.qualifier_list.Select(number, True) #to select it
 		self.qualifier_list.Focus(number) #to focus it
+
 	
 	def ComplementCheckboxOnSelect(self, event):
 		'''Toggle whether the feature is on the complement strand or not'''
@@ -421,11 +386,8 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_complement(feature, newcomplement)
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 		
 
 	def JoinCheckboxOnSelect(self, event):
@@ -435,11 +397,8 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_join(feature, newjoin)
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 
 	def OrderCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with ultiple locations should be indicated as being in a certain order or not'''
@@ -448,11 +407,8 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_order(feature, neworder)
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-		except:
-			pass
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
@@ -460,12 +416,9 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_type(feature, newkey)
 		self.updateUI()
-		try:
-			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
-			self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
-		except:
-			pass
-
+		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
+		
 
 	def LocationFieldOnText(self, event):
 		'''When the location field is changed. Check if the entry is valid, if yes, then update features'''
@@ -481,7 +434,6 @@ class FeatureEdit(wx.Panel):
 		index = genbank.gb.get_feature_selection()
 		feature = genbank.gb.get_feature(index)
 		
-		
 		is_valid = genbank.gb.IsValidLocation(locationlist) #test if location entry is valid
 		if is_valid == True:
 			self.location.SetForegroundColour(wx.BLACK)
@@ -493,7 +445,33 @@ class FeatureEdit(wx.Panel):
 
 
 	def FeatureFieldOnText(self, event):
-		print('feature')
+		newfeaturetext = str(self.featuretext.GetLineText(0)) #get location as string
+	
+		index = genbank.gb.get_feature_selection()
+		number = 0
+		qualifier = genbank.gb.get_qualifier(index, number)[0]
+		tag = newfeaturetext
+		print(index)
+		print(type(index))
+		
+		if ('=' in newfeaturetext) == False: # '=' is reserved for parsing, so it can't be in the string'
+			self.featuretext.SetForegroundColour(wx.BLACK)
+			genbank.gb.set_qualifier(index, number, qualifier, tag)
+			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
+			self.update_qualifiers()
+
+		elif ('=' in newfeaturetext) == True:
+			self.featuretext.SetForegroundColour(wx.RED)	
+
+	def update_qualifiers(self):
+		index = genbank.gb.get_feature_selection()
+		self.qualifier_list.DeleteAllItems()
+		qualifiers = genbank.gb.get_qualifiers(index)
+		for qualifier in qualifiers:
+			col0, col1 = qualifier.split('=')
+			col0 = col0[1:]
+			self.qualifier_list.Append([col0, col1])	
+
 
 	def updateUI(self):
 		'''Updates all fields depending on which feature is chosen'''
@@ -518,12 +496,8 @@ class FeatureEdit(wx.Panel):
 			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
 
 			#update qualifier field
-			self.qualifier_list.DeleteAllItems()
-			qualifiers = genbank.gb.get_qualifiers(index)
-			for qualifier in qualifiers:
-				col0, col1 = qualifier.split('=')
-				col0 = col0[1:]
-				self.qualifier_list.Append([col0, col1])
+			self.update_qualifiers()
+
 
 
 

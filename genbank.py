@@ -372,10 +372,22 @@ class gbobject():
 		'''Returns start and end location for an entry of a location list'''
 		tempentry = ''
 		for n in range(len(entry)):
-			if entry[n] != '<' and entry[n] != '>': tempentry += entry[n]
+			if entry[n] != '<' and entry[n] != '>': 
+				tempentry += entry[n]
 		start, finish = tempentry.split('..')
 		return int(start), int(finish)
 
+	def GetFirstLastLocation(self, feature):
+		'''Returns ultimate first and ultimate last position of a feature, regardless of how many pieces it is broken into'''
+		index = self.get_feature_index(feature)
+		if index is False:
+			print('Error, no index found')
+		else:
+			locations = self.gbfile['features'][index]['location']
+			start = locations[0].split('..')[0]
+			finish = locations[-1].split('..')[1]
+			print(start, finish)
+			return int(start), int(finish)
 
 	def remove_location(self, index, number):
 		'''Removes locaiton in self.gbfile['features'][index]['location'][number]'''
@@ -807,7 +819,7 @@ class gbobject():
 
 #### Find methods ####
 
-	def find_dna(self, searchstring):
+	def FindNucleotide(self, searchstring, searchframe):
 		'''Method for finding a certain DNA sequence in the file. Degenerate codons are supported'''
 		dna_seq = self.get_dna()
 		dna_seq = dna_seq.upper()
@@ -821,30 +833,56 @@ class gbobject():
 			self.search_hits = []
 		else:
 			if oligo_localizer.match_oligo(dna_seq,oligo)!=[]:
-				print('The following matches were found: ')
 				self.search_hits = []
 				for match in oligo_localizer.match_oligo(dna_seq,oligo):
 					lm=len(match[2])
-					print('from %s to %s %s' % (match[0],match[1]+lm,match[2]))
 					self.search_hits.append((match[0],match[1]+lm))
 				self.set_dna_selection(self.search_hits[0])
 			else:
 				print('Sorry, no matches were found')			
 
-	def find_protein():
-		'''Method for finding a certain protein sequence in the file. Degenerate codons are supported'''
+	def FindAminoAcid(self, searchsting, searchframe):
+		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
 		pass
+
+	def FindFeature(self, searchstring):
+		'''Method for finding a certain feature in a genbank file'''
+		if searchstring=='':
+			print 'The searchstring is missing, please check your input'
+			self.search_hits = []
+		else:
+			self.search_hits = []
+			hits = []
+			features = self.get_all_features()
+			for i in range(len(features)):
+				qualifiers = self.get_qualifiers(i)
+				for qualifier in qualifiers:
+					if searchstring in qualifier.split('=')[1] and (features[i] in hits) == False:
+						hits.append(features[i])
+
+		if len(hits) == 0:
+			print('Sorry, no matches were found')
+		else:
+			for feature in hits:
+				start, finish = self.GetFirstLastLocation(feature)
+				self.search_hits.append((start-1, finish))
+		self.search_hits = sorted(self.search_hits)		
+		self.set_dna_selection(self.search_hits[0])
+
 
 	def find_previous(self):
 		'''Switch to the previous search hit'''
 		start, finish = self.get_dna_selection()
 		for i in range(len(self.search_hits)):
+			print('start', start)
+			print('hits', self.search_hits[0][0])
 			if start < self.search_hits[0][0]:
 				self.set_dna_selection(self.search_hits[-1])
 				break
 			elif start <= self.search_hits[i][0]:
 				self.set_dna_selection(self.search_hits[i-1])
 				break
+
 
 	def find_next(self):
 		'''Switch to the next search hit'''
