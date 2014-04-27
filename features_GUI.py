@@ -677,36 +677,34 @@ class FeatureView(wx.Panel):
 		'''Refreshes table from features stored in the genbank object'''
 		print('feature_listUI updated')
 		#need to figure out how to do this without changing the selection....
-		try:
-			self.feature_list.DeleteAllItems()
-			item = 0 #for feautrecolor
-			features = genbank.gb.get_all_features()
-			for entry in features:
-				col0 = entry['qualifiers'][0].split('=')[1]
-				col1 = entry['key']
-				locationstring = ''
-				for location in entry['location']:
-					if locationstring != '':
-						locationstring += ', '
-					locationstring += str(location)
-				col2 = locationstring
-				if entry['complement'] == True:
-					col3 = 'complement'
-				else:
-					col3 = 'leading'
-	#			col4 = entry['qualifiers']
-			
-				self.feature_list.Append([col0, col1, col2, col3])	
+		self.feature_list.DeleteAllItems()
+		item = 0 #for feautrecolor
+		features = genbank.gb.get_all_features()
+		for entry in features:
+			col0 = entry['qualifiers'][0].split('=')[1]
+			col1 = entry['key']
+			locationstring = ''
+			for location in entry['location']:
+				if locationstring != '':
+					locationstring += ', '
+				locationstring += str(location)
+			col2 = locationstring
+			if entry['complement'] == True:
+				col3 = 'complement'
+			else:
+				col3 = 'leading'
+#			col4 = entry['qualifiers']
 		
-				#coloring
-				self.get_feature_color(entry)
-				hexcolor = self.current_highlight_color #get hex color
-				r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
-				color = wx.Colour(r, g, b) #make color object
-				self.feature_list.SetItemBackgroundColour(item, color)	
-				item += 1
-		except:
-			pass
+			self.feature_list.Append([col0, col1, col2, col3])	
+	
+			#coloring
+			self.get_feature_color(entry)
+			hexcolor = self.current_highlight_color #get hex color
+			r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
+			color = wx.Colour(r, g, b) #make color object
+			self.feature_list.SetItemBackgroundColour(item, color)	
+			item += 1
+
 
 	def hex_to_rgb(self, value):
 		value = value.lstrip('#')

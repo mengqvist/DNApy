@@ -820,30 +820,56 @@ class gbobject():
 #### Find methods ####
 
 	def FindNucleotide(self, searchstring, searchframe):
-		'''Method for finding a certain DNA sequence in the file. Degenerate codons are supported'''
-		dna_seq = self.get_dna()
-		dna_seq = dna_seq.upper()
-		oligo = searchstring
-		oligo = oligo.upper()
-		dna_seq = list(dna_seq)
-		dna_seq = oligo_localizer.cleaner(dna_seq)
+		'''Method for finding a certain DNA sequence. Degenerate codons are supported.
+Searchstring should be a string of numbers or DNA characers and searchframe should be an index. 
+-1 indicates search in entrire genbank file
+indeces >-1 are feature indeces'''
+		assert type(searchstring) == str or type(searchstring) == unicode
+		assert type(searchframe) == int
 
-		if oligo=='':
+		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
 			self.search_hits = []
-		else:
-			if oligo_localizer.match_oligo(dna_seq,oligo)!=[]:
-				self.search_hits = []
-				for match in oligo_localizer.match_oligo(dna_seq,oligo):
-					lm=len(match[2])
-					self.search_hits.append((match[0],match[1]+lm))
+
+		elif searchstring.isdigit(): #if search is numbers only
+			if searchframe == -1: #if index is -1, that means search in molecule
+				self.search_hits = [(int(searchstring)-1, int(searchstring))]
 				self.set_dna_selection(self.search_hits[0])
-			else:
-				print('Sorry, no matches were found')			
+			else: #otherwise search in feature indicated by the index
+				complement = self.get_feature_complement(searchframe) # is feature complement or not
+				feature = self.get_feature(searchframe)
+				first, last = self.GetFirstLastLocation(feature)
+
+				#add check ensuring that you cannot search outsite of feature bounds	
+				if complement == True:
+					self.search_hits = [(last+1 - int(searchstring)-1, last+1 - int(searchstring))]
+					self.set_dna_selection(self.search_hits[0])					
+				elif complement == False:
+					self.search_hits = [(first-1 + int(searchstring)-1, first-1 + int(searchstring))]
+					self.set_dna_selection(self.search_hits[0])					
+				
+		else: #if searchstring is not numbers
+			#need to test that the characters are valid
+			if searchframe == -1: #if index is -1, that means search in molecule
+				dna_seq = self.get_dna()
+				dna_seq = dna_seq.upper()
+				searchstring = searchstring.upper()
+				dna_seq = list(dna_seq)
+				dna_seq = oligo_localizer.cleaner(dna_seq)
+				if oligo_localizer.match_oligo(dna_seq, searchstring)!=[]:
+					self.search_hits = []
+					for match in oligo_localizer.match_oligo(dna_seq, searchstring):
+						lm=len(match[2])
+						self.search_hits.append((match[0],match[1]+lm))
+					self.set_dna_selection(self.search_hits[0])
+				else:
+					print('No matches were found')			
+
 
 	def FindAminoAcid(self, searchsting, searchframe):
 		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
 		pass
+
 
 	def FindFeature(self, searchstring):
 		'''Method for finding a certain feature in a genbank file'''

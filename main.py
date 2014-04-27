@@ -649,8 +649,15 @@ Put Table here
 
 	def add_search_tools(self, typeof):
 		'''Adds tools to the find/mutate toolbar. A string "find" or "mutate" is passed to determine which toolbar to build'''
-	
-		#nucleotide or amino acid
+		featurelist = ['Molecule']
+		try:
+			#make a list of all feature names
+			features = genbank.gb.get_all_features()
+			for entry in features:
+				featurelist.append(entry['qualifiers'][0].split('=')[1])
+		except:
+			pass
+
 		if typeof == 'Find':
 			self.nucleotideoraminoacid = wx.ComboBox(self.frame_2_toolbar, id=601, size=(120, 28), choices=['Nucleotide', 'Amino Acid', 'Feature'], style=wx.CB_READONLY)
 		elif typeof == 'Mutate':
@@ -682,9 +689,8 @@ Put Table here
 				#get features...
 				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule' and features], style=wx.CB_READONLY)
 			except:
-				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=['Molecule'], style=wx.CB_READONLY)
+				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=featurelist, style=wx.CB_READONLY)
 			self.frame_2_toolbar.AddControl(self.featurebox)
-			wx.EVT_COMBOBOX(self, 603, self.placeholder)
 			self.featurebox.SetSelection(0)
 		
 		#'go'
@@ -705,7 +711,7 @@ Put Table here
 	def find(self, evt):
 		'''Find nucleotide in molecule'''
 		searchtype = self.nucleotideoraminoacid.GetValue() #type of search
-		searchframe = self.featurebox.GetValue() #where to search
+		searchframe = int(self.featurebox.GetSelection())-1 #where to search
 		searchstring = self.searchinput.GetValue()
 
 		if searchtype == 'Nucleotide':
@@ -737,8 +743,6 @@ Put Table here
 	def mutate(self, evt):
 		pass
 
-	def placeholder(self, evt):
-		pass
 
 	def OnChangeSearchParams(self, evt):
 		'''When changes are made to options in the searchbar, update which downstream options are available'''
