@@ -220,7 +220,7 @@ class MyFrame(wx.Frame):
 			return1
 		
 		name, extension = fileName.split('.')
-		if extension == 'gb':
+		if extension.lower() == 'gb':
 			gb = genbank.open_file(all_path) #make a genbank object and read file
 			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
 			self.SetTitle(fileName+' - DNApy')
@@ -239,6 +239,8 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(506, 1)
 			self.frame_1_toolbar.EnableTool(511, 1)
 			self.frame_1_toolbar.EnableTool(512, 1)
+			self.frame_1_toolbar.EnableTool(513, 1)
+			self.frame_1_toolbar.EnableTool(514, 1)
 			self.fileopen = True
 		else:
 			print("error, not a gb file")		
@@ -280,7 +282,7 @@ class MyFrame(wx.Frame):
 		if (fileName == None or fileName == ""):
 			return
 		else:
-			if fileName[-3:] != '.gb': #make sure it has gb file ending
+			if fileName[-3:].lower() != '.gb': #make sure it has gb file ending
 				all_path += '.gb'
 				fileName += '.gb'
 			#try:
@@ -552,11 +554,10 @@ Put Table here
 #####################################
 
 	def Undo(self, evt):
-		pass
-		#I should store each genbank file as a deep copy in a list, that way I can get them back by undoing/redoing
+		genbank.gb.undo()
 
 	def Redo(self, evt):
-		pass
+		genbank.gb.redo()
 
 
 ######################################

@@ -127,9 +127,9 @@ class MixedBaseCodon(wx.Panel):
 		self.codontext.SetFont(textfont)
 		self.codontext.SetLabel('Mixed base codon:')
 
-		self.edit_codon = wx.ToggleButton(self, 13, 'Edit')
-		self.edit_codon.Bind(wx.EVT_TOGGLEBUTTON, self.OnEditToggle, id=22)
-		self.edit_codon.SetValue(False)
+#		self.edit_codon = wx.ToggleButton(self, 13, 'Edit')
+#		self.edit_codon.Bind(wx.EVT_TOGGLEBUTTON, self.OnEditToggle, id=22)
+#		self.edit_codon.SetValue(False)
 		
 
 		#make box that displays the mixed base codon for editing
@@ -142,10 +142,10 @@ class MixedBaseCodon(wx.Panel):
 		size = textfont.GetPointSize()
 		self.mixed_base_codon.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,"face:%s,size:%d" % (face, size))
 
-		if self.edit_codon.GetValue() == True:
-			self.mixed_base_codon.SetReadOnly(False)
-		elif self.edit_codon.GetValue() == False:
-			self.mixed_base_codon.SetReadOnly(True)
+#		if self.edit_codon.GetValue() == True:
+#			self.mixed_base_codon.SetReadOnly(False)
+#		elif self.edit_codon.GetValue() == False:
+#			self.mixed_base_codon.SetReadOnly(True)
 	
 	
 		#draw box around this textbox.
@@ -156,7 +156,7 @@ class MixedBaseCodon(wx.Panel):
 		sizer6 = wx.BoxSizer(wx.HORIZONTAL)		
 		sizer6.Add(self.codontext)
 		sizer6.Add(self.mixed_base_codon)
-		sizer6.Add(self.edit_codon, flag=wx.LEFT, border=5)
+#		sizer6.Add(self.edit_codon, flag=wx.LEFT, border=5)
 
 #		self.codontext = wx.TextCtrl(self, id=wx.ID_ANY)
 #		textfont = wx.Font(18, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)

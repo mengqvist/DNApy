@@ -33,8 +33,7 @@
 #TODO
 #fix header parsing
 #fix undo/redo
-#fix qualifier buttons
-#integrate the feature selection variable (from the genbank file)
+
 
 import dna
 from copy import deepcopy
@@ -45,7 +44,91 @@ import oligo_localizer
 import types
 import unittest
 
-class gbobject():
+#class feature(object):
+#	"""A featue object class that defines the key, location and qualifiers of a feature and methods to interact with these.
+#	Data structure is as follows:
+#	{key:string #feature key
+#		location:list #list of locations on DNA for feature
+#		qualifiers:list #list of qualifiers attached to the fature
+#		complement:bool #is feature on complement strand or not
+#		join:bool #should feature locations be joined or not
+#		order:bool #are feature locations in a certain order or not
+#		}""" 
+
+#	def __init__(self, inittype, initlocation, initqualifiers, initcomplement, initjoin, initorder):
+#		self.SetType(inittype) #the type or "key" of the feature
+#		self.SetLocation(initlocation)
+#		self.SetQualifiers(initqualifiers)
+#		self.SetComplement(initcomplement)
+#		self.SetJoin(initjoin)
+#		self.SetOrder(initorder)
+
+#	def GetType(self):
+#		'''Returns the feature type (its "key")'''
+#		return self.type
+
+#	def SetType(self, newtype):
+#		'''Sets the feature type (its "key"). Input is a string and must match a feature type as specified by the genbank format.'''
+#		assert type(newtype) == str, 'Error, %s is not a string' % str(newtype)
+#		assert newtype in ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"], 'Error, %s is not a valid feature type' % newtype
+
+#		#assert that qualifiers are ok for this one
+
+#		self.type = newtype
+
+#	def GetQualifiers(self):
+#		'''Returns a list of qualifiers belonging to the feature.'''
+#		return self.qualifiers
+
+#	def SetQualifiers(self, newqualifiers):
+#		'''Takes a list of strings and sets which qualifiers belong to the feature'''
+#		assert type(newqualifiers) == list, 'Error, %s is not a list.' % str(newqualifiers)
+#		for entry in newqualifiers:
+#			assert type(entry) == str, 'Error, entry %s in qualifiers is not a string.' % entry
+
+#		#assert that qualifiers are valid for feature type
+
+#	def GetLocations(self):
+#		'''Returns a list of locations belonging to the feature.'''
+#		return self.location
+
+#	def SetLocations(self, newlocations):
+#		'''Takes a list of strings and sets the locations for the feature.'''
+#		assert type(newlocations) == list, 'Error, %s is not a list.' % str(newlocations)
+#		for entry in newlocations:
+#			assert type(entry) == str, 'Error, entry %s in location is not a string.' % entry
+#		self.location = newlocations
+
+#	def GetOrder(self):
+#		'''Returns a boolean of whether locations are in a certain order or not.'''
+#		return self.order
+
+#	def SetOrder(self, neworder):
+#		'''Takes a boolean and sets whether locations are in a certain order or not.'''
+#		assert type(neworder) == bool, 'Error, %s is not a boolean.' % str(neworder)
+#		self.order = neworder	
+#		
+#	def GetJoin(self):
+#		'''Returns a boolian of whether locations should be joined or not.'''
+#		return self.join
+
+#	def SetJoin(self, newjoin):
+#		'''Takes a boolean and sets whether locations should be joined or not.'''
+#		assert type(newjoin) == bool, 'Error, %s is not a boolean.' % str(newjoin)
+#		self.join = newjoin
+
+#	def GetComplement(self):
+#		'''Returns a boolian of whether feature is on complement strand or not.'''
+#		return self.complement
+
+#	def SetComplement(self, newcomplement):
+#		'''Takes a boolean and sets whtehr feature is on complement strand or not.'''
+#		assert type(newcomplement) == bool, 'Error, %s is not a boolean.' % str(newcomplement)
+#		self.complement = newcomplement
+
+
+
+class gbobject(object):
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self):
 		self.gbfile = {} #this variable stores the whole genbank file
@@ -56,6 +139,46 @@ class gbobject():
 		self.search_hits = []	# variable for storing a list of search hits
 		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
 		self.feature_selection = False #variable for storing current feature selection
+		self.file_versions = (deepcopy(self.gbfile),) #stores version of the file
+		self.file_version_index = 0 #stores at which index the current file is
+
+	def get_file_version(self):
+		'''Get the current file version'''
+		return self.file_versions[self.get_file_version_index()]
+
+	def add_file_version(self):
+		'''Add another file version to the version list.
+			This should be added after the current version and should delete all later versions if there are any.'''
+		print('before', self.file_versions)
+		index = self.get_file_version_index()
+		if index == len(self.file_versions)-1: #if the current version is the last one
+			print('here')
+			self.file_versions += (deepcopy(self.gbfile),)
+		else:
+			self.file_versions = self.file_versions[:index]+(deepcopy(self.gbfile),)
+		self.set_file_version_index(index+1)
+		print('after', self.file_versions)
+
+	def get_file_version_index(self):
+		'''Get the index of the current file version'''
+		return self.file_version_index
+
+	def set_file_version_index(self, index):
+		'''Set the index of the current file version'''
+		assert type(index) == int, 'Error, the index %s is not an integer.' % str(index)
+		self.file_version_index = index
+
+	def undo(self):
+		if self.file_version_index == 0:
+			print("Can't undo there are no previous versions")
+		else:
+			old_index = self.get_file_version_index()
+			new_index = old_index-1
+			self.set_file_version_index(new_index)
+			self.gbfile = self.get_file_version()
+
+	def redo(self):
+		pass
 
 	def treat_input_line(self, tempstr):
 		'''Function for parsing a string containing genbank feature information into the correct data format'''
@@ -242,6 +365,9 @@ class gbobject():
 
 	def get_feature(self, index):
 		"""Returns the entire feature from a certain index"""
+		num_features = len(self.get_all_features()) #number of features already present
+		if index == -1:
+			index = num_features-1
 		try:
 			return self.gbfile['features'][index]
 		except:
@@ -269,14 +395,23 @@ class gbobject():
 
 	def set_feature_selection(self, index):
 		'''Set currently selected feature'''
+		assert type(index) == int, "Error, index must be an integer."
 		#this is currently independent from DNA selection
+		num_features = len(self.get_all_features()) #number of features already present
+		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
+			index = 0
+		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
+			index = num_features-1
+
 		self.feature_selection = index
 		#add logic to find first and last position for feature and make DNA selection match.
-#		print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
+		#print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
 
 
 	def get_feature_label(self, index):
-		"""This method extracts the first qualifier and returns that as a label"""
+		"""This method extracts the first qualifier and returns that as a label.
+			Index should be an integer."""
+		assert type(index) == int, "Error, index must be an integer."
 		try:
 			return self.gbfile['features'][index]['qualifiers'][0].split('=')[1]
 		except:
@@ -404,7 +539,8 @@ class gbobject():
 				start, finish = location.split('..')
 				start = int(start)
 				finish = int(finish)
-				assert start < finish
+				assert (start == 0 and finish == 0) == False
+				assert start <= finish
 				assert finish <= len(self.get_dna())
 		except:
 			result = False
@@ -481,26 +617,33 @@ class gbobject():
 
 
 
-	def delete(self, start, finish):
-		'''Deletes current DNA selection'''
+	def delete(self, start, finish, visible=True):
+		'''Deletes current DNA selection.
+			Start and finish should be integers.
+			The optional variable 'hidden' can be set to True or False. 
+			If set to True, it is a hidden deletion that does not trigger other events.
+			If set to False, it does trigger other events.'''
 		if start != finish: #must be a selection
 			deletedsequence = self.get_dna()[start:finish]
 			self.changegbsequence(start, finish, 'd', deletedsequence)
 		self.set_dna_selection((start, start))
+		print('visible is', visible)
+		if visible == True:
+			self.add_file_version()
 
-	def cut(self):
+	def cut(self, visible=True):
 		'''Cut current DNA selection and place it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
-			self.delete(start, finish)
+			self.delete(start, finish, visible)
 
-	def cut_reverse_complement(self):
+	def cut_reverse_complement(self, visible=True):
 		start, finish = self.get_dna_selection()
 		if start != finish: #must be a selection
 			self.copy()
-			self.delete(start, finish)
 			self.reverse_complement_clipboard()
+			self.delete(start, finish, visible)
 
 	def paste(self):
 		'''Paste DNA present in clipboard and any features present on that DNA'''
@@ -596,13 +739,13 @@ class gbobject():
 			print('Key error')
 			return False
 
-		if type(qualifiers) == 'list': 
+		if type(qualifiers) == list: 
 			feature['qualifiers'] = qualifiers
 		else:
 			print('Qualifiers error')
 			return  False
 		
-		if type(location) == 'list':	#need more checks here to make sure the numbers are ok
+		if type(location) == list:	#need more checks here to make sure the numbers are ok
 			feature['location'] = location
 		else:
 			print('Location error')
@@ -627,7 +770,7 @@ class gbobject():
 			return False
 
 		self.gbfile['features'].append(feature) #change append to sth that works for dicts
-
+		self.set_feature_selection(index=-1)
 		
 	def remove_feature(self, feature):
 		"""Function removes the feature that is passed to it from the genbank file"""
@@ -821,8 +964,8 @@ class gbobject():
 
 	def FindNucleotide(self, searchstring, searchframe):
 		'''Method for finding a certain DNA sequence. Degenerate codons are supported.
-Searchstring should be a string of numbers or DNA characers and searchframe should be an index. 
--1 indicates search in entrire genbank file
+Searchstring should be a string of numbers or DNA characers and searchframe should be an index for a feature. 
+-1 indicates search in entire genbank file
 indeces >-1 are feature indeces'''
 		assert type(searchstring) == str or type(searchstring) == unicode
 		assert type(searchframe) == int

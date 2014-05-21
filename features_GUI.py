@@ -256,20 +256,20 @@ class FeatureEdit(wx.Panel):
 		
 		#sizers
 		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer.Add(addqual)
-		sizer.Add(deletequal)
-		sizer.Add(qualup)
-		sizer.Add(qualdown)
-		sizer.Add(qualedit)
+		sizer.Add(item=addqual)
+		sizer.Add(item=deletequal)
+		sizer.Add(item=qualup)
+		sizer.Add(item=qualdown)
+		sizer.Add(item=qualedit)
 		
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer2.Add(self.qualifier_list, 3, wx.EXPAND)
-		sizer2.Add(sizer, 0, wx.EXPAND)
+		sizer2.Add(item=self.qualifier_list, proportion=3, flag=wx.EXPAND)
+		sizer2.Add(item=sizer, proportion=0, flag=wx.EXPAND)
 
 		main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-		main_sizer.Add(self.feature_dlg, -1, wx.EXPAND)
+		main_sizer.Add(item=self.feature_dlg, proportion=-1, flag=wx.EXPAND)
 
-		main_sizer.Add(sizer2, -1, wx.EXPAND)
+		main_sizer.Add(item=sizer2, proportion=-1, flag=wx.EXPAND)
 		self.SetSizer(main_sizer)
 		self.Centre()
 
@@ -544,15 +544,15 @@ class FeatureView(wx.Panel):
 
 		#arrange buttons vertically		
 		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer.Add(newfeature)
-		sizer.Add(deletefeature)
-		sizer.Add(moveup)
-		sizer.Add(movedown)
+		sizer.Add(item=newfeature)
+		sizer.Add(item=deletefeature)
+		sizer.Add(item=moveup)
+		sizer.Add(item=movedown)
 
 		#add feature list and buttons horisontally	
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer2.Add(self.feature_list, 3, wx.EXPAND)
-		sizer2.Add(sizer, 0, wx.EXPAND)
+		sizer2.Add(item=self.feature_list, proportion=3, flag=wx.EXPAND)
+		sizer2.Add(item=sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizer(sizer2)
 		self.updateUI()
@@ -584,26 +584,64 @@ class FeatureView(wx.Panel):
 	def OnNew(self, event):
 		'''Make new feature'''
 		#make feature and update interface
-#		self.GetTopLevelParent().match_selection()
+		self.GetTopLevelParent().dnaview.match_selection() #update seleection stored in gb file
+		start, finish = genbank.gb.get_dna_selection() #get the numbers
+		if start == finish: #if there is no selection
+			start += 1
+			finish += 1
+		else:
+			start += 1
 
-		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(700, 200)) # creation of a Frame with a title
-		self.feature_edit = FeatureEdit(self.NewFeatureFrame, id=wx.ID_ANY)		
+		genbank.gb.add_feature(key='misc_feature', qualifiers=['/note=New feature'], location=['%s..%s' % (start, finish)], complement=False, join=False, order=False)
+		
 
-#		self.OK = wx.Button(self.NewFeatureFrame, 7, 'OK')
-#		self.sizer = wx.BoxSizer(wx.VERTICAL)
-#		self.sizer.Add(self.feature_edit)
-#		self.sizer.Add(self.OK)
+		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(700, 300)) # creation of a Frame with a title
+		self.feature_edit = FeatureEdit(self.NewFeatureFrame, id=wx.ID_ANY)	#get the feature edit panel
+		self.NewFeatureButtonPanel = wx.Panel(self.NewFeatureFrame) #make new panel to hold the buttons
+
+		self.OK = wx.Button(self.NewFeatureButtonPanel, 7, 'OK')
+		self.OK.Bind(wx.EVT_BUTTON, self.OnOK, id=7)
+		self.Cancel = wx.Button(self.NewFeatureButtonPanel, 8, 'Cancel')
+		self.Cancel.Bind(wx.EVT_BUTTON, self.OnCancel, id=8)
+
+		#organize buttons
+		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+		buttonsizer.Add(self.OK)
+		buttonsizer.Add(self.Cancel)
+		self.NewFeatureButtonPanel.SetSizer(buttonsizer)
+		
+		#organize feature edit panel and button panel
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(item=self.feature_edit, proportion=-1, flag=wx.EXPAND)
+		sizer.Add(item=self.NewFeatureButtonPanel, proportion=0)
+		self.NewFeatureFrame.SetSizer(sizer)		
+
+		wx.EVT_CLOSE(self.NewFeatureFrame, self.OnCancel) #when window is closed on x, cancel
 
 		self.NewFeatureFrame.Show()
 		self.NewFeatureFrame.Center()
 		
+		#add logic for when window is closed on the x
+
+	def OnOK(self, event):
+		'''Accept new feature from the "new feature" popup"'''
+		self.updateUI()	 #update feature view
+		self.GetTopLevelParent().dnaview.updateUI()  #update DNA view
+		self.NewFeatureFrame.Destroy()
+
+	def OnCancel(self, event):
+		'''Reject new feeature from the "new feature" popup'''
+		genbank.gb.remove_feature(genbank.gb.get_feature(index=-1))
+		self.NewFeatureFrame.Destroy()
+
 
 	def OnDelete(self, event):
 		'''Delete selected feature'''
 		index = self.feature_list.GetFirstSelected()
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.remove_feature(feature)
-		self.updateUI()
+		self.updateUI() #update the feature view
+		self.GetTopLevelParent().dnaview.updateUI()  #update DNA view
 	
 		#set highlight, focus and selection
 		if index == self.feature_list.GetItemCount():
@@ -637,17 +675,23 @@ class FeatureView(wx.Panel):
 		self.update_feature_selection(index)
 
 
-	def update_feature_selection(self, index):
-		'''Updates which feature is selected'''
-		genbank.gb.set_feature_selection(index)
-#		self.focus_feature_selection()
-
-#	def focus_feature_selection(self):
-#		index = genbank.gb.get_feature_selection
+	def focus_feature_selection(self):
+		index = genbank.gb.get_feature_selection()
+#		print('type', type(index))
+#		print('index', index)
 
 		self.feature_list.SetItemState(item=index, state=ULC.ULC_STATE_SELECTED, stateMask=wx.LIST_STATE_SELECTED) #for the highlight
 		self.feature_list.Select(index, True) #to select it
 		self.feature_list.Focus(index) #to focus it
+
+	def update_feature_selection(self, index):
+		'''Updates which feature is selected'''
+		genbank.gb.set_feature_selection(index)
+#		print('type', type(index))
+#		print('index', index)
+		self.focus_feature_selection()
+
+
 
 
 	def OnCopyFASTA(self, event):
@@ -675,7 +719,6 @@ class FeatureView(wx.Panel):
 
 	def updateUI(self):
 		'''Refreshes table from features stored in the genbank object'''
-		print('feature_listUI updated')
 		#need to figure out how to do this without changing the selection....
 		self.feature_list.DeleteAllItems()
 		item = 0 #for feautrecolor
@@ -704,7 +747,11 @@ class FeatureView(wx.Panel):
 			color = wx.Colour(r, g, b) #make color object
 			self.feature_list.SetItemBackgroundColour(item, color)	
 			item += 1
-
+		try:
+			if genbank.gb.get_feature_selection() != None: #focus on the selected feature
+				self.focus_feature_selection()
+		except:
+			pass
 
 	def hex_to_rgb(self, value):
 		value = value.lstrip('#')
@@ -735,7 +782,7 @@ class FeatureCreate(wx.Panel):
 
 			#global sizer		
 			globsizer = wx.BoxSizer(wx.HORIZONTAL)
-			globsizer.Add(splitter1, -1, wx.EXPAND)
+			globsizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
 
 		elif editor == False: #if feature editor should not be included
 			##
@@ -744,7 +791,7 @@ class FeatureCreate(wx.Panel):
 
 			#global sizer		
 			globsizer = wx.BoxSizer(wx.HORIZONTAL)
-			globsizer.Add(self.feature_list, -1, wx.EXPAND)
+			globsizer.Add(item=self.feature_list, proportion=-1, flag=wx.EXPAND)
 
 		self.SetSizer(globsizer)
 		self.Centre()
