@@ -122,12 +122,11 @@ class MyPanel(wx.Panel):
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.changegbsequence(start, finish, 'r', chr(key))
-				#genbank.gb.delete(start+1, finish+1)
+				self.GetTopLevelParent().gb.changegbsequence(start, finish, 'r', chr(key))
+				#self.GetTopLevelParent().gb.Delete(start+1, finish+1)
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				genbank.gb.changegbsequence(start, start, 'i', chr(key))
-			self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.GetTopLevelParent().gb.changegbsequence(start, start, 'i', chr(key))
 			self.updateUI()
 			self.gbviewer.SetInsertionPoint(start+1)
 			self.gbviewer.ShowPosition(start+1) 
@@ -136,28 +135,27 @@ class MyPanel(wx.Panel):
 		if key == 8: #backspace
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.delete(start, finish)
-				self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.GetTopLevelParent().gb.Delete(start+1, finish)
 				self.updateUI()
 				self.gbviewer.SetInsertionPoint(start)
 				self.gbviewer.ShowPosition(start) 
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				genbank.gb.delete(start-1, start)
-				self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.GetTopLevelParent().gb.Delete(start-1, start-1)
 				self.updateUI()
+				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.gbviewer.SetInsertionPoint(start-1)
 				self.gbviewer.ShowPosition(start-1) 
 
 		if key == 127: #delete
 			start, finish = self.gbviewer.GetSelection()
 			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				genbank.gb.delete(start, finish)
+				self.GetTopLevelParent().gb.Delete(start+1, finish)
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				genbank.gb.delete(start, start+1)
-			self.gbviewer.SetValue(genbank.gb.get_dna())
+				self.GetTopLevelParent().gb.Delete(start, start)
 			self.updateUI()
+			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.gbviewer.SetInsertionPoint(start)
 			self.gbviewer.ShowPosition(start) 
 
@@ -200,23 +198,13 @@ class MyPanel(wx.Panel):
 		viewerstart, viewerend = self.gbviewer.GetSelection()
 		if viewerstart == -2 and viewerend == -2: # if not a selection
 			viewerstart = self.gbviewer.GetInsertionPoint()
-			viewerend = viewerstart
-		gbstart, gbend = genbank.gb.get_dna_selection()
-		if viewerstart != gbstart or viewerend != gbend:
-			selection = (viewerstart, viewerend)
-			genbank.gb.set_dna_selection(selection)
-			#print(selection)
+			selection = (viewerstart+1, viewerend)
+		else:
+			selection = (viewerstart+1, viewerend)
+		self.GetTopLevelParent().set_dna_selection(selection)
+		print(selection)
 
-	def update_viewer(self):
-		'''Accessory function for realizing changes to DNA'''
-		self.gbviewer.SetValue(genbank.gb.get_dna())
-		self.updateUI()
-		start, finish = genbank.gb.get_dna_selection()
-		print(start, finish)
-		print(self.gbviewer.SetSelection(start, finish))
-		if start != finish: self.gbviewer.SetSelection(start, finish)
-		elif start == finish: self.gbviewer.SetInsertionPoint(start)
-		self.gbviewer.ShowPosition(start) 
+
 
 	def select_all(self):
 		pass
@@ -224,61 +212,80 @@ class MyPanel(wx.Panel):
 	def uppercase(self):
 		'''Change selection to uppercase'''
 		self.match_selection()
-		genbank.gb.uppercase()
-		self.update_viewer()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.Upper(start, finish)
+		self.updateUI()
 		
 	def lowercase(self):
 		'''Change selection to lowercase'''
 		self.match_selection()
-		genbank.gb.lowercase()
-		self.update_viewer() 
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.Lower(start, finish)
+		self.updateUI() 
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
 		self.match_selection()
-		genbank.gb.reverse_complement_selection()
-		self.update_viewer()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.RCselection(start, finish)
+		self.updateUI()
 
-	def delete(self):
-		'''Deletes a selection and updates dna and features'''
-		self.match_selection()
-		start, finish = genbank.gb.get_dna_selection()
-		genbank.gb.delete(start, finish)
-		self.update_viewer()
+#	def delete(self):
+#		'''Deletes a selection and updates dna and features'''
+#		self.match_selection()
+#		start, finish = self.GetTopLevelParent().get_dna_selection()
+#		self.GetTopLevelParent().gb.Delete(start, finish)
+#		self.updateUI()
+#		self.gbviewer.SetInsertionPoint(start-1)
+
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		self.match_selection()
-		genbank.gb.cut()
-		self.update_viewer()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.Cut(start, finish)
+		self.updateUI()
+		self.gbviewer.SetInsertionPoint(start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		self.match_selection()
-		genbank.gb.cut_reverse_complement()
-		self.update_viewer()
-		
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.CutRC(start, finish)
+		self.updateUI()
+		self.gbviewer.SetInsertionPoint(start-1)
+
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
 		self.match_selection()
-		genbank.gb.paste()
-		self.update_viewer() # need to fix so that pasted dna is still highlighted
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		if start != finish: #If a selection, remove sequence
+			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
+		self.GetTopLevelParent().gb.Paste(start)
+		self.updateUI() # need to fix so that pasted dna is still highlighted
+		self.gbviewer.SetInsertionPoint(start-1)
 		
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
 		self.match_selection()
-		genbank.gb.paste_reverse_complement()
-		self.update_viewer()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		if start != finish: #If a selection, remove sequence
+			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
+		self.GetTopLevelParent().gb.PasteRC(start)
+		self.updateUI()
+		self.gbviewer.SetInsertionPoint(start-1)
 
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
 		self.match_selection()
-		genbank.gb.copy()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.Copy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
 		self.match_selection()
-		genbank.gb.copy_reverse_complement()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
+		self.GetTopLevelParent().gb.CopyRC(start, finish)
 
 
 #######################################################
@@ -312,9 +319,17 @@ class MyPanel(wx.Panel):
 	def updateUI(self):
 		'''For changing background color of text ranges'''
 		self.remove_styling() #first remove old styles
+		self.gbviewer.SetValue(self.GetTopLevelParent().gb.GetDNA()) #put the DNA in
+
+		#match selection to previous one
+#		start, finish = self.GetTopLevelParent().get_dna_selection()
+#		if start != finish: self.gbviewer.SetSelection(start, finish)
+#		elif start == finish: self.gbviewer.SetInsertionPoint(start-1)
+#		self.gbviewer.ShowPosition(start) 
+
 		
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
-		featurelist = genbank.gb.get_all_feature_positions()
+		featurelist = self.GetTopLevelParent().gb.get_all_feature_positions()
 		for entry in featurelist:
 			featuretype, complement, start, finish = entry
 			self.get_feature_color(featuretype, complement)
@@ -329,7 +344,7 @@ class MyPanel(wx.Panel):
 
 		
 		#color in search hits if any are present
-		search_hits = genbank.gb.search_hits
+		search_hits = self.GetTopLevelParent().gb.search_hits
 		if len(search_hits) != 0:
 			color = '#ffff00'
 			for i in range(len(search_hits)):
@@ -344,7 +359,7 @@ class MyPanel(wx.Panel):
 
 #I need to think carefully about where to place these...
 		#realize the current selection in the DNA editor
-		start, finish = genbank.gb.get_dna_selection()
+		start, finish = self.GetTopLevelParent().get_dna_selection()
 		self.gbviewer.SetSelection(start, finish) #update the graphical selection
 		self.gbviewer.ShowPosition(start) 
 
@@ -367,7 +382,7 @@ class MyPanel(wx.Panel):
 #		'''Pass a list of dictionaries with name and dna to m_align to align sequences'''
 #		#this works sort of ok. Needs improvement though...
 #		
-#		dna = str(genbank.gb.get_dna())
+#		dna = str(self.GetTopLevelParent().gb.GetDNA())
 #		
 #		self.seqlist.append(dict(name='Reference', dna=dna))
 #		print(self.seqlist)
@@ -400,8 +415,8 @@ class MyPanel(wx.Panel):
 #update this one...
 	def translate_feature(self):
 		'''Translate specified feature'''
-		feature = genbank.gb.allgbfeatures[2]
-		DNA = genbank.gb.getdnaforgbfeature(feature[4])
+		feature = self.GetTopLevelParent().gb.allgbfeatures[2]
+		DNA = self.GetTopLevelParent().gb.getdnaforgbfeature(feature[4])
 		protein = dna.translate(DNA)
 		self.translate_output(protein, DNA, 'feature "%s"' % feature[4][7:])
 	
@@ -428,7 +443,7 @@ class MyPanel(wx.Panel):
 #		mposition += 6
 #		print(mposition)
 		#which feature corresponds to this pos?
-		Feature = genbank.gb.get_featurename_for_pos(mposition)
+		Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
 		return mposition, Feature
 
 

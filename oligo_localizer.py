@@ -11,11 +11,11 @@
 #   http://www.cellbiol.com/scripts/oligo/oligo_motif_sequence_finder.php        #
 ##################################################################################
 
-import cgitb; cgitb.enable()
+#import cgitb; cgitb.enable()
 import sys
 import os
 sys.path.insert(0, os.getcwd())
-import cgi
+#import cgi
 import re
 import string
 from copy import deepcopy

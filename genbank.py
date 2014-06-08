@@ -33,7 +33,11 @@
 #TODO
 #fix header parsing
 #fix undo/redo
-
+#fix search and mutate
+#match features with qualifiers (mandatory and optional)
+#add a function that checks that everything is ok
+#add a way of actually adding a new feature...
+#make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
 
 import dna
 from copy import deepcopy
@@ -130,55 +134,28 @@ import unittest
 
 class gbobject(object):
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
-	def __init__(self):
+	def __init__(self, filepath = None):
 		self.gbfile = {} #this variable stores the whole genbank file
 		self.filepath = '' #for keeping track of the file being edited
 		self.clipboard = {}
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
+
 		self.search_hits = []	# variable for storing a list of search hits
-		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
-		self.feature_selection = False #variable for storing current feature selection
+
+
 		self.file_versions = (deepcopy(self.gbfile),) #stores version of the file
 		self.file_version_index = 0 #stores at which index the current file is
-
-	def get_file_version(self):
-		'''Get the current file version'''
-		return self.file_versions[self.get_file_version_index()]
-
-	def add_file_version(self):
-		'''Add another file version to the version list.
-			This should be added after the current version and should delete all later versions if there are any.'''
-		print('before', self.file_versions)
-		index = self.get_file_version_index()
-		if index == len(self.file_versions)-1: #if the current version is the last one
-			print('here')
-			self.file_versions += (deepcopy(self.gbfile),)
+		if filepath == None:
+			self.gbfile['features'] = []
+			self.gbfile['dna'] = ''
+			self.gbfile['header'] = ''
+			self.gbfile['filepath'] = ''
 		else:
-			self.file_versions = self.file_versions[:index]+(deepcopy(self.gbfile),)
-		self.set_file_version_index(index+1)
-		print('after', self.file_versions)
+			self.readgb(filepath)
 
-	def get_file_version_index(self):
-		'''Get the index of the current file version'''
-		return self.file_version_index
+###############################
 
-	def set_file_version_index(self, index):
-		'''Set the index of the current file version'''
-		assert type(index) == int, 'Error, the index %s is not an integer.' % str(index)
-		self.file_version_index = index
-
-	def undo(self):
-		if self.file_version_index == 0:
-			print("Can't undo there are no previous versions")
-		else:
-			old_index = self.get_file_version_index()
-			new_index = old_index-1
-			self.set_file_version_index(new_index)
-			self.gbfile = self.get_file_version()
-
-	def redo(self):
-		pass
 
 	def treat_input_line(self, tempstr):
 		'''Function for parsing a string containing genbank feature information into the correct data format'''
@@ -335,28 +312,59 @@ class gbobject(object):
 			self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
 
 	
-	def makegb(self):
-		'''Method that creates a new, empty genbank file'''
-		self.gbfile['features'] = []
-		self.gbfile['dna'] = ''
-		self.gbfile['header'] = ''
-		self.gbfile['filepath'] = ''
+
+
+############# undo and redo functions #################
+
+	def get_file_version(self):
+		'''Get the current file version'''
+		return self.file_versions[self.get_file_version_index()]
+
+	def add_file_version(self):
+		'''Add another file version to the version list.
+			This should be added after the current version and should delete all later versions if there are any.'''
+		index = self.get_file_version_index()
+		if index == len(self.file_versions)-1: #if the current version is the last one
+			print('last version.......')
+			self.file_versions += (deepcopy(self.gbfile),)
+		else:
+			self.file_versions = self.file_versions[:index]+(deepcopy(self.gbfile),)
+		self.set_file_version_index(index+1)
+		print('index', self.get_file_version_index())
+
+	def get_file_version_index(self):
+		'''Get the index of the current file version'''
+		return self.file_version_index
+
+	def set_file_version_index(self, index):
+		'''Set the index of the current file version'''
+		assert type(index) == int, 'Error, the index %s is not an integer.' % str(index)
+		self.file_version_index = index
+
+	def Undo(self):
+		'''Function for undoing user action (such as deleting or adding dna or features).
+			Function intended for use by the user.'''
+		if self.get_file_version_index <= 0:
+			print("Can't undo there are no previous versions")
+		else:
+			old_index = self.get_file_version_index()
+			new_index = old_index-1
+			self.set_file_version_index(new_index)
+			self.gbfile = self.get_file_version()
+			print('index after undo', self.get_file_version_index())
+
+	def Redo(self):
+		'''Function for redoing user action (such as deleting or adding dna or features).
+			Function intended for use by the user.'''
+		pass
+
+
+####################################################################
 
 
 ##### Get and Set methods #####
 	
-	#DNA#
-	def get_dna_selection(self):
-		'''Method for getting which DNA range is currently selected'''
-		return self.dna_selection[0], self.dna_selection[1]
 
-	def set_dna_selection(self, selection):
-		'''Method for selecting a certain DNA range'''
-		#input needs to be a touple of two values
-		self.dna_selection = selection
-		start = selection[0]
-		finish = selection[1]
-		print('Selection from %s to %s') % (start, finish)
 
 
 	#Feature#
@@ -389,24 +397,6 @@ class gbobject(object):
 			print('Error, no index found')
 			return False		
 
-	def get_feature_selection(self):
-		'''Get index of currently selected feature, if any'''
-		return self.feature_selection 
-
-	def set_feature_selection(self, index):
-		'''Set currently selected feature'''
-		assert type(index) == int, "Error, index must be an integer."
-		#this is currently independent from DNA selection
-		num_features = len(self.get_all_features()) #number of features already present
-		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
-			index = 0
-		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
-			index = num_features-1
-
-		self.feature_selection = index
-		#add logic to find first and last position for feature and make DNA selection match.
-		#print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
-
 
 	def get_feature_label(self, index):
 		"""This method extracts the first qualifier and returns that as a label.
@@ -417,7 +407,6 @@ class gbobject(object):
 		except:
 			print('This is not a valid index')
 			return False
-				
 
 
 	def get_feature_type(self, index):
@@ -541,7 +530,7 @@ class gbobject(object):
 				finish = int(finish)
 				assert (start == 0 and finish == 0) == False
 				assert start <= finish
-				assert finish <= len(self.get_dna())
+				assert finish <= len(self.GetDNA())
 		except:
 			result = False
 		return result
@@ -574,18 +563,21 @@ class gbobject(object):
 
 ##### DNA modification methods #####
 
-	def uppercase(self):
+	def Upper(self, start, finish):
 		'''Change DNA selection to uppercase characters'''
-		start, finish = self.get_dna_selection()
-		string = self.get_dna()[start:finish]
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		string = self.GetDNA()[start-1:finish]
 		self.changegbsequence(start, finish, 'r', string.upper())
+		self.add_file_version()
 
-	def lowercase(self):
+	def Lower(self, start, finish):
 		'''Change DNA selection to lowercase characters'''
-		start, finish = self.get_dna_selection()
-		string = self.get_dna()[start:finish]
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		string = self.GetDNA()[start-1:finish]
 		self.changegbsequence(start, finish, 'r', string.lower())
-
+		self.add_file_version()
 
 	def reverse_complement_clipboard(self):	
 		'''Reverse-complements the DNA and all features in clipboard'''
@@ -605,51 +597,48 @@ class gbobject(object):
 			self.clipboard['features'][i]['location'].reverse() #reverse order of list elements				
 
 
-	def reverse_complement_selection(self):
+	def RCselection(self, start, finish):
 		'''Reverse-complements current DNA selection'''
-		start, finish = self.get_dna_selection()
-		if start != finish: #must be a selection
-			self.copy()
-			self.delete(start, finish)
-			self.reverse_complement_clipboard()		
-			self.paste()
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		self.Copy(start, finish)
+		self.reverse_complement_clipboard()	
+		deletedsequence = self.GetDNA()[start-1:finish]
+		self.changegbsequence(start, finish, 'd', deletedsequence)
+		self.Paste(start)
 
-
-
-
-	def delete(self, start, finish, visible=True):
+	def Delete(self, start, finish, visible=True):
 		'''Deletes current DNA selection.
 			Start and finish should be integers.
 			The optional variable 'hidden' can be set to True or False. 
 			If set to True, it is a hidden deletion that does not trigger other events.
 			If set to False, it does trigger other events.'''
-		if start != finish: #must be a selection
-			deletedsequence = self.get_dna()[start:finish]
-			self.changegbsequence(start, finish, 'd', deletedsequence)
-		self.set_dna_selection((start, start))
-		print('visible is', visible)
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		deletedsequence = self.GetDNA()[start-1:finish]
+		self.changegbsequence(start, finish, 'd', deletedsequence)
 		if visible == True:
 			self.add_file_version()
 
-	def cut(self, visible=True):
-		'''Cut current DNA selection and place it in clipboard together with any features present on that DNA'''
-		start, finish = self.get_dna_selection()
-		if start != finish: #must be a selection
-			self.copy()
-			self.delete(start, finish, visible)
+	def Cut(self, start, finish):
+		'''Cuts selection and place it in clipboard together with any features present on that DNA'''
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		self.Copy(start, finish)
+		deletedsequence = self.GetDNA()[start-1:finish]
+		self.changegbsequence(start, finish, 'd', deletedsequence)
+		self.add_file_version()
 
-	def cut_reverse_complement(self, visible=True):
-		start, finish = self.get_dna_selection()
-		if start != finish: #must be a selection
-			self.copy()
-			self.reverse_complement_clipboard()
-			self.delete(start, finish, visible)
+	def CutRC(self, start, finish):
+		'''Cuts the reverese-complement of a selection and place it in clipboard together with any features present on that DNA'''
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		self.Cut(start, finish)
+		self.reverse_complement_clipboard()
 
-	def paste(self):
+	def Paste(self, ip):
 		'''Paste DNA present in clipboard and any features present on that DNA'''
-		start, finish = self.get_dna_selection()
-		if start != finish: #If a selection, remove sequence
-			self.delete(start, finish)
+		assert type(ip) == int, 'The insertion point must be an integer.'
 
 		temp_clipboard = deepcopy(self.clipboard) #creates a deep copy which is needed to copy nested lists
 		if temp_clipboard['dna'] != pyperclip.paste(): #if internal and system clipboard is not same then system clipboard takes presidence
@@ -657,45 +646,48 @@ class gbobject(object):
 			temp_clipboard['dna'] = pyperclip.paste()
 
 		DNA = str(temp_clipboard['dna'])
-		self.changegbsequence(start, start, 'i', DNA) #change dna sequence	
+		self.changegbsequence(ip, ip, 'i', DNA) #change dna sequence	
 		for i in range(len(temp_clipboard['features'])): #add features from clipboard
-			self.paste_feature(temp_clipboard['features'][i], start)
-		self.set_dna_selection((start, start+len(DNA))) #make pasted sequence selected
+			self.paste_feature(temp_clipboard['features'][i], ip)
+		self.add_file_version()
 
-
-	def paste_reverse_complement(self):
+	def PasteRC(self, ip):
 		'''Paste reverse complement of DNA in clipboard'''
+		assert type(ip) == int, 'The insertion point must be an integer.'
 		self.reverse_complement_clipboard()
-		self.paste()
+		self.Paste(ip)
 		self.reverse_complement_clipboard() #change it back
 
-	def copy(self):
-		'''Copy DNA and all the features for a certain selection'''
-		start, finish = self.get_dna_selection()
-		if start != finish: #must be a selection
-			pyperclip.copy(self.get_dna()[start:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
-			self.clipboard = {}
-			self.clipboard['dna'] = self.get_dna()[start:finish] #copy to internal clipboard
-			self.clipboard['features'] = []
-			self.allgbfeatures_templist = deepcopy(self.gbfile['features'])
-			for i in range(len(self.gbfile['features'])): #checks to match dna change
-				if len(self.gbfile['features'][i]['location']) == 1:
-					featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'])
-				else:
-					n = 0
-					featurestart = self.get_location(self.gbfile['features'][i]['location'][n])[0]
-					n = len(self.gbfile['features'][i]['location'])-1
-					featurefinish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
-				
-				if start<featurestart<=featurefinish<=finish: #if change encompasses whole feature
-					self.clipboard['features'].append(self.allgbfeatures_templist[i])
-					for n in range(len(self.gbfile['features'][i]['location'])):
-						newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start, 'b')
-						self.clipboard['features'][-1]['location'][n] = newlocation
 
-	def copy_reverse_complement(self):
-		''' '''
-		self.copy()
+	def Copy(self, start, finish):
+		'''Copy DNA and all the features for a certain selection'''
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		pyperclip.copy(self.GetDNA()[start-1:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
+		self.clipboard = {}
+		self.clipboard['dna'] = self.GetDNA()[start-1:finish] #copy to internal clipboard
+		self.clipboard['features'] = []
+		self.allgbfeatures_templist = deepcopy(self.gbfile['features'])
+		for i in range(len(self.gbfile['features'])): #checks to match dna change
+			if len(self.gbfile['features'][i]['location']) == 1:
+				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'])
+			else:
+				n = 0
+				featurestart = self.get_location(self.gbfile['features'][i]['location'][n])[0]
+				n = len(self.gbfile['features'][i]['location'])-1
+				featurefinish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
+			
+			if start<featurestart<=featurefinish<=finish: #if change encompasses whole feature
+				self.clipboard['features'].append(self.allgbfeatures_templist[i])
+				for n in range(len(self.gbfile['features'][i]['location'])):
+					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start, 'b')
+					self.clipboard['features'][-1]['location'][n] = newlocation
+
+	def CopyRC(self, start, finish):
+		'''Copy the reverse complement of DNA and all the features for a certain selection'''
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+		assert start <= finish, 'Startingpoint must be before finish'
+		self.Copy(start, finish)
 		self.reverse_complement_clipboard()
 
 
@@ -770,7 +762,7 @@ class gbobject(object):
 			return False
 
 		self.gbfile['features'].append(feature) #change append to sth that works for dicts
-		self.set_feature_selection(index=-1)
+		
 		
 	def remove_feature(self, feature):
 		"""Function removes the feature that is passed to it from the genbank file"""
@@ -907,7 +899,7 @@ class gbobject(object):
 			DNA = dna.revcomp(DNA)
 		return DNA
 
-	def get_dna(self):
+	def GetDNA(self):
 		'''Get the entire DNA sequence from the self.gbfile'''
 		return self.gbfile['dna']
 	
@@ -944,7 +936,7 @@ class gbobject(object):
 		return featurename
 
 
-	def list_features(self):
+	def ListFeatures(self):
 		'''List all features as a string output'''
 		featurelist = ''		
 		for i in range(len(self.gbfile['features'])):
@@ -953,11 +945,11 @@ class gbobject(object):
 				complement = 'complement'
 			else:
 				complement = 'leading'
-			currentfeature = ('>[%s] %s at %s on %s strand\n' % (str(i), feature['qualifiers'][0], feature['location'], complement))
+			currentfeature = '>[%s] %s at %s on %s strand' % (str(i), feature['qualifiers'][0], feature['location'], complement)
 			print(currentfeature)
-			print('\n')
-			featurelist += currentfeature
-		return featurelist
+#			print('\n')
+#			featurelist += currentfeature
+#		return featurelist
 
 
 #### Find methods ####
@@ -967,17 +959,21 @@ class gbobject(object):
 Searchstring should be a string of numbers or DNA characers and searchframe should be an index for a feature. 
 -1 indicates search in entire genbank file
 indeces >-1 are feature indeces'''
+
+		#fix the set_dna_selection functions here
+	
 		assert type(searchstring) == str or type(searchstring) == unicode
 		assert type(searchframe) == int
 
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
-			self.search_hits = []
+			return None
 
 		elif searchstring.isdigit(): #if search is numbers only
 			if searchframe == -1: #if index is -1, that means search in molecule
-				self.search_hits = [(int(searchstring)-1, int(searchstring))]
-				self.set_dna_selection(self.search_hits[0])
+				search_hits = [(int(searchstring)-1, int(searchstring))]
+				return search_hits
+#				self.set_dna_selection(self.search_hits[0])
 			else: #otherwise search in feature indicated by the index
 				complement = self.get_feature_complement(searchframe) # is feature complement or not
 				feature = self.get_feature(searchframe)
@@ -985,42 +981,46 @@ indeces >-1 are feature indeces'''
 
 				#add check ensuring that you cannot search outsite of feature bounds	
 				if complement == True:
-					self.search_hits = [(last+1 - int(searchstring)-1, last+1 - int(searchstring))]
-					self.set_dna_selection(self.search_hits[0])					
+					search_hits = [(last+1 - int(searchstring)-1, last+1 - int(searchstring))]
+					return search_hits
+#					self.set_dna_selection(self.search_hits[0])					
 				elif complement == False:
-					self.search_hits = [(first-1 + int(searchstring)-1, first-1 + int(searchstring))]
-					self.set_dna_selection(self.search_hits[0])					
+					search_hits = [(first-1 + int(searchstring)-1, first-1 + int(searchstring))]
+					return search_hits
+#					self.set_dna_selection(self.search_hits[0])					
 				
 		else: #if searchstring is not numbers
 			#need to test that the characters are valid
 			if searchframe == -1: #if index is -1, that means search in molecule
-				dna_seq = self.get_dna()
+				dna_seq = self.GetDNA()
 				dna_seq = dna_seq.upper()
 				searchstring = searchstring.upper()
 				dna_seq = list(dna_seq)
 				dna_seq = oligo_localizer.cleaner(dna_seq)
 				if oligo_localizer.match_oligo(dna_seq, searchstring)!=[]:
-					self.search_hits = []
+					search_hits = []
 					for match in oligo_localizer.match_oligo(dna_seq, searchstring):
 						lm=len(match[2])
-						self.search_hits.append((match[0],match[1]+lm))
-					self.set_dna_selection(self.search_hits[0])
+						search_hits.append((match[0],match[1]+lm))
+					return search_hits
+#					self.set_dna_selection(self.search_hits[0])
 				else:
 					print('No matches were found')			
-
+					return None
 
 	def FindAminoAcid(self, searchsting, searchframe):
 		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
 		pass
+		return None
 
 
 	def FindFeature(self, searchstring):
 		'''Method for finding a certain feature in a genbank file'''
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
-			self.search_hits = []
+			return None
 		else:
-			self.search_hits = []
+			search_hits = []
 			hits = []
 			features = self.get_all_features()
 			for i in range(len(features)):
@@ -1031,12 +1031,14 @@ indeces >-1 are feature indeces'''
 
 		if len(hits) == 0:
 			print('Sorry, no matches were found')
+			return None
 		else:
 			for feature in hits:
 				start, finish = self.GetFirstLastLocation(feature)
-				self.search_hits.append((start-1, finish))
-		self.search_hits = sorted(self.search_hits)		
-		self.set_dna_selection(self.search_hits[0])
+				search_hits.append((start-1, finish))
+		search_hits = sorted(search_hits)	
+		return search_hits	
+#		self.set_dna_selection(self.search_hits[0])
 
 
 	def find_previous(self):
@@ -1176,7 +1178,9 @@ indeces >-1 are feature indeces'''
 	def changegbsequence(self, changestart, changeend, changetype, change):
 		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly."""
 		#assumes that changestart and changeend are list positions
-
+#		changestart -= 1
+		changeend += 1
+		print(change)
 		if changetype == 'r': #replacement
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
 			
@@ -1188,8 +1192,6 @@ indeces >-1 are feature indeces'''
 			for i in range(len(self.gbfile['features'])): #change features already present
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
-					start -= 1
-					finish -= 1
 					if start<changestart<=finish: #if change is within the feature
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'f')
 					elif changestart<=start<=finish: #if change is before feature
@@ -1204,19 +1206,17 @@ indeces >-1 are feature indeces'''
 			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
-					start -= 1
-					finish -= 1
 					if i >= len(self.gbfile['features']):
 						break
-					if start<changestart and changeend<=finish: #if change is within the feature, change finish
+					if start<changestart and changeend<finish: #if change is within the feature, change finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f') #finish
 						print('within feature')
 					elif changestart<=start and start<=changeend<=finish: #if change encompasses start, change start and finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend-start, 's')	#start					
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend+1-start, 's')	#start					
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
 						print('encopass start')
-					elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart+1), 'f')	
+					elif start<changestart<finish and finish<=changeend: #if change encompasses finish, change finish
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart), 'f')	
 						print('encopass finish')
 					elif changestart<=start and finish<changeend: #if change encompasses whole feature, add to deletion list
 						deletionlist.append(deepcopy((i, n)))
@@ -1364,23 +1364,21 @@ indeces >-1 are feature indeces'''
 		pass	
 
 
-def open_file(filepath):
-	'''Function that makes a gbobject with a specified genbank file'''
-	global gb
-	gb = gbobject()
-	gb.readgb(filepath)
 
-
-def new_file():
-	'''Function that makes a gbobject with an empty genbank file'''
-	global gb
-	gb = gbobject()
-	gb.makegb()
 
 
 #if __name__ == '__main__': #if script is run by itself and not loaded	
-	#import sysargw
-	#get the imput...
-	#open_file(input)
-	#return gb
+#	import sys
+#	assert (len(sys.argv) > 0 and len(sys.argv) <= 2), 'Error, this script takes zero or one arguments.'
+
+#	if len(sys.argv) == 1:
+#		print('No file specified. Creting new genbank file.')
+#		#then create file
+
+#	elif len(sys.argv) == 2:
+#		print('Opening %s' % str(sys.argv[1]))
+#		#then open file
+
+
+
 

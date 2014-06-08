@@ -31,11 +31,7 @@
 
 
 #TODO
-#match features with qualifiers (mandatory and optional)
-#add a function that checks that everything is ok
-
-#add a way of actually adding a new feature...
-#make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
+#nothing at the moment
 
 
 import ast
@@ -278,8 +274,8 @@ class FeatureEdit(wx.Panel):
 
 	def OnAddQualifier(self, event):
 		'''For adding new qualifier'''
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		qualifier = 'label'
 		tag = 'None'
 
@@ -290,7 +286,7 @@ class FeatureEdit(wx.Panel):
 			qualifier = str(dlg.qualifier_combobox.GetValue())
 			tag = str(dlg.tag_field.GetText())
 		
-			genbank.gb.add_qualifier(feature, '/%s=%s' % (qualifier, tag))
+			self.GetTopLevelParent().gb.add_qualifier(feature, '/%s=%s' % (qualifier, tag))
 			self.updateUI()
 
 			number = self.qualifier_list.GetItemCount()-1
@@ -301,13 +297,13 @@ class FeatureEdit(wx.Panel):
 
 	def OnRemoveQualifier(self, event):
 		'''For removing existing qualifier'''
-		index = genbank.gb.get_feature_selection() #feature selected
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection() #feature selected
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected() #qualifier selected
 		items = self.qualifier_list.GetItemCount() #number of qualifiers
 
 		if items != 1: #don't delete last qualifier
-			genbank.gb.remove_qualifier(feature, number)
+			self.GetTopLevelParent().gb.remove_qualifier(feature, number)
 			self.updateUI()
 			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
@@ -319,10 +315,10 @@ class FeatureEdit(wx.Panel):
 
 	def OnMoveQualifierUp(self, event):
 		'''Move qualifier up one step in the list'''
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
-		genbank.gb.move_qualifier(feature, number, 'u')
+		self.GetTopLevelParent().gb.move_qualifier(feature, number, 'u')
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
@@ -333,10 +329,10 @@ class FeatureEdit(wx.Panel):
 
 	def OnMoveQualifierDown(self, event):
 		'''Move qualifier down one step in the list'''
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
-		genbank.gb.move_qualifier(feature, number, 'd')
+		self.GetTopLevelParent().gb.move_qualifier(feature, number, 'd')
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
@@ -347,10 +343,10 @@ class FeatureEdit(wx.Panel):
 
 	def OnEditQualifier(self, event):
 		'''Make popup window where qualifier and tag can be edited'''
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		number = self.qualifier_list.GetFirstSelected()
-		qualifier, tag = genbank.gb.get_qualifier(index, number) #get actual info for that qualifier
+		qualifier, tag = self.GetTopLevelParent().gb.get_qualifier(index, number) #get actual info for that qualifier
 
 		#make popup window with qualifier editing capabilities
 		dlg = QualifierEdit(qualifier, tag) # creation of a panel in the frame
@@ -361,7 +357,7 @@ class FeatureEdit(wx.Panel):
 		dlg.Destroy()
 
 		#update file
-		genbank.gb.set_qualifier(index, number, qualifier, tag)
+		self.GetTopLevelParent().gb.set_qualifier(index, number, qualifier, tag)
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.update_qualifier_selection(index, number)
@@ -382,9 +378,9 @@ class FeatureEdit(wx.Panel):
 	def ComplementCheckboxOnSelect(self, event):
 		'''Toggle whether the feature is on the complement strand or not'''
 		newcomplement = self.complementbox.GetValue()
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.set_feature_complement(feature, newcomplement)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.set_feature_complement(feature, newcomplement)
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
@@ -393,9 +389,9 @@ class FeatureEdit(wx.Panel):
 	def JoinCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with multiple locations should be joined or not'''
 		newjoin = self.joinbox.GetValue()
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.set_feature_join(feature, newjoin)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.set_feature_join(feature, newjoin)
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
@@ -403,18 +399,18 @@ class FeatureEdit(wx.Panel):
 	def OrderCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with ultiple locations should be indicated as being in a certain order or not'''
 		neworder = self.orderbox.GetValue()
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.set_feature_order(feature, neworder)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.set_feature_order(feature, neworder)
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.set_feature_type(feature, newkey)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.set_feature_type(feature, newkey)
 		self.updateUI()
 		self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 		self.GetParent().GetParent().feature_list.update_feature_selection(index) #re-select the feature
@@ -431,13 +427,13 @@ class FeatureEdit(wx.Panel):
 		else:
 			locationlist = [newlocation]
 
-		index = genbank.gb.get_feature_selection()
-		feature = genbank.gb.get_feature(index)
+		index = self.GetTopLevelParent().get_feature_selection()
+		feature = self.GetTopLevelParent().gb.get_feature(index)
 		
-		is_valid = genbank.gb.IsValidLocation(locationlist) #test if location entry is valid
+		is_valid = self.GetTopLevelParent().gb.IsValidLocation(locationlist) #test if location entry is valid
 		if is_valid == True:
 			self.location.SetForegroundColour(wx.BLACK)
-			genbank.gb.set_feature_location(feature, locationlist)
+			self.GetTopLevelParent().gb.set_feature_location(feature, locationlist)
 			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 
 		elif is_valid == False:
@@ -447,16 +443,16 @@ class FeatureEdit(wx.Panel):
 	def FeatureFieldOnText(self, event):
 		newfeaturetext = str(self.featuretext.GetLineText(0)) #get location as string
 	
-		index = genbank.gb.get_feature_selection()
+		index = self.GetTopLevelParent().get_feature_selection()
 		number = 0
-		qualifier = genbank.gb.get_qualifier(index, number)[0]
+		qualifier = self.GetTopLevelParent().gb.get_qualifier(index, number)[0]
 		tag = newfeaturetext
 		print(index)
 		print(type(index))
 		
 		if ('=' in newfeaturetext) == False: # '=' is reserved for parsing, so it can't be in the string'
 			self.featuretext.SetForegroundColour(wx.BLACK)
-			genbank.gb.set_qualifier(index, number, qualifier, tag)
+			self.GetTopLevelParent().gb.set_qualifier(index, number, qualifier, tag)
 			self.GetParent().GetParent().feature_list.updateUI() #update feature viewer
 			self.update_qualifiers()
 
@@ -464,9 +460,9 @@ class FeatureEdit(wx.Panel):
 			self.featuretext.SetForegroundColour(wx.RED)	
 
 	def update_qualifiers(self):
-		index = genbank.gb.get_feature_selection()
+		index = self.GetTopLevelParent().get_feature_selection()
 		self.qualifier_list.DeleteAllItems()
-		qualifiers = genbank.gb.get_qualifiers(index)
+		qualifiers = self.GetTopLevelParent().gb.get_qualifiers(index)
 		for qualifier in qualifiers:
 			col0, col1 = qualifier.split('=')
 			col0 = col0[1:]
@@ -475,25 +471,25 @@ class FeatureEdit(wx.Panel):
 
 	def updateUI(self):
 		'''Updates all fields depending on which feature is chosen'''
-		if len(genbank.gb.get_all_features()) == 0:
+		if len(self.GetTopLevelParent().gb.get_all_features()) == 0:
 			pass
 		else:
-			index = genbank.gb.get_feature_selection()
+			index = self.GetTopLevelParent().get_feature_selection()
 	
 			#update fields
-			self.featuretext.ChangeValue(genbank.gb.get_feature_label(index))
-			self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
+			self.featuretext.ChangeValue(self.GetTopLevelParent().gb.get_feature_label(index))
+			self.type_combobox.SetStringSelection(self.GetTopLevelParent().gb.get_feature_type(index)) #update type
 
 			locationstring = ''
-			for location in genbank.gb.get_feature_location(index):
+			for location in self.GetTopLevelParent().gb.get_feature_location(index):
 				if locationstring != '':
 					locationstring += ', '
 				locationstring += str(location)
 			self.location.ChangeValue(locationstring) #update location
 
-			self.complementbox.SetValue(genbank.gb.get_feature_complement(index)) #update complement
-			self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
-			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
+			self.complementbox.SetValue(self.GetTopLevelParent().gb.get_feature_complement(index)) #update complement
+			self.joinbox.SetValue(self.GetTopLevelParent().gb.get_feature_join(index)) #update join
+			self.orderbox.SetValue(self.GetTopLevelParent().gb.get_feature_order(index)) #update order
 
 			#update qualifier field
 			self.update_qualifiers()
@@ -560,7 +556,7 @@ class FeatureView(wx.Panel):
 	def ListOnSelect(self, event):	
 		'''Updates selection depending on which feature is chosen'''
 		index = self.feature_list.GetFirstSelected()
-		genbank.gb.set_feature_selection(index)
+		self.GetTopLevelParent().set_feature_selection(index)
 		try:
 			self.GetParent().GetParent().feature_edit.updateUI() #update feature editor
 		except:
@@ -569,12 +565,12 @@ class FeatureView(wx.Panel):
 	def ListOnActivate(self, event):
 		'''Updates feature AND DNA selection based on which feature is chosen'''
 		index = self.feature_list.GetFirstSelected()
-		genbank.gb.set_feature_selection(index)
+		self.GetTopLevelParent().set_feature_selection(index)
 
-		locations = genbank.gb.get_feature_location(index)
-		start = genbank.gb.get_location(locations[0])[0]
-		finish = genbank.gb.get_location(locations[-1])[1]
-		genbank.gb.set_dna_selection((start-1, finish))  #how to I propagate this to the DNA view???
+		locations = self.GetTopLevelParent().gb.get_feature_location(index)
+		start = self.GetTopLevelParent().gb.get_location(locations[0])[0]
+		finish = self.GetTopLevelParent().gb.get_location(locations[-1])[1]
+		self.GetTopLevelParent().set_dna_selection((start-1, finish))  #how to I propagate this to the DNA view???
 		self.GetTopLevelParent().dnaview.gbviewer.SetSelection(start-1, finish) #update DNA selection
 		self.GetTopLevelParent().dnaview.gbviewer.ShowPosition(start) #show the selection
 ######
@@ -585,14 +581,14 @@ class FeatureView(wx.Panel):
 		'''Make new feature'''
 		#make feature and update interface
 		self.GetTopLevelParent().dnaview.match_selection() #update seleection stored in gb file
-		start, finish = genbank.gb.get_dna_selection() #get the numbers
+		start, finish = self.GetTopLevelParent().get_dna_selection() #get the numbers
 		if start == finish: #if there is no selection
 			start += 1
 			finish += 1
 		else:
 			start += 1
 
-		genbank.gb.add_feature(key='misc_feature', qualifiers=['/note=New feature'], location=['%s..%s' % (start, finish)], complement=False, join=False, order=False)
+		self.GetTopLevelParent().gb.add_feature(key='misc_feature', qualifiers=['/note=New feature'], location=['%s..%s' % (start, finish)], complement=False, join=False, order=False)
 		
 
 		self.NewFeatureFrame = wx.Frame(None, title="New Feature", size=(700, 300)) # creation of a Frame with a title
@@ -631,15 +627,15 @@ class FeatureView(wx.Panel):
 
 	def OnCancel(self, event):
 		'''Reject new feeature from the "new feature" popup'''
-		genbank.gb.remove_feature(genbank.gb.get_feature(index=-1))
+		self.GetTopLevelParent().gb.remove_feature(self.GetTopLevelParent().gb.get_feature(index=-1))
 		self.NewFeatureFrame.Destroy()
 
 
 	def OnDelete(self, event):
 		'''Delete selected feature'''
 		index = self.feature_list.GetFirstSelected()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.remove_feature(feature)
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.remove_feature(feature)
 		self.updateUI() #update the feature view
 		self.GetTopLevelParent().dnaview.updateUI()  #update DNA view
 	
@@ -652,8 +648,8 @@ class FeatureView(wx.Panel):
 	def OnMoveFeatureUp(self, event):
 		'''Move feature up one step'''
 		index = self.feature_list.GetFirstSelected()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.move_feature(feature, 'u')	
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.move_feature(feature, 'u')	
 		self.updateUI()
 
 		#set highlight, focus and selection
@@ -665,8 +661,8 @@ class FeatureView(wx.Panel):
 	def OnMoveFeatureDown(self, event):
 		'''Move feature up down step'''
 		index = self.feature_list.GetFirstSelected()
-		feature = genbank.gb.get_feature(index)
-		genbank.gb.move_feature(feature, 'd')
+		feature = self.GetTopLevelParent().gb.get_feature(index)
+		self.GetTopLevelParent().gb.move_feature(feature, 'd')
 		self.updateUI()
 
 		#set highlight, focus and selection	
@@ -676,7 +672,7 @@ class FeatureView(wx.Panel):
 
 
 	def focus_feature_selection(self):
-		index = genbank.gb.get_feature_selection()
+		index = self.GetTopLevelParent().get_feature_selection()
 #		print('type', type(index))
 #		print('index', index)
 
@@ -686,7 +682,7 @@ class FeatureView(wx.Panel):
 
 	def update_feature_selection(self, index):
 		'''Updates which feature is selected'''
-		genbank.gb.set_feature_selection(index)
+		self.GetTopLevelParent().set_feature_selection(index)
 #		print('type', type(index))
 #		print('index', index)
 		self.focus_feature_selection()
@@ -722,7 +718,7 @@ class FeatureView(wx.Panel):
 		#need to figure out how to do this without changing the selection....
 		self.feature_list.DeleteAllItems()
 		item = 0 #for feautrecolor
-		features = genbank.gb.get_all_features()
+		features = self.GetTopLevelParent().gb.get_all_features()
 		for entry in features:
 			col0 = entry['qualifiers'][0].split('=')[1]
 			col1 = entry['key']
@@ -748,7 +744,7 @@ class FeatureView(wx.Panel):
 			self.feature_list.SetItemBackgroundColour(item, color)	
 			item += 1
 		try:
-			if genbank.gb.get_feature_selection() != None: #focus on the selected feature
+			if self.GetTopLevelParent().get_feature_selection() != None: #focus on the selected feature
 				self.focus_feature_selection()
 		except:
 			pass

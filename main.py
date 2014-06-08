@@ -35,9 +35,6 @@ import sys, os
 import wx
 import wx.richtext as rt
 
-from wxPython.lib.buttons import *
-from wxPython.lib.colourselect import *
-
 import pyperclip
 import subprocess
 
@@ -51,13 +48,11 @@ import genbank_GUI as genbankfileview
 import mixed_base_codons_GUI
 
 #TODO
-#grey out things until a new file is made or one is opened
-#test which functions are broken
+
 #add vector view
 #add pretty dna view
-#improve the feature editor (especially the "location" field)
 #make rightklick menus
-
+#fix search and mutate
 
 files={}   #dictionary with all configuration files
 
@@ -99,8 +94,11 @@ class MyFrame(wx.Frame):
 
 
 		self.fileopen = False #used to see if a file is open
+		self.new_file(None) #create new genbank file
 
-		self.new_file(None) #make blank file
+		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
+		self.feature_selection = False #variable for storing current feature selection
+
 
 		self.generate_dnaview_tab("")
 		self.generate_featureview_tab("")
@@ -127,7 +125,10 @@ class MyFrame(wx.Frame):
 		sizer.Add(self.DNApy, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
-			
+	def propagate_gb(self):
+		'''Pass down the current genbank file to all tabs.'''
+		for tab in self.tab_list:
+			tab.gb = self.gb	
 
 ##### Generate tabs and define content #####
 
@@ -190,8 +191,9 @@ class MyFrame(wx.Frame):
 	def new_file(self, evt):
 		'''Create new gb file'''
 		if self.fileopen == False: #if no file is open, make blank gb file
-			gb = genbank.new_file() #make new gb in panel	
-#			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+			self.gb = genbank.gbobject() #make new gb in panel	
+
+
 			self.SetTitle('NewFile - DNApy')
 			self.page_change("")
 
@@ -204,6 +206,8 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(512, 1)
 			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 			self.fileopen = True
+			
+
 		elif self.fileopen == True: #if a file IS open, make a new window
 			subprocess.Popen("python ~/Python_files/DNApy/main.py 1", shell=True)
 
@@ -221,27 +225,29 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension.lower() == 'gb':
-			gb = genbank.open_file(all_path) #make a genbank object and read file
-			self.dnaview.gbviewer.SetValue(genbank.gb.get_dna())
+			self.gb = genbank.gbobject(all_path) #make a genbank object and read file
+			self.propagate_gb()
+
+
+			self.dnaview.gbviewer.SetValue(self.gb.GetDNA())
 			self.SetTitle(fileName+' - DNApy')
-			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
+			if self.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
 				result = dlg.ShowModal()
 				dlg.Destroy()
 				if result == wx.ID_YES: #if yes, remove clutter
-					genbank.gb.clean_clutter()
+					self.gb.clean_clutter()
 			self.page_change("")
 
-			self.frame_1_toolbar.EnableTool(502, 1)
-			self.frame_1_toolbar.EnableTool(503, 1)
-			self.frame_1_toolbar.EnableTool(504, 1)
-			self.frame_1_toolbar.EnableTool(505, 1)
-			self.frame_1_toolbar.EnableTool(506, 1)
-			self.frame_1_toolbar.EnableTool(511, 1)
-			self.frame_1_toolbar.EnableTool(512, 1)
-			self.frame_1_toolbar.EnableTool(513, 1)
-			self.frame_1_toolbar.EnableTool(514, 1)
+			self.frame_1_toolbar.EnableTool(502, True)
+			self.frame_1_toolbar.EnableTool(503, True)
+			self.frame_1_toolbar.EnableTool(504, True)
+			self.frame_1_toolbar.EnableTool(505, True)
+			self.frame_1_toolbar.EnableTool(506, True)
+			self.frame_1_toolbar.EnableTool(511, True)
+			self.frame_1_toolbar.EnableTool(512, True)
 			self.fileopen = True
+			
 		else:
 			print("error, not a gb file")		
 
@@ -256,8 +262,8 @@ class MyFrame(wx.Frame):
 		'''Function for saving file'''
 #		try:
 
-		print(genbank.gb.get_filepath())
-		genbank.gb.write_file(genbank.gb.get_filepath())
+		print(self.gb.get_filepath())
+		self.gb.write_file(self.gb.get_filepath())
 		
 
 #		except:
@@ -266,7 +272,7 @@ class MyFrame(wx.Frame):
 
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
-		filepath = genbank.gb.get_filepath()
+		filepath = self.gb.get_filepath()
 		print(filepath)	
 		for i in range(len(filepath)): #get directory for file
 			if filepath[i] == '/':
@@ -286,7 +292,7 @@ class MyFrame(wx.Frame):
 				all_path += '.gb'
 				fileName += '.gb'
 			#try:
-			genbank.gb.set_filepath(all_path)
+			self.gb.set_filepath(all_path)
 			self.save_file("")
 			self.SetTitle(fileName+' - DNApy')
 			#except:
@@ -322,7 +328,7 @@ class MyFrame(wx.Frame):
 		self.current_tab=self.DNApy.GetSelection()
 #		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
 		try:
-			self.tab_list[self.current_tab].updateUI()
+			self.updateUI()
 		except:
 			pass
 
@@ -377,6 +383,40 @@ class MyFrame(wx.Frame):
 			self.SetStatusText('', 1)		
 
 
+######### get and set methods #########
+
+	#DNA#
+	def get_dna_selection(self):
+		'''Method for getting which DNA range is currently selected'''
+		return self.dna_selection[0], self.dna_selection[1]
+
+	def set_dna_selection(self, selection):
+		'''Method for selecting a certain DNA range'''
+		#input needs to be a touple of two values
+		self.dna_selection = selection
+		start = selection[0]
+		finish = selection[1]
+#		print('Selection from %s to %s') % (start, finish)
+
+	#Feature#
+	def get_feature_selection(self):
+		'''Get index of currently selected feature, if any'''
+		return self.feature_selection 
+
+	def set_feature_selection(self, index):
+		'''Set currently selected feature'''
+		assert type(index) == int, "Error, index must be an integer."
+		#this is currently independent from DNA selection
+		num_features = len(self.gb.get_all_features()) #number of features already present
+		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
+			index = 0
+		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
+			index = num_features-1
+
+		self.feature_selection = index
+		#add logic to find first and last position for feature and make DNA selection match.
+		#print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
+
 ######### cut, paste, copy methods ########
 
 	def cut(self, evt):
@@ -389,7 +429,6 @@ class MyFrame(wx.Frame):
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
 		elif control == self.dnaview.gbviewer: #the main dna window	
 			self.dnaview.cut()
-
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
@@ -418,8 +457,10 @@ class MyFrame(wx.Frame):
 	def copy_reverse_complement(self, evt):
 		self.dnaview.copy_reverse_complement()
 
-	def delete(self, evt):
-		self.dnaview.delete()
+#	def delete(self, evt):
+#		self.dnaview.delete()
+#		self.updateUndoRedo()
+#		print('deleted')
 
 	def reverse_complement_selection(self, evt):
 		self.dnaview.reverse_complement_selection()
@@ -554,11 +595,28 @@ Put Table here
 #####################################
 
 	def Undo(self, evt):
-		genbank.gb.undo()
+		self.gb.Undo()
+		self.updateUI()
 
 	def Redo(self, evt):
-		genbank.gb.redo()
+		self.gb.Redo()
+######################################
 
+	def updateUndoRedo(self):
+		#activate/deactivate undo and redo buttons
+		if self.gb.get_file_version_index <= 0: #if there are no undos available
+			self.frame_1_toolbar.EnableTool(513, False)
+		else:
+			self.frame_1_toolbar.EnableTool(513, True)
+		
+		if self.gb.get_file_version_index >= len(self.gb.file_versions)-1: #if there are no redos available
+			self.frame_1_toolbar.EnableTool(514, False)
+		else:
+			self.frame_1_toolbar.EnableTool(514, True)
+
+	def updateUI(self):
+		#and now actually update the UI
+		self.tab_list[self.current_tab].updateUI()
 
 ######################################
 
@@ -568,7 +626,7 @@ Put Table here
 #		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
 		tabtext = 'Replace!'
 		self.output.write('%s | List features\n' % tabtext, 'File')
-		featurelist = genbank.gb.list_features()
+		featurelist = self.gb.ListFeatures()
 		self.output.write(featurelist, 'Text')
 		self.outputframe.Show()
 
@@ -629,10 +687,10 @@ Put Table here
 		self.frame_1_toolbar.EnableTool(504, 0)
 		self.frame_1_toolbar.EnableTool(505, 0)
 		self.frame_1_toolbar.EnableTool(506, 0)
-		self.frame_1_toolbar.EnableTool(513, 0)
-		self.frame_1_toolbar.EnableTool(514, 0)
 		self.frame_1_toolbar.EnableTool(511, 0)
 		self.frame_1_toolbar.EnableTool(512, 0)
+		self.frame_1_toolbar.EnableTool(513, 0)
+		self.frame_1_toolbar.EnableTool(514, 0)
 
 	def __generate_searchandmutate_toolbar(self):
 		##### Toolbar 2 #####
@@ -653,7 +711,7 @@ Put Table here
 		featurelist = ['Molecule']
 		try:
 			#make a list of all feature names
-			features = genbank.gb.get_all_features()
+			features = self.gb.get_all_features()
 			for entry in features:
 				featurelist.append(entry['qualifiers'][0].split('=')[1])
 		except:
@@ -716,28 +774,28 @@ Put Table here
 		searchstring = self.searchinput.GetValue()
 
 		if searchtype == 'Nucleotide':
-			genbank.gb.FindNucleotide(searchstring, searchframe)
+			self.gb.FindNucleotide(searchstring, searchframe)
 		elif searchtype == 'Amino Acid':
-			genbank.gb.FindAminoAcid(searchstring, searchframe)
+			self.gb.FindAminoAcid(searchstring, searchframe)
 		elif searchtype == 'Feature':
-			genbank.gb.FindFeature(searchstring)
+			self.gb.FindFeature(searchstring)
 
-		self.tab_list[self.current_tab].updateUI()
-		start, finish = genbank.gb.get_dna_selection()
+		self.updateUI()
+		start, finish = self.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
-		genbank.gb.find_previous()
-		start, finish = genbank.gb.get_dna_selection()
+		self.gb.find_previous()
+		start, finish = self.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 
 	def find_next(self, evt):
 		'''Select next search hit'''
-		genbank.gb.find_next()
-		start, finish = genbank.gb.get_dna_selection()
+		self.gb.find_next()
+		start, finish = self.get_dna_selection()
 		self.dnaview.gbviewer.SetSelection(start, finish)
 		self.dnaview.gbviewer.ShowPosition(start) 
 
