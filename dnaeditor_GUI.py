@@ -141,7 +141,7 @@ class MyPanel(wx.Panel):
 				self.gbviewer.ShowPosition(start) 
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				self.GetTopLevelParent().gb.Delete(start-1, start-1)
+				self.GetTopLevelParent().gb.Delete(start, start)
 				self.updateUI()
 				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.gbviewer.SetInsertionPoint(start-1)
@@ -153,7 +153,7 @@ class MyPanel(wx.Panel):
 				self.GetTopLevelParent().gb.Delete(start+1, finish)
 			else:
 				start = self.gbviewer.GetInsertionPoint()
-				self.GetTopLevelParent().gb.Delete(start, start)
+				self.GetTopLevelParent().gb.Delete(start+1, start+1)
 			self.updateUI()
 			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.gbviewer.SetInsertionPoint(start)
@@ -196,9 +196,9 @@ class MyPanel(wx.Panel):
 	def match_selection(self):
 		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
 		viewerstart, viewerend = self.gbviewer.GetSelection()
-		if viewerstart == -2 and viewerend == -2: # if not a selection
+		if (viewerstart == -2 and viewerend == -2) == True: # if not a selection
 			viewerstart = self.gbviewer.GetInsertionPoint()
-			selection = (viewerstart+1, viewerend)
+			selection = (viewerstart+1, viewerstart+1)
 		else:
 			selection = (viewerstart+1, viewerend)
 		self.GetTopLevelParent().set_dna_selection(selection)
@@ -215,6 +215,8 @@ class MyPanel(wx.Panel):
 		start, finish = self.GetTopLevelParent().get_dna_selection()
 		self.GetTopLevelParent().gb.Upper(start, finish)
 		self.updateUI()
+		self.gbviewer.SetSelection(start-1, finish)
+		self.gbviewer.ShowPosition(start-1)
 		
 	def lowercase(self):
 		'''Change selection to lowercase'''
@@ -222,6 +224,8 @@ class MyPanel(wx.Panel):
 		start, finish = self.GetTopLevelParent().get_dna_selection()
 		self.GetTopLevelParent().gb.Lower(start, finish)
 		self.updateUI() 
+		self.gbviewer.SetSelection(start-1, finish)
+		self.gbviewer.ShowPosition(start-1)
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
@@ -229,6 +233,8 @@ class MyPanel(wx.Panel):
 		start, finish = self.GetTopLevelParent().get_dna_selection()
 		self.GetTopLevelParent().gb.RCselection(start, finish)
 		self.updateUI()
+		self.gbviewer.SetSelection(start-1, finish)
+		self.gbviewer.ShowPosition(start-1)
 
 #	def delete(self):
 #		'''Deletes a selection and updates dna and features'''
@@ -246,6 +252,7 @@ class MyPanel(wx.Panel):
 		self.GetTopLevelParent().gb.Cut(start, finish)
 		self.updateUI()
 		self.gbviewer.SetInsertionPoint(start-1)
+		self.gbviewer.ShowPosition(start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
@@ -254,6 +261,7 @@ class MyPanel(wx.Panel):
 		self.GetTopLevelParent().gb.CutRC(start, finish)
 		self.updateUI()
 		self.gbviewer.SetInsertionPoint(start-1)
+		self.gbviewer.ShowPosition(start-1)
 
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
@@ -264,6 +272,7 @@ class MyPanel(wx.Panel):
 		self.GetTopLevelParent().gb.Paste(start)
 		self.updateUI() # need to fix so that pasted dna is still highlighted
 		self.gbviewer.SetInsertionPoint(start-1)
+		self.gbviewer.ShowPosition(start-1)
 		
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
@@ -274,6 +283,7 @@ class MyPanel(wx.Panel):
 		self.GetTopLevelParent().gb.PasteRC(start)
 		self.updateUI()
 		self.gbviewer.SetInsertionPoint(start-1)
+		self.gbviewer.ShowPosition(start-1)
 
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
@@ -327,13 +337,13 @@ class MyPanel(wx.Panel):
 #		elif start == finish: self.gbviewer.SetInsertionPoint(start-1)
 #		self.gbviewer.ShowPosition(start) 
 
-		
+	
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
 		featurelist = self.GetTopLevelParent().gb.get_all_feature_positions()
 		for entry in featurelist:
 			featuretype, complement, start, finish = entry
 			self.get_feature_color(featuretype, complement)
-	
+
 			color = self.gbviewer.current_highlight_color #get color
 
 			#do the painting
@@ -342,7 +352,7 @@ class MyPanel(wx.Panel):
 			self.attr.SetBackgroundColour(color)
 			self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 
-		
+	
 		#color in search hits if any are present
 		search_hits = self.GetTopLevelParent().gb.search_hits
 		if len(search_hits) != 0:
@@ -350,7 +360,6 @@ class MyPanel(wx.Panel):
 			for i in range(len(search_hits)):
 				start = int(search_hits[i][0])
 				finish = int(search_hits[i][1])
-				
 				#do the painting
 				self.attr = rt.RichTextAttr()
 				self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
@@ -359,9 +368,9 @@ class MyPanel(wx.Panel):
 
 #I need to think carefully about where to place these...
 		#realize the current selection in the DNA editor
-		start, finish = self.GetTopLevelParent().get_dna_selection()
-		self.gbviewer.SetSelection(start, finish) #update the graphical selection
-		self.gbviewer.ShowPosition(start) 
+#		start, finish = self.GetTopLevelParent().get_dna_selection()
+#		self.gbviewer.SetSelection(start, finish) #update the graphical selection
+#		self.gbviewer.ShowPosition(start) 
 
 		#update feature list
 		self.feature_list.updateUI()
@@ -403,13 +412,13 @@ class MyPanel(wx.Panel):
 	def translate_selection(self):
 		'''Translate selected DNA'''
 		DNA = self.gbviewer.GetStringSelection()
-		protein = dna.translate(DNA)
+		protein = dna.Translate(DNA)
 		self.translate_output(protein, DNA, 'leading strand')
 		
 	def translate_selection_reverse_complement(self):
 		'''Translate reverse-complement of selected DNA'''
 		DNA = self.gbviewer.GetStringSelection()
-		protein = dna.translate(dna.revcomp(DNA))
+		protein = dna.Translate(dna.RC(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
 
 #update this one...
@@ -417,7 +426,7 @@ class MyPanel(wx.Panel):
 		'''Translate specified feature'''
 		feature = self.GetTopLevelParent().gb.allgbfeatures[2]
 		DNA = self.GetTopLevelParent().gb.getdnaforgbfeature(feature[4])
-		protein = dna.translate(DNA)
+		protein = dna.Translate(DNA)
 		self.translate_output(protein, DNA, 'feature "%s"' % feature[4][7:])
 	
 

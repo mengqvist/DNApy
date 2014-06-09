@@ -31,12 +31,12 @@
 #
 
 
-def rev(dna):
+def R(dna):
 	"""Returns the reverse of a DNA string"""
 	dna = dna.replace('\n','')
 	return dna[::-1]  #makes the reverse of the input string
 		
-def comp(dna):
+def C(dna):
 	"""Returns the complement of a DNA string"""
 	dna = dna.replace('\n','')
 	compdna = ''
@@ -80,12 +80,12 @@ def comp(dna):
 	return compdna
 	
 	
-def revcomp(dna):
+def RC(dna):
 	"""Returns the reverse complement of a DNA string"""
-	return rev(comp(dna))
+	return R(C(dna))
 
 
-def translate(dna):
+def Translate(dna):
 	"""Returns protein sequence from DNA string input"""
 	F = ['TTT', 'TTC'];
 	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
@@ -163,6 +163,11 @@ def translate(dna):
 			else:
 				protein = protein + '?'
 	return protein	
+
+def TranslateRC(dna):
+	'''Translate the reverse complement of DNA'''
+	dna = RC(dna)
+	return Translate(dna)
 
 #add randomize dna
 

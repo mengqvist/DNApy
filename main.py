@@ -372,7 +372,7 @@ class MyFrame(wx.Frame):
 			self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
 		
 			if float(Length)/3 == 1: #if one triplet is selected, show the AA
-				AA = ': %s' % dna.translate(self.dnaview.gbviewer.GetStringSelection())
+				AA = ': %s' % dna.Translate(self.dnaview.gbviewer.GetStringSelection())
 			else:
 				AA = ''
 			

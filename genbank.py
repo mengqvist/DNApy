@@ -567,7 +567,7 @@ class gbobject(object):
 		'''Change DNA selection to uppercase characters'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		string = self.GetDNA()[start-1:finish]
+		string = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'r', string.upper())
 		self.add_file_version()
 
@@ -575,13 +575,13 @@ class gbobject(object):
 		'''Change DNA selection to lowercase characters'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		string = self.GetDNA()[start-1:finish]
+		string = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'r', string.lower())
 		self.add_file_version()
 
 	def reverse_complement_clipboard(self):	
 		'''Reverse-complements the DNA and all features in clipboard'''
-		self.clipboard['dna'] = dna.revcomp(self.clipboard['dna']) #change dna sequence
+		self.clipboard['dna'] = dna.RC(self.clipboard['dna']) #change dna sequence
 		pyperclip.copy(self.clipboard['dna'])	
 		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
 			if self.clipboard['features'][i]['complement'] == True: self.clipboard['features'][i]['complement'] = False
@@ -603,7 +603,7 @@ class gbobject(object):
 		assert start <= finish, 'Startingpoint must be before finish'
 		self.Copy(start, finish)
 		self.reverse_complement_clipboard()	
-		deletedsequence = self.GetDNA()[start-1:finish]
+		deletedsequence = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'd', deletedsequence)
 		self.Paste(start)
 
@@ -615,7 +615,7 @@ class gbobject(object):
 			If set to False, it does trigger other events.'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		deletedsequence = self.GetDNA()[start-1:finish]
+		deletedsequence = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'd', deletedsequence)
 		if visible == True:
 			self.add_file_version()
@@ -625,7 +625,7 @@ class gbobject(object):
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
 		self.Copy(start, finish)
-		deletedsequence = self.GetDNA()[start-1:finish]
+		deletedsequence = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'd', deletedsequence)
 		self.add_file_version()
 
@@ -663,9 +663,9 @@ class gbobject(object):
 		'''Copy DNA and all the features for a certain selection'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		pyperclip.copy(self.GetDNA()[start-1:finish]) #copy dna to system clipboard (in case I want to paste it somwhere else)
+		pyperclip.copy(self.GetDNA(start, finish)) #copy dna to system clipboard (in case I want to paste it somwhere else)
 		self.clipboard = {}
-		self.clipboard['dna'] = self.GetDNA()[start-1:finish] #copy to internal clipboard
+		self.clipboard['dna'] = self.GetDNA(start, finish) #copy to internal clipboard
 		self.clipboard['features'] = []
 		self.allgbfeatures_templist = deepcopy(self.gbfile['features'])
 		for i in range(len(self.gbfile['features'])): #checks to match dna change
@@ -677,7 +677,7 @@ class gbobject(object):
 				n = len(self.gbfile['features'][i]['location'])-1
 				featurefinish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
 			
-			if start<featurestart<=featurefinish<=finish: #if change encompasses whole feature
+			if (start<=featurestart and featurefinish<=finish) == True: #if change encompasses whole feature
 				self.clipboard['features'].append(self.allgbfeatures_templist[i])
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start, 'b')
@@ -896,12 +896,19 @@ class gbobject(object):
 				DNA += self.gbfile['dna'][start+1:finish+1] + '\n'
 		
 		if self.gbfile['features'][index]['complement'] == True:
-			DNA = dna.revcomp(DNA)
+			DNA = dna.RC(DNA)
 		return DNA
 
-	def GetDNA(self):
+	def GetDNA(self, start=1, finish=-1):
 		'''Get the entire DNA sequence from the self.gbfile'''
-		return self.gbfile['dna']
+		if (start == 1 and finish == -1) == True:
+			return self.gbfile['dna']
+		else:	
+			assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+			assert start <= finish, 'Starting point must be before finish.'
+			assert start > 0 and start <= len(self.gbfile['dna']), 'Starting point must be between 1 and the the DNA length.'
+			assert finish > 0 and finish <= len(self.gbfile['dna']), 'Finish must be between 1 and the the DNA length.'
+			return self.gbfile['dna'][start-1:finish]
 	
 	def get_filepath(self):
 		'''Get the self.filepath for the opened file'''
@@ -1178,16 +1185,17 @@ indeces >-1 are feature indeces'''
 	def changegbsequence(self, changestart, changeend, changetype, change):
 		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly."""
 		#assumes that changestart and changeend are list positions
-#		changestart -= 1
-		changeend += 1
+#		changestart -= 1 #convert back from DNA numbering to string numbering
+#		changeend += 1
 		print(change)
+		print(changestart, changeend)
 		if changetype == 'r': #replacement
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart+len(change):] #is this correct???
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1+len(change):] #is this correct???
 			
 					
 		elif changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + change + self.gbfile['dna'][changestart:]
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
 			for i in range(len(self.gbfile['features'])): #change features already present
 				for n in range(len(self.gbfile['features'][i]['location'])):
@@ -1201,26 +1209,26 @@ indeces >-1 are feature indeces'''
 		elif changetype == 'd': #deletion
 			deletionlist = []
 			olddnalength = len(self.gbfile['dna']) #for changing header
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart] + self.gbfile['dna'][changeend:]
+			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + self.gbfile['dna'][changeend:]
 			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
 			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
 					if i >= len(self.gbfile['features']):
 						break
-					if start<changestart and changeend<finish: #if change is within the feature, change finish
+					if (start<=changestart and changeend<finish) or (start<changestart and changeend<=finish): #if change is within the feature, change finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f') #finish
 						print('within feature')
-					elif changestart<=start and start<=changeend<=finish: #if change encompasses start, change start and finish
+					elif changestart<start and start<=changeend<finish: #if change encompasses start, change start and finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend+1-start, 's')	#start					
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
-						print('encopass start')
-					elif start<changestart<finish and finish<=changeend: #if change encompasses finish, change finish
+						print('encompass start')
+					elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart), 'f')	
-						print('encopass finish')
+						print('encompass finish')
 					elif changestart<=start and finish<changeend: #if change encompasses whole feature, add to deletion list
 						deletionlist.append(deepcopy((i, n)))
-						print('encopass all')
+						print('encompass all')
 					elif changestart<start and changeend<start: #if change is before feature, change start and finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')				
 						print('before start')
