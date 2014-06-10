@@ -67,7 +67,6 @@ execfile(settings) #gets all the pre-assigned settings
 
 
 
-
 class MyFrame(wx.Frame):
 	tab_list=[] #list of tabs 
 	current_tab=0 #contains the current tab
@@ -204,7 +203,7 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(506, 1)
 			self.frame_1_toolbar.EnableTool(511, 1)
 			self.frame_1_toolbar.EnableTool(512, 1)
-			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+#			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 			self.fileopen = True
 			
 
@@ -229,7 +228,7 @@ class MyFrame(wx.Frame):
 			self.propagate_gb()
 
 
-			self.dnaview.gbviewer.SetValue(self.gb.GetDNA())
+			self.dnaview.stc.SetText(self.gb.GetDNA())
 			self.SetTitle(fileName+' - DNApy')
 			if self.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
@@ -251,10 +250,8 @@ class MyFrame(wx.Frame):
 		else:
 			print("error, not a gb file")		
 
-		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
-#		wx.EVT_CLOSE(self, self.OnCloseWindow)
-		
-#		wx.EVT_KEY_DOWN(self, self.OnKeyPress)
+#		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+
 
 	
 	
@@ -344,8 +341,9 @@ class MyFrame(wx.Frame):
 		self.current_tab=self.DNApy.GetSelection()
 		if self.current_tab == 0: #if dna editor is active
 			
-			mposition, Feature = self.dnaview.mouse_position("") #get mouse position
-		
+			#mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+			mposition = 4
+			Feature = "none"
 		
 			try:
 				Position = str(mposition+1)
@@ -358,13 +356,13 @@ class MyFrame(wx.Frame):
 				Feature = ""
 		
 			try:		
-				SelectionFrom, SelectionTo = (str(self.dnaview.gbviewer.GetSelection()[0]+1), str(self.dnaview.gbviewer.GetSelection()[1]))
+				SelectionFrom, SelectionTo = (str(self.dnaview.stc.GetSelection()[0]+1), str(self.dnaview.stc.GetSelection()[1]))
 				if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
 					SelectionFrom, SelectionTo = ("0", "0")
 			except:
 				SelectionFrom, SelectionTo = ("0", "0")
 			try:	
-				Length = str(self.dnaview.gbviewer.GetSelection()[1] - self.dnaview.gbviewer.GetSelection()[0])
+				Length = str(self.dnaview.stc.GetSelection()[1] - self.dnaview.stc.GetSelection()[0])
 			except:
 				Length = ""
 
@@ -372,7 +370,7 @@ class MyFrame(wx.Frame):
 			self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
 		
 			if float(Length)/3 == 1: #if one triplet is selected, show the AA
-				AA = ': %s' % dna.Translate(self.dnaview.gbviewer.GetStringSelection())
+				AA = ': %s' % dna.Translate(self.dnaview.stc.GetSelectedText())
 			else:
 				AA = ''
 			
@@ -427,7 +425,7 @@ class MyFrame(wx.Frame):
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
-		elif control == self.dnaview.gbviewer: #the main dna window	
+		elif control == self.dnaview.stc: #the main dna window	
 			self.dnaview.cut()
 
 	def paste(self, evt):
@@ -435,7 +433,7 @@ class MyFrame(wx.Frame):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
-		elif control == self.dnaview.gbviewer: #the main dna window
+		elif control == self.dnaview.stc: #the main dna window
 			self.dnaview.paste()		
 
 	def copy(self, evt):
@@ -445,7 +443,7 @@ class MyFrame(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.dnaview.gbviewer: #the main dna window	
+		elif control == self.dnaview.stc: #the main dna window	
 			self.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):
@@ -782,22 +780,22 @@ Put Table here
 
 		self.updateUI()
 		start, finish = self.get_dna_selection()
-		self.dnaview.gbviewer.SetSelection(start, finish)
-		self.dnaview.gbviewer.ShowPosition(start) 
+		self.dnaview.stc.SetSelection(start, finish)
+		self.dnaview.stc.ShowPosition(start) 
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
 		self.gb.find_previous()
 		start, finish = self.get_dna_selection()
-		self.dnaview.gbviewer.SetSelection(start, finish)
-		self.dnaview.gbviewer.ShowPosition(start) 
+		self.dnaview.stc.SetSelection(start, finish)
+		self.dnaview.stc.ShowPosition(start) 
 
 	def find_next(self, evt):
 		'''Select next search hit'''
 		self.gb.find_next()
 		start, finish = self.get_dna_selection()
-		self.dnaview.gbviewer.SetSelection(start, finish)
-		self.dnaview.gbviewer.ShowPosition(start) 
+		self.dnaview.stc.SetSelection(start, finish)
+		self.dnaview.stc.ShowPosition(start) 
 
 	def mutate(self, evt):
 		pass

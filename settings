@@ -6,26 +6,25 @@ windowsize = (670, 600)
 
 ## Available colors ##
 #rv color is same as fw, just lighter
-red = {'fw':'#bb553d', 'rv':'#d28a5f'}
-orange = {'fw':'#e29425', 'rv':'#f5c27a'}
-yellow = {'fw':'#ffe349', 'rv':'#fdf388'}
-green = {'fw':'#44a153', 'rv':'#b2d562'}
-cyan = {'fw':'#4c9dab', 'rv':'#7acccb'}
-blue = {'fw':'#5683bf', 'rv':'#9fbfdc'}
-purple = {'fw':'#5f5799', 'rv':'#907bbe'}
-magenta = {'fw':'#a14673', 'rv':'#c57fad'}
-burgundy = {'fw':'#955050', 'rv':'#b58d8d'}
-grey = {'fw':'#848484', 'rv':'#c2c2c2'}
+red = {'color':'red', 'fw':'#bb553d', 'rv':'#d28a5f'}
+orange = {'color':'orange','fw':'#e29425', 'rv':'#f5c27a'}
+yellow = {'color':'yellow','fw':'#ffe349', 'rv':'#fdf388'}
+green = {'color':'green','fw':'#44a153', 'rv':'#b2d562'}
+cyan = {'color':'cyan','fw':'#4c9dab', 'rv':'#7acccb'}
+blue = {'color':'blue','fw':'#5683bf', 'rv':'#9fbfdc'}
+purple = {'color':'purple','fw':'#5f5799', 'rv':'#907bbe'}
+magenta = {'color':'magenta','fw':'#a14673', 'rv':'#c57fad'}
+burgundy = {'color':'burgundy','fw':'#955050', 'rv':'#b58d8d'}
+grey = {'color':'grey','fw':'#848484', 'rv':'#c2c2c2'}
 
 ## Color assignment to features ##
-#all features which are not given a specified color will be grey
 
 ## DNA
 promoter = cyan
 CAAT_signal = burgundy
 TATA_signal = burgundy
-#-35_signal = burgundy
-#-10_signal = burgundy
+a35_signal = burgundy
+a10_signal = burgundy
 RBS = burgundy
 
 gene = orange
@@ -36,11 +35,58 @@ terminator = red
 
 ## Other
 misc_feature = grey
-primer = magenta
+primer_bind = magenta
 rep_origin = blue
 modified_base = yellow
 variation = yellow
 protein_bind = purple
 
+enhancer = grey
+a5UTR = grey
+a3UTR = grey
+polyA_site = grey
+misc_binding = grey
+mRNA = grey
+prim_transcript = grey
+precursor_RNA = grey
+a5clip = grey
+a3clip = grey
+polyA_signal = grey
+GC_signal = grey
+attenuator = grey
+misc_signal = grey
+sig_peptide = grey
+transit_peptide = grey
+mat_peptide = grey
+STS = grey
+unsure = grey
+conflict = grey
+misc_difference = grey
+old_sequence = grey
+LTR = grey
+repeat_region = grey
+repeat_unit = grey
+satellite = grey
+mRNA = grey
+rRNA = grey
+tRNA = grey
+scRNA = grey
+snRNA = grey
+snoRNA = grey
+misc_RNA = grey
+source = grey
+misc_binding = grey
+misc_recomb = grey
+misc_structure = grey
+iDNA = grey
+stem_loop = grey
+Daloop = grey
+C_region = grey
+D_segment = grey
+J_segment = grey
+N_region = grey
+S_region = grey
+V_region = grey
+V_segment = grey
 
 

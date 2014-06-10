@@ -35,21 +35,18 @@
 
 
 from copy import deepcopy
-from string import *
+import string
 from os import access,listdir
 import sys, os
 import wx
-import wx.richtext as rt
-
-from wxPython.lib.buttons import *
-from wxPython.lib.colourselect import *
+import wx.stc
 
 import pyperclip
 
 import output
 import dna
 import genbank
-#import seqfiles
+
 import features_GUI as features
 
 #fix selection so that the statusbar matches the real
@@ -59,8 +56,8 @@ import features_GUI as features
 files={}   #dictionary with all configuration files
 
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=replace(files['default_dir'], "\\", "/")
-files['default_dir']=replace(files['default_dir'], "library.zip", "")
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 
 variables=files['default_dir']+"variables"   ##path to the file of the global variables
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
@@ -68,8 +65,144 @@ settings=files['default_dir']+"settings"   ##path to the file of the global sett
 execfile(variables) #gets all the pre-assigned variables
 execfile(settings) #gets all the pre-assigned settings
 
-#remove this and make it get the filename proper
-tabtext = 'replace!'
+
+
+
+############# Set up custom stc lexer class ##########################
+
+class BaseLexer(object):
+	"""Defines simple interface for custom lexer objects"""
+	def __init__(self):
+		super(BaseLexer, self).__init__()
+
+	def StyleText(self, event):
+		raise NotImplementedError
+
+class DNALexer(BaseLexer):
+	"""Lexer to highlight features in a genbank file"""
+	# Define some style IDs
+	STC_STYLE_DEFAULT = 0
+	STC_STYLE_RED_FW = 1
+	STC_STYLE_RED_RV = 2
+	STC_STYLE_ORANGE_FW = 3
+	STC_STYLE_ORANGE_RV = 4
+	STC_STYLE_YELLOW_FW = 5
+	STC_STYLE_YELLOW_RV = 6
+	STC_STYLE_GREEN_FW = 7
+	STC_STYLE_GREEN_RV = 8
+	STC_STYLE_CYAN_FW = 9
+	STC_STYLE_CYAN_RV = 10
+	STC_STYLE_BLUE_FW = 11
+	STC_STYLE_BLUE_RV = 12
+	STC_STYLE_PURPLE_FW = 13
+	STC_STYLE_PURPLE_RV = 14
+	STC_STYLE_MAGENTA_FW = 15
+	STC_STYLE_MAGENTA_RV = 16
+	STC_STYLE_BURGUNDY_FW = 17
+	STC_STYLE_BURGUNDY_RV = 18
+	STC_STYLE_GREY_FW = 19
+	STC_STYLE_GREY_RV = 20
+
+
+	def __init__(self):
+		super(DNALexer, self).__init__()
+
+
+
+
+	def StyleText(self, event):
+		"""Handle the EVT_STC_STYLENEEDED event"""
+		stc = event.GetEventObject()
+
+		featurelist = stc.GetTopLevelParent().gb.get_all_feature_positions()
+		for entry in featurelist:
+
+			featuretype, complement, start, finish = entry
+			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
+			featuretype = featuretype.replace("5'", "a5") #for 5' features
+			featuretype = featuretype.replace("3'", "a3") #for 5' features
+			color = eval(featuretype)['color'] #get the color of feature (as string)
+			assert type(color) == str
+
+			stc.StartStyling(start, 0x1f)
+			if color == 'red' and complement == False: 
+				style = DNALexer.STC_STYLE_RED_FW
+			elif color == 'red' and complement == True: 
+				style = DNALexer.STC_STYLE_RED_RV
+			elif color == 'orange' and complement == False:
+				style = DNALexer.STC_STYLE_ORANGE_FW
+			elif color == 'orange' and complement == True:
+				style = DNALexer.STC_STYLE_ORANGE_RV
+			elif color == 'yellow' and complement == False:
+				style = DNALexer.STC_STYLE_YELLOW_FW
+			elif color == 'yellow' and complement == True:
+				style = DNALexer.STC_STYLE_YELLOW_RV
+			elif color == 'green' and complement == False:
+				style = DNALexer.STC_STYLE_GREEN_FW
+			elif color == 'green' and complement == True:
+				style = DNALexer.STC_STYLE_GREEN_RV
+			elif color == 'cyan' and complement == False:
+				style = DNALexer.STC_STYLE_CYAN_FW
+			elif color == 'cyan' and complement == True:
+				style = DNALexer.STC_STYLE_CYAN_RV
+			elif color == 'blue' and complement == False:
+				style = DNALexer.STC_STYLE_BLUE_FW
+			elif color == 'blue' and complement == True:
+				style = DNALexer.STC_STYLE_BLUE_RV
+			elif color == 'purple' and complement == False:
+				style = DNALexer.STC_STYLE_PURPLE_FW
+			elif color == 'purple' and complement == True:
+				style = DNALexer.STC_STYLE_PURPLE_RV
+			elif color == 'magenta' and complement == False:
+				style = DNALexer.STC_STYLE_MAGENTA_FW
+			elif color == 'magenta' and complement == True:
+				style = DNALexer.STC_STYLE_MAGENTA_RV
+			elif color == 'burgundy' and complement == False:
+				style = DNALexer.STC_STYLE_BURGUNDY_FW
+			elif color == 'burgundy' and complement == True:
+				style = DNALexer.STC_STYLE_BURGUNDY_RV
+			elif color == 'grey' and complement == False:
+				style = DNALexer.STC_STYLE_GREY_FW
+			elif color == 'grey' and complement == True:
+				style = DNALexer.STC_STYLE_GREY_RV
+			else: 
+				print('nonononononon')
+				style = DNALexer.STC_STYLE_DEFAULT
+
+			length = finish-start
+			stc.SetStyling(length, style)
+
+
+class CustomSTC(wx.stc.StyledTextCtrl):
+	def __init__(self, *args, **kwargs):
+		super(CustomSTC, self).__init__(*args, **kwargs)
+
+		# Attributes
+		self.custlex = None
+
+		# Event Handlers
+		self.Bind(wx.stc.EVT_STC_STYLENEEDED, self.OnStyle)
+
+
+	def OnStyle(self, event):
+		# Delegate to custom lexer object if one exists
+		if self.custlex:
+			self.custlex.StyleText(event)
+		else:
+			event.Skip()
+
+	def SetLexer(self, lexerid, lexer=None):
+		"""Overrides StyledTextCtrl.SetLexer
+		Adds optional param to pass in custom container
+		lexer object.
+		"""
+		self.custlex = lexer
+		super(CustomSTC, self).SetLexer(lexerid)
+
+
+################## Done with lexer class ######################
+
+
 
 
 ########### class for text ######################
@@ -91,76 +224,132 @@ class MyPanel(wx.Panel):
 		
 
 		#create dna view panel
-		self.gbviewer = rt.RichTextCtrl(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE)
+		self.stc = CustomSTC(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE|wx.TE_READONLY)
+		self.stc.SetWrapMode(wx.stc.STC_WRAP_WORD) #enable word wrap
+		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache laout calculations and only draw when something changes
 
-#		self.gbviewer = output.create(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
-		self.gbviewer.SetEditable(False)	
-		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Source Code Pro', encoding=wx.FONTENCODING_DEFAULT) #could also use Inconsolata
-		self.gbviewer.SetFont(font)
-		self.gbviewer.Bind(wx.EVT_CHAR, self.OnKeyPress) #any key press
-		self.gbviewer.Bind(rt.EVT_RICHTEXT_SELECTION_CHANGED, self.OnSelChange)#these don't work!
-		self.gbviewer.Bind(rt.EVT_RICHTEXT_SELECTION_CHANGED, self.OnSelChange)
+		#set lexer styles
+		style = DNALexer.STC_STYLE_DEFAULT
+		self.stc.StyleSetSpec(style, "fore:#000000,face:Mono,size:10")
+		style = DNALexer.STC_STYLE_RED_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % red['fw'])
+		style = DNALexer.STC_STYLE_RED_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % red['rv'])
+		style = DNALexer.STC_STYLE_ORANGE_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % orange['fw'])
+		style = DNALexer.STC_STYLE_ORANGE_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % orange['rv'])
+		style = DNALexer.STC_STYLE_YELLOW_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % yellow['fw'])
+		style = DNALexer.STC_STYLE_YELLOW_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % yellow['rv'])
+		style = DNALexer.STC_STYLE_GREEN_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % green['fw'])
+		style = DNALexer.STC_STYLE_GREEN_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % green['rv'])
+		style = DNALexer.STC_STYLE_CYAN_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % cyan['fw'])
+		style = DNALexer.STC_STYLE_CYAN_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % cyan['rv'])
+		style = DNALexer.STC_STYLE_BLUE_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % blue['fw'])
+		style = DNALexer.STC_STYLE_BLUE_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % blue['rv'])
+		style = DNALexer.STC_STYLE_PURPLE_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % purple['fw'])
+		style = DNALexer.STC_STYLE_PURPLE_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % purple['rv'])
+		style = DNALexer.STC_STYLE_MAGENTA_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % magenta['fw'])
+		style = DNALexer.STC_STYLE_MAGENTA_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % magenta['rv'])
+		style = DNALexer.STC_STYLE_BURGUNDY_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % burgundy['fw'])
+		style = DNALexer.STC_STYLE_BURGUNDY_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % burgundy['rv'])
+		style = DNALexer.STC_STYLE_GREY_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['fw'])
+		style = DNALexer.STC_STYLE_GREY_RV
+		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['rv'])
 
+		self.stc.SetLexer(wx.stc.STC_LEX_CONTAINER, DNALexer())
 
+		self.stc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress) #This is important for controlling the input into the editor
 
-		splitter1.SplitHorizontally(self.feature_list, self.gbviewer,sashPosition=-(windowsize[1]-270))
+		splitter1.SplitHorizontally(self.feature_list, self.stc,sashPosition=-(windowsize[1]-270))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
-#		sizer.Add(splitter, -1, wx.EXPAND)
-#		sizer.Add(self.linecount, proportion=1, flag=wx.EXPAND)
 		sizer.Add(splitter1, -1, wx.EXPAND)
-#		sizer.Add(self.feature_list, proportion=1, flag=wx.EXPAND)
-#		sizer.Add(self.gbviewer, proportion=1, flag=wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
 
+
 	def OnKeyPress(self, evt):
 		key = evt.GetUniChar()
 #		print(key)
-#		shift = evt.ShiftDown()
+		shift = evt.ShiftDown() # is shift down?
+#		print(shift)
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
-			start, finish = self.gbviewer.GetSelection()
-			if (start == -2 and finish == -2) == False: # if a selection, delete it
-				self.GetTopLevelParent().gb.changegbsequence(start, finish, 'r', chr(key))
-				#self.GetTopLevelParent().gb.Delete(start+1, finish+1)
-			else:
-				start = self.gbviewer.GetInsertionPoint()
-				self.GetTopLevelParent().gb.changegbsequence(start, start, 'i', chr(key))
+			start, finish = self.stc.GetSelection()
+			if start != finish: # if a selection, delete it, then paste
+				self.GetTopLevelParent().gb.Delete(start+1, finish, visible=False)
+			if shift == True:
+				self.GetTopLevelParent().gb.Paste(start+1, chr(key).upper())
+			elif shift == False:
+				self.GetTopLevelParent().gb.Paste(start+1, chr(key).lower())
 			self.updateUI()
-			self.gbviewer.SetInsertionPoint(start+1)
-			self.gbviewer.ShowPosition(start+1) 
+			self.GetTopLevelParent().updateUndoRedo()
+			self.stc.SetSelection(start+1, start+1)
 
 
-		if key == 8: #backspace
-			start, finish = self.gbviewer.GetSelection()
-			if (start == -2 and finish == -2) == False: # if a selection, delete it
+		elif key == 8: #backspace
+			start, finish = self.stc.GetSelection()
+			if start != finish: # if a selection, delete it
 				self.GetTopLevelParent().gb.Delete(start+1, finish)
 				self.updateUI()
-				self.gbviewer.SetInsertionPoint(start)
-				self.gbviewer.ShowPosition(start) 
+				self.GetTopLevelParent().updateUndoRedo()
+				self.stc.SetSelection(start+1, start+1)
 			else:
-				start = self.gbviewer.GetInsertionPoint()
 				self.GetTopLevelParent().gb.Delete(start, start)
 				self.updateUI()
 				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
-				self.gbviewer.SetInsertionPoint(start-1)
-				self.gbviewer.ShowPosition(start-1) 
+				self.stc.SetSelection(start-1, start-1)
 
-		if key == 127: #delete
-			start, finish = self.gbviewer.GetSelection()
-			if (start == -2 and finish == -2) == False: # if a selection, delete it
+		elif key == 127: #delete
+			start, finish = self.stc.GetSelection()
+			if start != finish: # if a selection, delete it
 				self.GetTopLevelParent().gb.Delete(start+1, finish)
 			else:
-				start = self.gbviewer.GetInsertionPoint()
 				self.GetTopLevelParent().gb.Delete(start+1, start+1)
 			self.updateUI()
 			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
-			self.gbviewer.SetInsertionPoint(start)
-			self.gbviewer.ShowPosition(start) 
+			self.stc.SetSelection(start, start)
 
-	def OnSelChange(self, evt):
-		print('sel changed')
+		elif key == 314 and shift == False: #left
+			self.stc.CharLeft()
+
+		elif key == 314 and shift == True: #left + select
+			self.stc.CharLeftExtend()
+
+		elif key == 316 and shift == False: #right
+			self.stc.CharRight()
+
+		elif key == 316 and shift == True: #right + select
+			self.stc.CharRightExtend()
+
+		elif key == 315 and shift == False: #up
+			self.stc.LineUp()
+
+		elif key == 315 and shift == True: #up + select
+			self.stc.LineUpExtend()
+
+		elif key == 317 and shift == False: #down
+			self.stc.LineDown()
+
+		elif key == 317 and shift == True: #down + select
+			self.stc.LineDownExtend()
+
 ##########################
 	def make_outputpopup(self):
 		'''Creates a popup window in which output can be printed'''
@@ -175,7 +364,7 @@ class MyPanel(wx.Panel):
 #	def dna_output(self, featurelist):
 #		'''Prints output to the output panel'''
 #		self.make_outputpopup()	
-#		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
+#		tabtext = str(self.stc.GetPageText(self.stc.GetSelection()))
 #		DNA = featurelist[0]
 #		self.output.write('%s | DNA in clipboard, %d bp' % (tabtext, len(DNA))+'\n', 'File')
 #		self.output.write(DNA+'\n', 'DNA')
@@ -193,108 +382,84 @@ class MyPanel(wx.Panel):
 ################ genbank methods ###############
 
 
-	def match_selection(self):
-		'''Checks whether the dnaview selection matches that stored in the selection variable in genbank and if not, updates it'''
-		viewerstart, viewerend = self.gbviewer.GetSelection()
-		if (viewerstart == -2 and viewerend == -2) == True: # if not a selection
-			viewerstart = self.gbviewer.GetInsertionPoint()
-			selection = (viewerstart+1, viewerstart+1)
+	def get_selection(self):
+		'''Gets the text editor selection and adjusts it to DNA locations'''
+		start, finish = self.stc.GetSelection()
+		print(start, finish)
+		if start == finish: # if not a selection
+			selection = (start+1, finish+1)
 		else:
-			selection = (viewerstart+1, viewerend)
-		self.GetTopLevelParent().set_dna_selection(selection)
-		print(selection)
-
-
-
-	def select_all(self):
-		pass
+			selection = (start+1, finish)
+		return selection
 
 	def uppercase(self):
 		'''Change selection to uppercase'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.Upper(start, finish)
 		self.updateUI()
-		self.gbviewer.SetSelection(start-1, finish)
-		self.gbviewer.ShowPosition(start-1)
-		
+		self.stc.SetSelection(start-1, finish)
+	
 	def lowercase(self):
 		'''Change selection to lowercase'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.Lower(start, finish)
 		self.updateUI() 
-		self.gbviewer.SetSelection(start-1, finish)
-		self.gbviewer.ShowPosition(start-1)
+		self.stc.SetSelection(start-1, finish)
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.RCselection(start, finish)
 		self.updateUI()
-		self.gbviewer.SetSelection(start-1, finish)
-		self.gbviewer.ShowPosition(start-1)
+		self.stc.SetSelection(start-1, finish)
 
-#	def delete(self):
-#		'''Deletes a selection and updates dna and features'''
-#		self.match_selection()
-#		start, finish = self.GetTopLevelParent().get_dna_selection()
-#		self.GetTopLevelParent().gb.Delete(start, finish)
-#		self.updateUI()
-#		self.gbviewer.SetInsertionPoint(start-1)
-
+	def delete(self):
+		'''Deletes a selection and updates dna and features'''
+		start, finish = self.get_selection()
+		self.GetTopLevelParent().gb.Delete(start, finish)
+		self.updateUI()
+		self.stc.SetSelection(start-1, start-1)
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.Cut(start, finish)
 		self.updateUI()
-		self.gbviewer.SetInsertionPoint(start-1)
-		self.gbviewer.ShowPosition(start-1)
+		self.stc.SetSelection(start-1, start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.CutRC(start, finish)
 		self.updateUI()
-		self.gbviewer.SetInsertionPoint(start-1)
-		self.gbviewer.ShowPosition(start-1)
+		self.stc.SetSelection(start-1, start-1)
 
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		if start != finish: #If a selection, remove sequence
 			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
 		self.GetTopLevelParent().gb.Paste(start)
-		self.updateUI() # need to fix so that pasted dna is still highlighted
-		self.gbviewer.SetInsertionPoint(start-1)
-		self.gbviewer.ShowPosition(start-1)
+		self.updateUI() 
+		self.stc.SetSelection(start-1, start-1)
 		
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		if start != finish: #If a selection, remove sequence
 			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
 		self.GetTopLevelParent().gb.PasteRC(start)
 		self.updateUI()
-		self.gbviewer.SetInsertionPoint(start-1)
-		self.gbviewer.ShowPosition(start-1)
+		self.stc.SetSelection(start-1, start-1)
 
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.Copy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
-		self.match_selection()
-		start, finish = self.GetTopLevelParent().get_dna_selection()
+		start, finish = self.get_selection()
 		self.GetTopLevelParent().gb.CopyRC(start, finish)
 
 
@@ -302,75 +467,68 @@ class MyPanel(wx.Panel):
 
 
 ######### Functions for updating text and text highlighting #############
-	def remove_styling(self):
-		'''Removes background styling for whole document'''
-		start = 0
-		finish = self.gbviewer.GetLastPosition() #last position in file
-		self.attr = rt.RichTextAttr()
-		self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-		self.attr.SetBackgroundColour('#FFFFFF')
-		self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
+#	def remove_styling(self):
+#		'''Removes background styling for whole document'''
+#		start = 0
+#		finish = self.stc.GetLastPosition() #last position in file
+#		self.attr = rt.RichTextAttr()
+#		self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
+#		self.attr.SetBackgroundColour('#FFFFFF')
+#		self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 	
-	def get_feature_color(self, featuretype, complement):
-		'''Takes single feature and finds its color, if any'''
-		#piece of code to check if there are assigned colors to the features
-		
-		try: 
-			color = eval(featuretype)
-							
-		except:
-			color = grey	
-		
-		
-		if complement == True: self.gbviewer.current_highlight_color = color['rv']
-		else: self.gbviewer.current_highlight_color = color['fw']
+#	def get_feature_lexer(self, featuretype, complement):
+#		'''Takes single feature and finds its lexer, if any'''
+#		#piece of code to check if there are assigned colors to the features
+
+
+
 
 	
 	def updateUI(self):
 		'''For changing background color of text ranges'''
-		self.remove_styling() #first remove old styles
-		self.gbviewer.SetValue(self.GetTopLevelParent().gb.GetDNA()) #put the DNA in
+#		self.remove_styling() #first remove old styles
+		self.stc.SetText(self.GetTopLevelParent().gb.GetDNA()) #put the DNA in
 
 		#match selection to previous one
-#		start, finish = self.GetTopLevelParent().get_dna_selection()
-#		if start != finish: self.gbviewer.SetSelection(start, finish)
-#		elif start == finish: self.gbviewer.SetInsertionPoint(start-1)
-#		self.gbviewer.ShowPosition(start) 
+#		
+#		if start != finish: self.stc.SetSelection(start, finish)
+#		elif start == finish: self.stc.SetInsertionPoint(start-1)
+#		self.stc.ShowPosition(start) 
 
 	
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
-		featurelist = self.GetTopLevelParent().gb.get_all_feature_positions()
-		for entry in featurelist:
-			featuretype, complement, start, finish = entry
-			self.get_feature_color(featuretype, complement)
+#		featurelist = self.GetTopLevelParent().gb.get_all_feature_positions()
+#		for entry in featurelist:
+#			featuretype, complement, start, finish = entry
+#			self.get_feature_color(featuretype, complement)
 
-			color = self.gbviewer.current_highlight_color #get color
+#			color = self.stc.current_highlight_color #get color
 
-			#do the painting
-			self.attr = rt.RichTextAttr()
-			self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-			self.attr.SetBackgroundColour(color)
-			self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
+#			#do the painting
+#			self.attr = rt.RichTextAttr()
+#			self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
+#			self.attr.SetBackgroundColour(color)
+#			self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 
 	
-		#color in search hits if any are present
-		search_hits = self.GetTopLevelParent().gb.search_hits
-		if len(search_hits) != 0:
-			color = '#ffff00'
-			for i in range(len(search_hits)):
-				start = int(search_hits[i][0])
-				finish = int(search_hits[i][1])
-				#do the painting
-				self.attr = rt.RichTextAttr()
-				self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-				self.attr.SetBackgroundColour(color)
-				self.gbviewer.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
+#		#color in search hits if any are present
+#		search_hits = self.GetTopLevelParent().gb.search_hits
+#		if len(search_hits) != 0:
+#			color = '#ffff00'
+#			for i in range(len(search_hits)):
+#				start = int(search_hits[i][0])
+#				finish = int(search_hits[i][1])
+#				#do the painting
+#				self.attr = rt.RichTextAttr()
+#				self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
+#				self.attr.SetBackgroundColour(color)
+#				self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
 
 #I need to think carefully about where to place these...
 		#realize the current selection in the DNA editor
-#		start, finish = self.GetTopLevelParent().get_dna_selection()
-#		self.gbviewer.SetSelection(start, finish) #update the graphical selection
-#		self.gbviewer.ShowPosition(start) 
+#		
+#		self.stc.SetSelection(start, finish) #update the graphical selection
+#		self.stc.ShowPosition(start) 
 
 		#update feature list
 		self.feature_list.updateUI()
@@ -378,9 +536,9 @@ class MyPanel(wx.Panel):
 		#use this to get the first line characters 
 		##develop it##
 		#set insertion point to beginning... Make it update on resize
-#		while self.gbviewer.MoveDown() == True:
-#			self.gbviewer.MoveDown()
-#			self.linecount.write(str(self.gbviewer.GetInsertionPoint()+1)+'\n', 'Text')
+#		while self.stc.MoveDown() == True:
+#			self.stc.MoveDown()
+#			self.linecount.write(str(self.stc.GetInsertionPoint()+1)+'\n', 'Text')
 
 		##############
 
@@ -402,7 +560,7 @@ class MyPanel(wx.Panel):
 ####### Protein functions #######
 	def translate_output(self, protein, DNA, info):
 		'''Generate output in the output.panel'''
-#		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
+#		tabtext = str(self.stc.GetPageText(self.stc.GetSelection()))
 		self.make_outputpopup()			
 		self.output.write('%s | Translate %s\n' % (tabtext, info), 'File')
 		self.output.write(('%d AA from %d bases, %d bases left untranslated' % (len(protein), len(DNA), len(DNA)%3))+'\n', 'Text')
@@ -411,13 +569,13 @@ class MyPanel(wx.Panel):
 	
 	def translate_selection(self):
 		'''Translate selected DNA'''
-		DNA = self.gbviewer.GetStringSelection()
+		DNA = self.stc.GetStringSelection()
 		protein = dna.Translate(DNA)
 		self.translate_output(protein, DNA, 'leading strand')
 		
 	def translate_selection_reverse_complement(self):
 		'''Translate reverse-complement of selected DNA'''
-		DNA = self.gbviewer.GetStringSelection()
+		DNA = self.stc.GetStringSelection()
 		protein = dna.Translate(dna.RC(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
 
@@ -444,24 +602,21 @@ class MyPanel(wx.Panel):
 		self.updateUI() #refresh everything
 
 		
-	def mouse_position(self, event):
-		'''Get which features are at a given position'''		
-		xyposition = self.gbviewer.ScreenToClient(wx.GetMousePosition())
-		#event.GetPosition() #this can be used if it controlled by an event..
-		mposition = self.gbviewer.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
-#		mposition += 6
-#		print(mposition)
-		#which feature corresponds to this pos?
-		Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
-		return mposition, Feature
+#	def mouse_position(self, event):
+#		'''Get which features are at a given position'''		
+#		xyposition = self.stc.ScreenToClient(wx.GetMousePosition())
+#		#event.GetPosition() #this can be used if it controlled by an event..
+#		mposition = self.stc.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
+##		mposition += 6
+##		print(mposition)
+#		#which feature corresponds to this pos?
+#		Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
+#		return mposition, Feature
 
 
 ###############################################################
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
-
-	#remove this and make it get the filename proper
-	tabtext = 'replace!'
 
 	frame = wx.Frame(None, title="DNA editor") # creation of a Frame with a title
 	frame.dnaeditor = MyPanel(frame) # creation of a richtextctrl in the frame
