@@ -571,8 +571,8 @@ class FeatureView(wx.Panel):
 		start = self.GetTopLevelParent().gb.get_location(locations[0])[0]
 		finish = self.GetTopLevelParent().gb.get_location(locations[-1])[1]
 		self.GetTopLevelParent().set_dna_selection((start-1, finish))  #how to I propagate this to the DNA view???
-		self.GetTopLevelParent().dnaview.gbviewer.SetSelection(start-1, finish) #update DNA selection
-		self.GetTopLevelParent().dnaview.gbviewer.ShowPosition(start) #show the selection
+		self.GetTopLevelParent().dnaview.stc.SetSelection(start-1, finish) #update DNA selection
+
 ######
 ######
 ######

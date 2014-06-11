@@ -47,7 +47,7 @@ import output
 import dna
 import genbank
 
-import features_GUI as features
+import features_GUI
 
 #fix selection so that the statusbar matches the real
 
@@ -183,6 +183,12 @@ class CustomSTC(wx.stc.StyledTextCtrl):
 		# Event Handlers
 		self.Bind(wx.stc.EVT_STC_STYLENEEDED, self.OnStyle)
 
+#	def SetDNA(self, text):
+#		self.SetText('')
+#		rows = len(text)//100
+#		for i in range(0,rows-1):
+#			self.AppendText('%s\n' % text[i*100:(i+1)*100])
+#		print('SetDNA')
 
 	def OnStyle(self, event):
 		# Delegate to custom lexer object if one exists
@@ -220,11 +226,11 @@ class MyPanel(wx.Panel):
 
 		#create feature list view
 		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = features.FeatureCreate(splitter1, id=wx.ID_ANY, editor=False)
+		self.feature_list = features_GUI.FeatureCreate(splitter1, id=wx.ID_ANY, editor=False)
 		
 
 		#create dna view panel
-		self.stc = CustomSTC(splitter1, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE|wx.TE_READONLY)
+		self.stc = CustomSTC(splitter1)
 		self.stc.SetWrapMode(wx.stc.STC_WRAP_WORD) #enable word wrap
 		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache laout calculations and only draw when something changes
 
@@ -604,24 +610,29 @@ class MyPanel(wx.Panel):
 		
 #	def mouse_position(self, event):
 #		'''Get which features are at a given position'''		
-#		xyposition = self.stc.ScreenToClient(wx.GetMousePosition())
-#		#event.GetPosition() #this can be used if it controlled by an event..
-#		mposition = self.stc.HitTest(xyposition)[1] #1 for the character num, 0 for linenum
-##		mposition += 6
-##		print(mposition)
-#		#which feature corresponds to this pos?
-#		Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
-#		return mposition, Feature
+#		xposition, yposition = self.stc.ScreenToClient(wx.GetMousePosition())
+#		if xposition > 0 and yposition > 0:
 
+#			point = wx.Point(xposition, yposition)
+#			#event.GetPosition() #this can be used if it controlled by an event..
+#			mposition = self.stc.HitTest((1,1))
+
+#			print(mposition)
+#			print(type(mposition))
+#			#which feature corresponds to this pos?
+#			Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
+#			return mposition, Feature
+#		else:
+#			return None, None
 
 ###############################################################
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
 
 	frame = wx.Frame(None, title="DNA editor") # creation of a Frame with a title
-	frame.dnaeditor = MyPanel(frame) # creation of a richtextctrl in the frame
+	frame.dnaeditor_GUI = MyPanel(frame) # creation of a richtextctrl in the frame
 	frame.Show() # frames are invisible by default so we use Show() to make them visible
-	frame.dnaeditor.open_file("")
+	frame.dnaeditor_GUI.open_file("")
 	app.MainLoop() # here the app enters a loop waiting for user input
 
 

@@ -12,45 +12,42 @@ The software is being developed on a Linux machine and works well in that enviro
 Implemented Software features
 =====
 
-Visualization of DNA and sequence features
+* Visualization of DNA and sequence features
 
-DNA editing, copy, paste, reverse complement 
+* DNA editing, copy, paste, reverse complement 
 
-DNA translation to protein
+* Unlimited undo/redo 
 
-Addition/removal/modification of genbank features
+* DNA translation to protein
 
-Addition/removal/modification of genbank qualifiers
+* Addition/removal/modification of genbank features
 
-Design of mixed base codons for libraries
+* Addition/removal/modification of genbank qualifiers
+
+* Design of mixed base codons for libraries
 
 Not Yet Implemented Software features
 =====
 
-Unlimited undo/redo 
+* Addition/removal/modification of genbank header entries 
 
-Addition/removal/modification of genbank header entries 
+* Plasmid view visualization
 
-Plasmid view visualization
+* Easy mutation of genes by position or sequence
 
-Easy mutation of genes by position or sequence
+* Restriction enzyme finder
 
-Restriction enzyme finder
+* NCBI blast for homologous genes 
 
-NCBI blast for homologous genes 
+* Fetch genes/genomes/plasmids from NCBI 
 
-Fetch genes/genomes/plasmids from NCBI 
+* DNA codon optimization 
 
-DNA codon optimization 
+* Primer design 
 
+* Analysis of sequence reads in the .ab1 format
 
-Primer design 
-
-Analysis of sequence reads in the .ab1 format
-
-Automatic structure prediction of mutated proteins (using SwissModel) 
-
-Calculation of ribosome binding strength 
+* Calculation of ribosome binding strength 
 
 
 Project Website

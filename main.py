@@ -29,7 +29,7 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 from copy import deepcopy
-from string import *
+import string
 from os import access,listdir
 import sys, os
 import wx
@@ -42,9 +42,9 @@ import dna
 import genbank
 
 #GUI components
-import dnaeditor_GUI as dnaeditor
-import features_GUI as features
-import genbank_GUI as genbankfileview
+import dnaeditor_GUI
+import features_GUI
+import genbank_GUI
 import mixed_base_codons_GUI
 
 #TODO
@@ -57,8 +57,8 @@ import mixed_base_codons_GUI
 files={}   #dictionary with all configuration files
 
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=replace(files['default_dir'], "\\", "/")
-files['default_dir']=replace(files['default_dir'], "library.zip", "")
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 
 variables=files['default_dir']+"variables"   ##path to the file of the global variables
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
@@ -136,7 +136,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 
-		self.dnaview = dnaeditor.MyPanel(self.panel[number])
+		self.dnaview = dnaeditor_GUI.MyPanel(self.panel[number])
 	
 		self.tab_list.append(self.dnaview)
 
@@ -153,7 +153,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 
-		self.featureview = features.FeatureCreate(self.panel[number], id=wx.ID_ANY, editor=True)
+		self.featureview = features_GUI.FeatureCreate(self.panel[number], id=wx.ID_ANY, editor=True)
 	
 		self.tab_list.append(self.featureview)
 
@@ -174,7 +174,7 @@ class MyFrame(wx.Frame):
 		number=len(self.tab_list)
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
-		self.genbankview = genbankfileview.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
+		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
 		self.genbankview.SetEditable(False)
 
 		self.tab_list.append(self.genbankview)
@@ -203,7 +203,7 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(506, 1)
 			self.frame_1_toolbar.EnableTool(511, 1)
 			self.frame_1_toolbar.EnableTool(512, 1)
-#			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 			self.fileopen = True
 			
 
@@ -250,26 +250,20 @@ class MyFrame(wx.Frame):
 		else:
 			print("error, not a gb file")		
 
-#		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
+		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 
 
 	
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
-#		try:
+		self.gb.Save()
 
-		print(self.gb.get_filepath())
-		self.gb.write_file(self.gb.get_filepath())
-		
-
-#		except:
-#			self.save_as_file("")
 		
 
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
-		filepath = self.gb.get_filepath()
+		filepath = self.gb.GetFilepath()
 		print(filepath)	
 		for i in range(len(filepath)): #get directory for file
 			if filepath[i] == '/':
@@ -289,7 +283,7 @@ class MyFrame(wx.Frame):
 				all_path += '.gb'
 				fileName += '.gb'
 			#try:
-			self.gb.set_filepath(all_path)
+			self.gb.SetFilepath(all_path)
 			self.save_file("")
 			self.SetTitle(fileName+' - DNApy')
 			#except:
@@ -342,8 +336,8 @@ class MyFrame(wx.Frame):
 		if self.current_tab == 0: #if dna editor is active
 			
 			#mposition, Feature = self.dnaview.mouse_position("") #get mouse position
-			mposition = 4
-			Feature = "none"
+			mposition = 'None'
+			Feature = "None"
 		
 			try:
 				Position = str(mposition+1)
@@ -595,19 +589,23 @@ Put Table here
 	def Undo(self, evt):
 		self.gb.Undo()
 		self.updateUI()
+		self.updateUndoRedo()
 
 	def Redo(self, evt):
 		self.gb.Redo()
+		self.updateUI()
+		self.updateUndoRedo()
 ######################################
 
 	def updateUndoRedo(self):
 		#activate/deactivate undo and redo buttons
-		if self.gb.get_file_version_index <= 0: #if there are no undos available
+		if self.gb.get_file_version_index() <= 0: #if there are no undos available
 			self.frame_1_toolbar.EnableTool(513, False)
 		else:
 			self.frame_1_toolbar.EnableTool(513, True)
-		
-		if self.gb.get_file_version_index >= len(self.gb.file_versions)-1: #if there are no redos available
+		print('index', self.gb.get_file_version_index())
+		print('len -1', len(self.gb.file_versions)-1)
+		if self.gb.get_file_version_index() >= len(self.gb.file_versions)-1: #if there are no redos available
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
@@ -680,15 +678,15 @@ Put Table here
 		
 		self.frame_1_toolbar.Realize()
 		
-		self.frame_1_toolbar.EnableTool(502, 0)
-		self.frame_1_toolbar.EnableTool(503, 0)
-		self.frame_1_toolbar.EnableTool(504, 0)
-		self.frame_1_toolbar.EnableTool(505, 0)
-		self.frame_1_toolbar.EnableTool(506, 0)
-		self.frame_1_toolbar.EnableTool(511, 0)
-		self.frame_1_toolbar.EnableTool(512, 0)
-		self.frame_1_toolbar.EnableTool(513, 0)
-		self.frame_1_toolbar.EnableTool(514, 0)
+		self.frame_1_toolbar.EnableTool(502, 0) #save current file button
+		self.frame_1_toolbar.EnableTool(503, 0) #save as button
+		self.frame_1_toolbar.EnableTool(504, 0) #cut button
+		self.frame_1_toolbar.EnableTool(505, 0) #copy button
+		self.frame_1_toolbar.EnableTool(506, 0)	#paste button
+		self.frame_1_toolbar.EnableTool(511, 0) #search button
+		self.frame_1_toolbar.EnableTool(512, 0) #mutate button
+		self.frame_1_toolbar.EnableTool(513, 0) #Undo button
+		self.frame_1_toolbar.EnableTool(514, 0) #Redo button
 
 	def __generate_searchandmutate_toolbar(self):
 		##### Toolbar 2 #####
