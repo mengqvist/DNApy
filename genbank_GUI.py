@@ -39,7 +39,7 @@ class MyPanel(create):
 		create.__init__(self, parent, style)
 
 	def updateUI(self):
-		genbankfile = self.GetTopLevelParent().gb.make_gbstring()
+		genbankfile = genbank.gb.make_gbstring()
 		self.clear()
 		self.write(genbankfile, 'Text')
 

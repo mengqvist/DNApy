@@ -39,15 +39,15 @@
 #make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
 
 import dna
-from copy import deepcopy
+import copy
 import pyperclip
 import oligo_localizer
 
-from Bio import Scanner
 
 #for asserts and tests
 import types
 import unittest
+
 
 class feature(object):
 	"""A featue object class that defines the key, location and qualifiers of a feature and methods to interact with these.
@@ -145,49 +145,71 @@ class gbobject(object):
 		self.search_hits = []	# variable for storing a list of search hits
 
 
-		self.file_versions = (deepcopy(self.gbfile),) #stores version of the file
+		self.file_versions = (copy.deepcopy(self.gbfile),) #stores version of the file
 		self.file_version_index = -1 #stores at which index the current file is
-		if filepath == None:
-			self.gbfile['features'] = []
-			self.gbfile['dna'] = ''
-			self.gbfile['header'] = ''
-			self.gbfile['filepath'] = ''
-		else:
-			self.readgb(filepath)
+
+		self.gbfile['features'] = []
+		self.gbfile['dna'] = ''
+		self.gbfile['header'] = ''
+		self.gbfile['filepath'] = ''
+		self.readgb(filepath)
 
 ###############################
 
 
-	def treat_input_line(self, tempstr):
-		'''Function for parsing a string containing genbank feature information into the correct data format'''
-		assert type(tempstr) is types.StringType, "Error parsing genbank line. Input is not a string: %s" % str(tempstr)
+	def treat_input_line(self, input_string):
+		'''Function for parsing a string containing genbank feature information into the correct data format.
+			The input string is expected to already have been "treated" for linebreaks (lines ending in comma).
+			Sting should therefore be an entire feature key line or entire feature qualifier line.'''
+		assert type(input_string) is str, "Error parsing genbank line. Input is not a string, it is %s:" % str(type(input_string))
 
-		templist = tempstr.split('  ')
+		#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
+		if input_string[0:5] == '     ' and (input_string[6] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-') == True:
+			key = input_string[5:20].rstrip('\t\n\x0b\x0c\r ')
+			location = input_string[21:].rstrip('\t\n\x0b\x0c\r ')
+			dictionary = {}
+			dictionary['key'] = key
+			dictionary['location'] = location
+			return dictionary
+		elif input_string[0:21] == '                     ' and input_string[21] == '/':
+			qualifier = input_string[21:].rstrip('\t\n\x0b\x0c\r ')
+			dictionary = {}
+			dictionary['qualifier'] = qualifier
+			return dictionary
+		else:
+			print('error', input_string)
 
-		templist[:] = [x for x in templist if x != ''] #remove empty entries
 		
-		#to remove any \r and \n newline characters at the end
-		for i in range(len(templist)): 
-			templist[i] = templist[i].rstrip('\r\n')
+############################
 
-		#remove single whitespace in front
-		for i in range(len(templist)): 
-			if templist[i][0] == ' ':
-				templist[i] = templist[i][1:]
-	
-		#to deal with feature descriptions or amino acid sequences that break over several lines 
-		done = False
-		i = 2
-		while done != True:
-			listlen = len(templist)
-			if templist[i][0] != '/': 
-				templist[i-1] += templist[i]
-				del templist[i]
-				i = 1
-			if i >= listlen-1:
-				done = True
-			i += 1
-		return templist
+#		templist = input_string.split('  ')
+
+#		templist[:] = [x for x in templist if x != ''] #remove empty entries
+#		
+#		#to remove any \r and \n newline characters at the end
+#		for i in range(len(templist)): 
+#			templist[i] = templist[i].rstrip('\r\n')
+
+#		#remove single whitespace in front
+#		for i in range(len(templist)): 
+#			if templist[i][0] == ' ':
+#				templist[i] = templist[i][1:]
+#	
+#		#to deal with feature descriptions or amino acid sequences that break over several lines 
+#		done = False
+#		i = 2
+#		while done != True:
+#			listlen = len(templist)
+##			print('i', i)
+##			print('templist',templist)
+#			if templist[i][0] != '/': 
+#				templist[i-1] += templist[i]
+#				del templist[i]
+#				i = 1
+#			if i >= listlen-1:
+#				done = True
+#			i += 1
+#		return templist
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
@@ -223,94 +245,123 @@ class gbobject(object):
 			#get the features
 			## need to add single base support!!!! ##
 		
-			featurelist2 = []
-			featurelist = features.split('\n')
-			templist = []
-			tempstr = ''
+#			featurelist2 = []
+			featurelist = features.split('\n') #split into lines
+#			templist = []
+#			tempstr = ''
+			feature = {}
 		
-			if featurelist[-1] == '': del featurelist[-1] #last entry tends to be empty, if so, remove
-		
-			for line in range(1, len(featurelist)):
-				if ('..' in featurelist[line] and tempstr != '') == True:
-					if tempstr[-1] == ',': #to protect against numberings that extend over several rows
-						tempstr += featurelist[line]
+			if featurelist[-1] == '': 
+				del featurelist[-1] #last entry tends to be empty, if so, remove
 
-					elif line+1 == len(featurelist):
-						tempstr += featurelist[line]
-			
-					featurelist2.append(self.treat_input_line(tempstr))
-					tempstr = featurelist[line]
-				
-				elif '..' in featurelist[line] and tempstr == '': #first feature
-					tempstr = featurelist[line]
-
-				else:						#in-between features
-					tempstr += featurelist[line]
-
-			#catch final entry
-			featurelist2.append(self.treat_input_line(tempstr))
-		
-
-			#now arrange features into the correct data structure
-			features = []
-			for i in range(len(featurelist2)):
-				Feature = {}
-			
-				#get key
-				Feature['key'] = featurelist2[i][0] #append type of feature
-			
-				#get whether complement or not, join or not, order or not
-				if 'complement' in featurelist2[i][1]:
-					Feature['complement'] = True
-				else:
-					Feature['complement'] = False
-
-				if 'join' in featurelist2[i][1]:
-					Feature['join'] = True
-				else:
-					Feature['join'] = False
-				
-				if 'order' in featurelist2[i][1]:
-					Feature['order'] = True
-				else:
-					Feature['order'] = False
-								
-				#get location
-				tempsites = []
-				commasplit = featurelist2[i][1].split(',')
-				for entry in commasplit:
-					tempstr = ''
-					for n in range(len(entry)):
-						if (entry[n] == '1' or
-							entry[n] == '2' or
-							entry[n] == '3' or
-							entry[n] == '4' or
-							entry[n] == '5' or
-							entry[n] == '6' or
-							entry[n] == '7' or
-							entry[n] == '8' or
-							entry[n] == '9' or
-							entry[n] == '0' or
-							entry[n] == '<' or
-							entry[n] == '>' or
-							entry[n] == '.'):			   
-							tempstr += entry[n]
-					tempsites.append(tempstr)
-				Feature['location'] = tempsites
+			i = 1
+			while i in range(1, len(featurelist)): # go through the lines
+				current_line = featurelist[i]
+				if line[-1] == ',' #comma at end indicates it continues on next line
+					####finish here
+				dictionary = self.treat_input_line(featurelist[i])
+				print(dictionary)
+				dictionary_keys = dictionary.keys()
+				if 'key' in dictionary_keys:
+					if feature != {}:
+						self.gbfile['features'].append(copy.deepcopy(feature))
+						feature == {}
+					elif feature == {}:	
+						feature['key'] = dictionary['key']
+						feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(dictionary['location'])
+						feature['qualifiers'] = []
+					else:
+						raise ValueError
+				elif 'qualifier' in dictionary_keys:
+					feature['qualifiers'].append(dictionary['qualifier'])
 					
-		
-				#add qualifiers		
-				templist = []
-				for n in range(2, len(featurelist2[i])): #get all other tags
-					templist.append(featurelist2[i][n])
-				Feature['qualifiers'] = templist
+				i += 1
+
+#				if ('..' in featurelist[line] and tempstr != '') == True:
+#					if tempstr[-1] == ',': #to protect against numberings that extend over several rows
+#						tempstr += featurelist[line]
+##						print('yes')
+
+#					elif line+1 == len(featurelist):
+#						tempstr += featurelist[line]
+#			
+#					featurelist2.append(self.treat_input_line(tempstr))
+#					tempstr = featurelist[line]
+#				
+#				elif '..' in featurelist[line] and tempstr == '': #first feature
+#					tempstr = featurelist[line]
+
+#				else:						#in-between features
+#					tempstr += featurelist[line]
+
+#			#catch final entry
+#			featurelist2.append(self.treat_input_line(tempstr))
+#		
+
+#			#now arrange features into the correct data structure
+#			features = []
+#			for i in range(len(featurelist2)):
+#				Feature = {}
+#			
+#				#get key
+#				Feature['key'] = featurelist2[i][0] #append type of feature
 			
-				#add dictionary to list
-				features.append(Feature)
+				
+
+	def parse_location(self, locationstring):
+		'''get whether complement or not, join or not, order or not'''
+		assert type(locationstring) == str, "Error, locationstring must be a string"
+		if 'complement' in locationstring:
+			complement = True
+		else:
+			complement = False
+
+		if 'join' in locationstring:
+			join = True
+		else:
+			join = False
+	
+		if 'order' in locationstring:
+			order = True
+		else:
+			order = False
+						
+		#get location numbering
+		tempsites = []
+		commasplit = locationstring.split(',')
+		for entry in commasplit:
+			tempstr = ''
+			for n in range(len(entry)):
+				if (entry[n] == '1' or
+					entry[n] == '2' or
+					entry[n] == '3' or
+					entry[n] == '4' or
+					entry[n] == '5' or
+					entry[n] == '6' or
+					entry[n] == '7' or
+					entry[n] == '8' or
+					entry[n] == '9' or
+					entry[n] == '0' or
+					entry[n] == '<' or
+					entry[n] == '>' or
+					entry[n] == '.'):			   
+					tempstr += entry[n]
+			tempsites.append(tempstr)
+		location = tempsites
 			
-			self.gbfile['features'] = features
-			self.gbfile['filepath'] = filepath
-			self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
+		return location, complement, join, order
+#				#add qualifiers		
+#				templist = []
+#				for n in range(2, len(featurelist2[i])): #get all other tags
+#					templist.append(featurelist2[i][n])
+#				Feature['qualifiers'] = templist
+#			
+#				#add dictionary to list
+#				features.append(Feature)
+			
+#			self.gbfile['features'] = features
+#			self.gbfile['filepath'] = filepath
+#			self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
 
 	
 
@@ -327,9 +378,9 @@ class gbobject(object):
 		index = self.get_file_version_index()
 		if index == len(self.file_versions)-1: #if the current version is the last one
 			print('last version.......')
-			self.file_versions += (deepcopy(self.gbfile),)
+			self.file_versions += (copy.deepcopy(self.gbfile),)
 		else:
-			self.file_versions = self.file_versions[0:index]+(deepcopy(self.gbfile),)
+			self.file_versions = self.file_versions[0:index]+(copy.deepcopy(self.gbfile),)
 		self.set_file_version_index(index+1)
 		print('index', self.get_file_version_index())
 
@@ -659,7 +710,7 @@ class gbobject(object):
 		assert type(ip) == int, 'The insertion point must be an integer.'
 
 		if DNA == None:
-			temp_clipboard = deepcopy(self.clipboard) #creates a deep copy which is needed to copy nested lists
+			temp_clipboard = copy.deepcopy(self.clipboard) #creates a deep copy which is needed to copy nested lists
 			if temp_clipboard['dna'] != pyperclip.paste(): #if internal and system clipboard is not same then system clipboard takes presidence
 				print('internal clipboard override')
 				temp_clipboard['dna'] = pyperclip.paste()
@@ -687,7 +738,7 @@ class gbobject(object):
 		self.clipboard = {}
 		self.clipboard['dna'] = self.GetDNA(start, finish) #copy to internal clipboard
 		self.clipboard['features'] = []
-		self.allgbfeatures_templist = deepcopy(self.gbfile['features'])
+		self.allgbfeatures_templist = copy.deepcopy(self.gbfile['features'])
 		for i in range(len(self.gbfile['features'])): #checks to match dna change
 			if len(self.gbfile['features'][i]['location']) == 1:
 				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'])
@@ -719,7 +770,7 @@ class gbobject(object):
 	def paste_feature(self, feature, insertlocation):
 		'''Paste feature from clipboard into an existing genbankfile'''
 		#adjust the clipboard location to the insert location and append
-		feature = deepcopy(feature)
+		feature = copy.deepcopy(feature)
 		for n in range(len(feature['location'])):
 			feature['location'][n] = self.add_or_subtract_to_locations(feature['location'][n], insertlocation, 'b')
 				
@@ -1246,7 +1297,7 @@ indeces >-1 are feature indeces'''
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart), 'f')	
 						#print('encompass finish')
 					elif changestart<=start and finish<=changeend: #if change encompasses whole feature, add to deletion list
-						deletionlist.append(deepcopy((i, n)))
+						deletionlist.append(copy.deepcopy((i, n)))
 						#print('encompass all')
 					elif changestart<start and changeend<start: #if change is before feature, change start and finish
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')				

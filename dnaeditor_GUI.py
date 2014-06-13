@@ -40,6 +40,7 @@ from os import access,listdir
 import sys, os
 import wx
 import wx.stc
+from wx.lib.pubsub import Publisher as pub
 
 import pyperclip
 
@@ -114,7 +115,7 @@ class DNALexer(BaseLexer):
 		"""Handle the EVT_STC_STYLENEEDED event"""
 		stc = event.GetEventObject()
 
-		featurelist = stc.GetTopLevelParent().gb.get_all_feature_positions()
+		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
 
 			featuretype, complement, start, finish = entry
@@ -183,6 +184,8 @@ class CustomSTC(wx.stc.StyledTextCtrl):
 		# Event Handlers
 		self.Bind(wx.stc.EVT_STC_STYLENEEDED, self.OnStyle)
 
+
+
 #	def SetDNA(self, text):
 #		self.SetText('')
 #		rows = len(text)//100
@@ -226,13 +229,13 @@ class MyPanel(wx.Panel):
 
 		#create feature list view
 		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = features_GUI.FeatureCreate(splitter1, id=wx.ID_ANY, editor=False)
+		self.feature_list = features_GUI.FeatureList(splitter1, id=wx.ID_ANY)
 		
 
 		#create dna view panel
 		self.stc = CustomSTC(splitter1)
 		self.stc.SetWrapMode(wx.stc.STC_WRAP_WORD) #enable word wrap
-		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache laout calculations and only draw when something changes
+		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache layout calculations and only draw when something changes
 
 		#set lexer styles
 		style = DNALexer.STC_STYLE_DEFAULT
@@ -290,6 +293,13 @@ class MyPanel(wx.Panel):
 		
 		self.Centre()
 
+		#subscribe to messages sent from feature edit module
+		pub.subscribe(self.listen_to_updateUI, 'dna_edit_updateUI')
+
+	def listen_to_updateUI(self, msg):
+		'''Method for listening updateUI requests'''
+		self.updateUI()
+		
 
 	def OnKeyPress(self, evt):
 		key = evt.GetUniChar()
@@ -299,11 +309,11 @@ class MyPanel(wx.Panel):
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish = self.stc.GetSelection()
 			if start != finish: # if a selection, delete it, then paste
-				self.GetTopLevelParent().gb.Delete(start+1, finish, visible=False)
+				genbank.gb.Delete(start+1, finish, visible=False)
 			if shift == True:
-				self.GetTopLevelParent().gb.Paste(start+1, chr(key).upper())
+				genbank.gb.Paste(start+1, chr(key).upper())
 			elif shift == False:
-				self.GetTopLevelParent().gb.Paste(start+1, chr(key).lower())
+				genbank.gb.Paste(start+1, chr(key).lower())
 			self.updateUI()
 			self.GetTopLevelParent().updateUndoRedo()
 			self.stc.SetSelection(start+1, start+1)
@@ -312,12 +322,12 @@ class MyPanel(wx.Panel):
 		elif key == 8: #backspace
 			start, finish = self.stc.GetSelection()
 			if start != finish: # if a selection, delete it
-				self.GetTopLevelParent().gb.Delete(start+1, finish)
+				genbank.gb.Delete(start+1, finish)
 				self.updateUI()
 				self.GetTopLevelParent().updateUndoRedo()
 				self.stc.SetSelection(start+1, start+1)
 			else:
-				self.GetTopLevelParent().gb.Delete(start, start)
+				genbank.gb.Delete(start, start)
 				self.updateUI()
 				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.stc.SetSelection(start-1, start-1)
@@ -325,9 +335,9 @@ class MyPanel(wx.Panel):
 		elif key == 127: #delete
 			start, finish = self.stc.GetSelection()
 			if start != finish: # if a selection, delete it
-				self.GetTopLevelParent().gb.Delete(start+1, finish)
+				genbank.gb.Delete(start+1, finish)
 			else:
-				self.GetTopLevelParent().gb.Delete(start+1, start+1)
+				genbank.gb.Delete(start+1, start+1)
 			self.updateUI()
 			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.stc.SetSelection(start, start)
@@ -401,42 +411,42 @@ class MyPanel(wx.Panel):
 	def uppercase(self):
 		'''Change selection to uppercase'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.Upper(start, finish)
+		genbank.gb.Upper(start, finish)
 		self.updateUI()
 		self.stc.SetSelection(start-1, finish)
 	
 	def lowercase(self):
 		'''Change selection to lowercase'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.Lower(start, finish)
+		genbank.gb.Lower(start, finish)
 		self.updateUI() 
 		self.stc.SetSelection(start-1, finish)
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.RCselection(start, finish)
+		genbank.gb.RCselection(start, finish)
 		self.updateUI()
 		self.stc.SetSelection(start-1, finish)
 
 	def delete(self):
 		'''Deletes a selection and updates dna and features'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.Delete(start, finish)
+		genbank.gb.Delete(start, finish)
 		self.updateUI()
 		self.stc.SetSelection(start-1, start-1)
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.Cut(start, finish)
+		genbank.gb.Cut(start, finish)
 		self.updateUI()
 		self.stc.SetSelection(start-1, start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.CutRC(start, finish)
+		genbank.gb.CutRC(start, finish)
 		self.updateUI()
 		self.stc.SetSelection(start-1, start-1)
 
@@ -444,8 +454,8 @@ class MyPanel(wx.Panel):
 		'''Paste DNA and any features present on that DNA'''
 		start, finish = self.get_selection()
 		if start != finish: #If a selection, remove sequence
-			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
-		self.GetTopLevelParent().gb.Paste(start)
+			genbank.gb.Delete(start, finish, visible=False)
+		genbank.gb.Paste(start)
 		self.updateUI() 
 		self.stc.SetSelection(start-1, start-1)
 		
@@ -453,20 +463,20 @@ class MyPanel(wx.Panel):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
 		start, finish = self.get_selection()
 		if start != finish: #If a selection, remove sequence
-			self.GetTopLevelParent().gb.Delete(start, finish, visible=False)
-		self.GetTopLevelParent().gb.PasteRC(start)
+			genbank.gb.Delete(start, finish, visible=False)
+		genbank.gb.PasteRC(start)
 		self.updateUI()
 		self.stc.SetSelection(start-1, start-1)
 
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.Copy(start, finish)
+		genbank.gb.Copy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
 		start, finish = self.get_selection()
-		self.GetTopLevelParent().gb.CopyRC(start, finish)
+		genbank.gb.CopyRC(start, finish)
 
 
 #######################################################
@@ -493,7 +503,7 @@ class MyPanel(wx.Panel):
 	def updateUI(self):
 		'''For changing background color of text ranges'''
 #		self.remove_styling() #first remove old styles
-		self.stc.SetText(self.GetTopLevelParent().gb.GetDNA()) #put the DNA in
+		self.stc.SetText(genbank.gb.GetDNA()) #put the DNA in
 
 		#match selection to previous one
 #		
@@ -503,7 +513,7 @@ class MyPanel(wx.Panel):
 
 	
 		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
-#		featurelist = self.GetTopLevelParent().gb.get_all_feature_positions()
+#		featurelist = genbank.gb.get_all_feature_positions()
 #		for entry in featurelist:
 #			featuretype, complement, start, finish = entry
 #			self.get_feature_color(featuretype, complement)
@@ -518,7 +528,7 @@ class MyPanel(wx.Panel):
 
 	
 #		#color in search hits if any are present
-#		search_hits = self.GetTopLevelParent().gb.search_hits
+#		search_hits = genbank.gb.search_hits
 #		if len(search_hits) != 0:
 #			color = '#ffff00'
 #			for i in range(len(search_hits)):
@@ -555,7 +565,7 @@ class MyPanel(wx.Panel):
 #		'''Pass a list of dictionaries with name and dna to m_align to align sequences'''
 #		#this works sort of ok. Needs improvement though...
 #		
-#		dna = str(self.GetTopLevelParent().gb.GetDNA())
+#		dna = str(genbank.gb.GetDNA())
 #		
 #		self.seqlist.append(dict(name='Reference', dna=dna))
 #		print(self.seqlist)
@@ -588,8 +598,8 @@ class MyPanel(wx.Panel):
 #update this one...
 	def translate_feature(self):
 		'''Translate specified feature'''
-		feature = self.GetTopLevelParent().gb.allgbfeatures[2]
-		DNA = self.GetTopLevelParent().gb.getdnaforgbfeature(feature[4])
+		feature = genbank.gb.allgbfeatures[2]
+		DNA = genbank.gb.getdnaforgbfeature(feature[4])
 		protein = dna.Translate(DNA)
 		self.translate_output(protein, DNA, 'feature "%s"' % feature[4][7:])
 	
@@ -620,7 +630,7 @@ class MyPanel(wx.Panel):
 #			print(mposition)
 #			print(type(mposition))
 #			#which feature corresponds to this pos?
-#			Feature = self.GetTopLevelParent().gb.get_featurename_for_pos(mposition)
+#			Feature = genbank.gb.get_featurename_for_pos(mposition)
 #			return mposition, Feature
 #		else:
 #			return None, None

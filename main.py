@@ -35,8 +35,11 @@ import sys, os
 import wx
 import wx.richtext as rt
 
+
 import pyperclip
 import subprocess
+
+
 
 import dna
 import genbank
@@ -67,7 +70,54 @@ execfile(settings) #gets all the pre-assigned settings
 
 
 
+######################## Content for the feature tab ##################
+
+class FeatureList(featurelist_GUI.FeatureList):
+	'''Class that is bacially the same as the old FeatureList, but with updates to how update_globalUI works'''
+	def update_globalUI(self):
+		print('list parent',self.GetParent())
+
+class FeatureEdit(featureedit_GUI.FeatureEdit):
+	'''Class that is bacially the same as the old FeatureList, but with updates to how update_globalUI works'''
+	def update_globalUI(self):
+		print('edit parent',self.GetParent())
+
+class FeatureTab(wx.Panel):
+	'''Class for creating the content for the feature tab'''
+	def __init__(self, parent, id):
+		wx.Panel.__init__(self, parent)
+		
+
+#		if editor == True: #if feature editor should be included
+		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
+
+		##
+		#first panel, for showing feature overview
+		self.feature_list = FeatureList(splitter1, id=wx.ID_ANY)
+
+		##
+		#second panel, for editing
+		self.feature_edit = FeatureEdit(splitter1, id=wx.ID_ANY)
+
+		splitter1.SplitHorizontally(self.feature_list, self.feature_edit)
+
+		#global sizer		
+		globsizer = wx.BoxSizer(wx.HORIZONTAL)
+		globsizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
+
+		self.SetSizer(globsizer)
+		self.Centre()
+
+	def updateUI(self):
+		"""Update both panels of the feature tab"""
+		self.feature_list.updateUI()
+		self.feature_edit.updateUI()
+
+
+
+
 class MyFrame(wx.Frame):
+	'''Main frame of DNApy'''
 	tab_list=[] #list of tabs 
 	current_tab=0 #contains the current tab
 	panel=[] #list of panels for the textbox
@@ -95,8 +145,8 @@ class MyFrame(wx.Frame):
 		self.fileopen = False #used to see if a file is open
 		self.new_file(None) #create new genbank file
 
-		self.dna_selection = (0, 0)	 #variable for storing current DNA selection
-		self.feature_selection = False #variable for storing current feature selection
+		genbank.dna_selection = (0, 0)	 #variable for storing current DNA selection
+		genbank.feature_selection = False #variable for storing current feature selection
 
 
 		self.generate_dnaview_tab("")
@@ -105,8 +155,6 @@ class MyFrame(wx.Frame):
 		self.generate_sequencingview_tab('')
 		self.generate_genbankview_tab("")
 		
-
-
 		self.do_layout()
 		self.Centre()
 	
@@ -124,10 +172,7 @@ class MyFrame(wx.Frame):
 		sizer.Add(self.DNApy, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
-	def propagate_gb(self):
-		'''Pass down the current genbank file to all tabs.'''
-		for tab in self.tab_list:
-			tab.gb = self.gb	
+
 
 ##### Generate tabs and define content #####
 
@@ -153,7 +198,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 
-		self.featureview = features_GUI.FeatureCreate(self.panel[number], id=wx.ID_ANY, editor=True)
+		self.featureview = features_GUI.FeatureTab(self.panel[number], id=wx.ID_ANY)
 	
 		self.tab_list.append(self.featureview)
 
@@ -190,7 +235,7 @@ class MyFrame(wx.Frame):
 	def new_file(self, evt):
 		'''Create new gb file'''
 		if self.fileopen == False: #if no file is open, make blank gb file
-			self.gb = genbank.gbobject() #make new gb in panel	
+			genbank.gb = genbank.gbobject() #make new gb in panel	
 
 
 			self.SetTitle('NewFile - DNApy')
@@ -224,18 +269,18 @@ class MyFrame(wx.Frame):
 		
 		name, extension = fileName.split('.')
 		if extension.lower() == 'gb':
-			self.gb = genbank.gbobject(all_path) #make a genbank object and read file
-			self.propagate_gb()
+			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
 
 
-			self.dnaview.stc.SetText(self.gb.GetDNA())
+
+			self.dnaview.stc.SetText(genbank.gb.GetDNA())
 			self.SetTitle(fileName+' - DNApy')
-			if self.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
+			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
 				result = dlg.ShowModal()
 				dlg.Destroy()
 				if result == wx.ID_YES: #if yes, remove clutter
-					self.gb.clean_clutter()
+					genbank.gb.clean_clutter()
 			self.page_change("")
 
 			self.frame_1_toolbar.EnableTool(502, True)
@@ -252,18 +297,15 @@ class MyFrame(wx.Frame):
 
 		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 
-
-	
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
-		self.gb.Save()
+		genbank.gb.Save()
 
-		
 
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
-		filepath = self.gb.GetFilepath()
+		filepath = genbank.gb.GetFilepath()
 		print(filepath)	
 		for i in range(len(filepath)): #get directory for file
 			if filepath[i] == '/':
@@ -283,7 +325,7 @@ class MyFrame(wx.Frame):
 				all_path += '.gb'
 				fileName += '.gb'
 			#try:
-			self.gb.SetFilepath(all_path)
+			genbank.gb.SetFilepath(all_path)
 			self.save_file("")
 			self.SetTitle(fileName+' - DNApy')
 			#except:
@@ -380,34 +422,40 @@ class MyFrame(wx.Frame):
 	#DNA#
 	def get_dna_selection(self):
 		'''Method for getting which DNA range is currently selected'''
-		return self.dna_selection[0], self.dna_selection[1]
+		return genbank.dna_selection
+
+		## I should probably modify this method to broadcast by pypub		
 
 	def set_dna_selection(self, selection):
 		'''Method for selecting a certain DNA range'''
 		#input needs to be a touple of two values
-		self.dna_selection = selection
+		genbank.dna_selection = selection
 		start = selection[0]
 		finish = selection[1]
 #		print('Selection from %s to %s') % (start, finish)
 
-	#Feature#
-	def get_feature_selection(self):
-		'''Get index of currently selected feature, if any'''
-		return self.feature_selection 
 
-	def set_feature_selection(self, index):
-		'''Set currently selected feature'''
-		assert type(index) == int, "Error, index must be an integer."
-		#this is currently independent from DNA selection
-		num_features = len(self.gb.get_all_features()) #number of features already present
-		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
-			index = 0
-		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
-			index = num_features-1
+		## I should probably modify this method to broadcast by pypub
 
-		self.feature_selection = index
-		#add logic to find first and last position for feature and make DNA selection match.
-		#print('Feature "%s" selected') % (self.get_feature_label(self.feature_selection))
+#	#Feature#
+#	def get_feature_selection(self):
+#		'''Get index of currently selected feature, if any'''
+#		return genbank.feature_selection #returns integer
+
+
+#	def set_feature_selection(self, index):
+#		'''Set currently selected feature'''
+#		assert type(index) == int, "Error, index must be an integer."
+#		#this is currently independent from DNA selection
+#		num_features = len(genbank.gb.get_all_features()) #number of features already present
+#		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
+#			index = 0
+#		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
+#			index = num_features-1
+
+#		genbank.feature_selection = int(copy.copy(index))
+#		#add logic to find first and last position for feature and make DNA selection match.
+#		#print('Feature "%s" selected') % (self.get_feature_label(genbank.feature_selection))
 
 ######### cut, paste, copy methods ########
 
@@ -587,25 +635,25 @@ Put Table here
 #####################################
 
 	def Undo(self, evt):
-		self.gb.Undo()
+		genbank.gb.Undo()
 		self.updateUI()
 		self.updateUndoRedo()
 
 	def Redo(self, evt):
-		self.gb.Redo()
+		genbank.gb.Redo()
 		self.updateUI()
 		self.updateUndoRedo()
 ######################################
 
 	def updateUndoRedo(self):
 		#activate/deactivate undo and redo buttons
-		if self.gb.get_file_version_index() <= 0: #if there are no undos available
+		if genbank.gb.get_file_version_index() <= 0: #if there are no undos available
 			self.frame_1_toolbar.EnableTool(513, False)
 		else:
 			self.frame_1_toolbar.EnableTool(513, True)
-		print('index', self.gb.get_file_version_index())
-		print('len -1', len(self.gb.file_versions)-1)
-		if self.gb.get_file_version_index() >= len(self.gb.file_versions)-1: #if there are no redos available
+		print('index', genbank.gb.get_file_version_index())
+		print('len -1', len(genbank.gb.file_versions)-1)
+		if genbank.gb.get_file_version_index() >= len(genbank.gb.file_versions)-1: #if there are no redos available
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
@@ -619,10 +667,10 @@ Put Table here
 	def list_features(self, evt):
 		'''List all features in output panel'''
 		self.make_outputpopup()
-#		tabtext = str(self.gbviewer.GetPageText(self.gbviewer.GetSelection()))
+#		tabtext = str(genbank.gbviewer.GetPageText(genbank.gbviewer.GetSelection()))
 		tabtext = 'Replace!'
 		self.output.write('%s | List features\n' % tabtext, 'File')
-		featurelist = self.gb.ListFeatures()
+		featurelist = genbank.gb.ListFeatures()
 		self.output.write(featurelist, 'Text')
 		self.outputframe.Show()
 
@@ -707,7 +755,7 @@ Put Table here
 		featurelist = ['Molecule']
 		try:
 			#make a list of all feature names
-			features = self.gb.get_all_features()
+			features = genbank.gb.get_all_features()
 			for entry in features:
 				featurelist.append(entry['qualifiers'][0].split('=')[1])
 		except:
@@ -770,11 +818,11 @@ Put Table here
 		searchstring = self.searchinput.GetValue()
 
 		if searchtype == 'Nucleotide':
-			self.gb.FindNucleotide(searchstring, searchframe)
+			genbank.gb.FindNucleotide(searchstring, searchframe)
 		elif searchtype == 'Amino Acid':
-			self.gb.FindAminoAcid(searchstring, searchframe)
+			genbank.gb.FindAminoAcid(searchstring, searchframe)
 		elif searchtype == 'Feature':
-			self.gb.FindFeature(searchstring)
+			genbank.gb.FindFeature(searchstring)
 
 		self.updateUI()
 		start, finish = self.get_dna_selection()
@@ -783,14 +831,14 @@ Put Table here
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
-		self.gb.find_previous()
+		genbank.gb.find_previous()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
 		self.dnaview.stc.ShowPosition(start) 
 
 	def find_next(self, evt):
 		'''Select next search hit'''
-		self.gb.find_next()
+		genbank.gb.find_next()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
 		self.dnaview.stc.ShowPosition(start) 
@@ -997,12 +1045,14 @@ Put Table here
 
 ##### main loop
 class MyApp(wx.App):
-    def OnInit(self):
-        frame = MyFrame(None, -1, "DNApy")
-        frame.Show(True)
-        self.SetTopWindow(frame)
-        return True
-        
+	def OnInit(self):
+		frame = MyFrame(None, -1, "DNApy")
+		frame.Show(True)
+		self.SetTopWindow(frame)
+		return True
+
+
+
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	app = MyApp(0)
 	app.MainLoop()
