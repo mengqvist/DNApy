@@ -254,58 +254,47 @@ class gbobject(object):
 			if featurelist[-1] == '': 
 				del featurelist[-1] #last entry tends to be empty, if so, remove
 
+
 			i = 1
-			while i in range(1, len(featurelist)): # go through the lines
+			while i in range(0, len(featurelist)): # go through the lines
 				current_line = featurelist[i]
-				if line[-1] == ',' #comma at end indicates it continues on next line
-					####finish here
-				dictionary = self.treat_input_line(featurelist[i])
-				print(dictionary)
+
+				#while loop is to deal with qualifiers and locations broken over several lines
+				if i != len(featurelist)-1: #don't test after the last line
+					while (featurelist[i+1][0:21] == '                     ' and featurelist[i+1][21] != '/'):
+						current_line += featurelist[i+1][21:]
+						i += 1
+
+				#now parse the line
+				dictionary = self.treat_input_line(current_line)
 				dictionary_keys = dictionary.keys()
 				if 'key' in dictionary_keys:
 					if feature != {}:
 						self.gbfile['features'].append(copy.deepcopy(feature))
-						feature == {}
+						feature = {}
+						feature['key'] = copy.deepcopy(dictionary['key'])
+						location, complement, join, order = self.parse_location(dictionary['location'])
+						feature['location'] = copy.deepcopy(location)
+						feature['complement'] = copy.deepcopy(complement)
+						feature['join'] = copy.deepcopy(join)
+						feature['order'] = copy.deepcopy(order)
+						feature['qualifiers'] = []
 					elif feature == {}:	
-						feature['key'] = dictionary['key']
-						feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(dictionary['location'])
+						feature['key'] = copy.deepcopy(dictionary['key'])
+						location, complement, join, order = self.parse_location(dictionary['location'])
+						feature['location'] = copy.deepcopy(location)
+						feature['complement'] = copy.deepcopy(complement)
+						feature['join'] = copy.deepcopy(join)
+						feature['order'] = copy.deepcopy(order)
 						feature['qualifiers'] = []
 					else:
 						raise ValueError
 				elif 'qualifier' in dictionary_keys:
-					feature['qualifiers'].append(dictionary['qualifier'])
+					feature['qualifiers'].append(copy.deepcopy(dictionary['qualifier']))
 					
 				i += 1
+			self.gbfile['features'].append(copy.deepcopy(feature)) #catch last line
 
-#				if ('..' in featurelist[line] and tempstr != '') == True:
-#					if tempstr[-1] == ',': #to protect against numberings that extend over several rows
-#						tempstr += featurelist[line]
-##						print('yes')
-
-#					elif line+1 == len(featurelist):
-#						tempstr += featurelist[line]
-#			
-#					featurelist2.append(self.treat_input_line(tempstr))
-#					tempstr = featurelist[line]
-#				
-#				elif '..' in featurelist[line] and tempstr == '': #first feature
-#					tempstr = featurelist[line]
-
-#				else:						#in-between features
-#					tempstr += featurelist[line]
-
-#			#catch final entry
-#			featurelist2.append(self.treat_input_line(tempstr))
-#		
-
-#			#now arrange features into the correct data structure
-#			features = []
-#			for i in range(len(featurelist2)):
-#				Feature = {}
-#			
-#				#get key
-#				Feature['key'] = featurelist2[i][0] #append type of feature
-			
 				
 
 	def parse_location(self, locationstring):

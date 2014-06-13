@@ -336,7 +336,11 @@ class FeatureList(wx.Panel):
 		item = 0 #for feautrecolor
 		features = genbank.gb.get_all_features()
 		for entry in features:
-			col0 = entry['qualifiers'][0].split('=')[1]
+#			print(entry)
+			if len(entry['qualifiers']) == 0:
+				col0 = entry['key']	
+			else:
+				col0 = entry['qualifiers'][0].split('=')[1]
 			col1 = entry['key']
 			locationstring = ''
 			for location in entry['location']:
