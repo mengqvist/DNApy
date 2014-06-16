@@ -35,25 +35,31 @@
 
 
 import ast
-import wx
 from wx.lib.agw import ultimatelistctrl as ULC
+import wx
 from wx.lib.pubsub import Publisher as pub
 
-import genbank
 import sys, os
 import string
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
+
+
+
+
 import copy
 
 #for asserts and tests
 import types
 import unittest
 
+import genbank
+from base_class import DNApyBaseClass
 import featureedit_GUI
-
-class NewFeatureEdit(featureedit_GUI.FeatureEdit):
-	'''Class that is bacially the same as the FeatureList, but with updates to how update_globalUI works'''
-	def update_globalUI(self):
-		pub.sendMessage('feature_list_updateUI', 'Update!!!') #send a message to update UI, a trick to make panals from different frames talk
 
 
 class NewFeatureDialog(wx.Dialog):
@@ -61,7 +67,7 @@ class NewFeatureDialog(wx.Dialog):
 		super(NewFeatureDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(700, 300)) 		
 
 
-		self.feature_edit = NewFeatureEdit(self, id=wx.ID_ANY)	#get the feature edit panel
+		self.feature_edit = featureedit_GUI.FeatureEdit(self, id=wx.ID_ANY)	#get the feature edit panel
 		self.NewFeatureButtonPanel = wx.Panel(self) #make new panel to hold the buttons
 
 		self.OK = wx.Button(self.NewFeatureButtonPanel, 7, 'OK')
@@ -87,15 +93,7 @@ class NewFeatureDialog(wx.Dialog):
 
 	def OnOK(self, event):
 		'''Accept new feature from the "new feature" popup"'''
-
-#		key = self.feature_edit.
-#		qualifiers = self.feature_edit.
-#		location = self.feature_edit.
-#		complement = self.feature_edit
-#		join = self.feature_edit
-#		order = self.feature_edit
-
-#		self.update_globalUI()  #update DNA view
+		self.feature_edit.update_globalUI()
 		self.Destroy()
 
 #	def OnCancel(self, event):
@@ -108,7 +106,7 @@ class NewFeatureDialog(wx.Dialog):
 #		self.Destroy()
 
 
-class FeatureList(wx.Panel):
+class FeatureList(DNApyBaseClass):
 	"""Class for viewing features as a list"""
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
@@ -124,10 +122,12 @@ class FeatureList(wx.Panel):
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
 
-		#subscribe to messages sent from feature edit module
-#		pub.subscribe(self.listen_to_index_msg, 'feature_index')
-		pub.subscribe(self.listen_to_updateUI, 'feature_list_updateUI')
+		#determing which listening group from which to recieve messages about UI updates
+		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
+		pub.subscribe(self.listen_to_updateUI, self.listening_group)
 
+		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
+		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
 		
 		#buttons
 		imageFile = files['default_dir']+"/icon/new_small.png"
@@ -162,9 +162,10 @@ class FeatureList(wx.Panel):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(item=newfeature)
 		sizer.Add(item=deletefeature)
+		sizer.Add(item=edit)
 		sizer.Add(item=moveup)
 		sizer.Add(item=movedown)
-		sizer.Add(item=edit)
+
 
 		#add feature list and buttons horisontally	
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -174,21 +175,60 @@ class FeatureList(wx.Panel):
 		self.SetSizer(sizer2)
 		self.update_ownUI()
 
-	def listen_to_index_msg(self, index):
-		'''For recieving index update request from the edit feature class'''
-		print('type', type(index))
-		print(index)
-		newindex = copy.copy(index)
-		print('type', type(newindex))
-		print(newindex)
-		self.update_feature_selection(newindex)
-		print('yay', newindex)
+####### Modify methods from base calss to fit current needs #########
 
-	def listen_to_updateUI(self, msg):
-		'''For recieving requests for UI updates.
-			Sending messages is a roundabout way of doing this, 
-			but I have not figured out a different way of getting the frames to talk.'''
-		self.update_ownUI()
+
+	def update_ownUI(self):
+		'''Refreshes only the UI of this panel by re-filling the table from features stored in the genbank object'''
+		#need to figure out how to do this without changing the selection....
+		self.feature_list.DeleteAllItems()
+		item = 0 #for feautrecolor
+		features = genbank.gb.get_all_features()
+		for entry in features:
+#			print(entry)
+			if len(entry['qualifiers']) == 0:
+				col0 = entry['key']	
+			else:
+				col0 = entry['qualifiers'][0].split('=')[1]
+			col1 = entry['key']
+			locationstring = ''
+			for location in entry['location']:
+				if locationstring != '':
+					locationstring += ', '
+				locationstring += str(location)
+			col2 = locationstring
+			if entry['complement'] == True:
+				col3 = 'complement'
+			else:
+				col3 = 'leading'
+#			col4 = entry['qualifiers']
+		
+			self.feature_list.Append([col0, col1, col2, col3])	
+	
+			#coloring
+			self.get_feature_color(entry)
+			hexcolor = self.current_highlight_color #get hex color
+			r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
+			color = wx.Colour(r, g, b) #make color object
+			self.feature_list.SetItemBackgroundColour(item, color)	
+			item += 1
+		try:
+			if genbank.feature_selection != None: #focus on the selected feature
+				self.focus_feature_selection()
+		except:
+			pass
+
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		pub.sendMessage('from_feature_list', '')
+
+######################################################
+
 
 	def ListOnSelect(self, event):	
 		'''Updates selection depending on which feature is chosen'''
@@ -320,55 +360,10 @@ class FeatureList(wx.Panel):
 
 
 	def get_dna_selection(self):
-		'''This method is intended for later modification by children.
-			It is needed to get the dna selection for creating new features.'''
-		return (1,1)
+		'''This method is needed to get the dna selection for creating new features.'''
+		pub.sendMessage('dna_selection_request', '') #sends a request for a DNA selection update
+		return genbank.dna_selection
 
-	def update_globalUI(self):
-		'''This method is intended for later modification by children.
-			It is needed to be flexible on which other components are updated in a full GUI application.'''		
-		pass
-
-	def update_ownUI(self):
-		'''Refreshes only the UI of this panel by re-filling the table from features stored in the genbank object'''
-		#need to figure out how to do this without changing the selection....
-		self.feature_list.DeleteAllItems()
-		item = 0 #for feautrecolor
-		features = genbank.gb.get_all_features()
-		for entry in features:
-#			print(entry)
-			if len(entry['qualifiers']) == 0:
-				col0 = entry['key']	
-			else:
-				col0 = entry['qualifiers'][0].split('=')[1]
-			col1 = entry['key']
-			locationstring = ''
-			for location in entry['location']:
-				if locationstring != '':
-					locationstring += ', '
-				locationstring += str(location)
-			col2 = locationstring
-			if entry['complement'] == True:
-				col3 = 'complement'
-			else:
-				col3 = 'leading'
-#			col4 = entry['qualifiers']
-		
-			self.feature_list.Append([col0, col1, col2, col3])	
-	
-			#coloring
-			self.get_feature_color(entry)
-			hexcolor = self.current_highlight_color #get hex color
-			r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
-			color = wx.Colour(r, g, b) #make color object
-			self.feature_list.SetItemBackgroundColour(item, color)	
-			item += 1
-		try:
-			if genbank.feature_selection != None: #focus on the selected feature
-				self.focus_feature_selection()
-		except:
-			pass
-		
 
 	def hex_to_rgb(self, value):
 		value = value.lstrip('#')
@@ -406,7 +401,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
 	execfile(settings) #gets all the pre-assigned settings
 
-	genbank.dna_selection = (0, 0)	 #variable for storing current DNA selection
+	genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
 
 	import sys

@@ -40,24 +40,24 @@ from wx.lib.agw import ultimatelistctrl as ULC
 from wx.lib.pubsub import Publisher as pub
 
 import genbank
+
+
 import sys, os
 import string
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
+
+
 import copy
 
 #for asserts and tests
 import types
 import unittest
-
-
-
-files={}   #list with all configuration files
-
-files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-
-settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
+from base_class import DNApyBaseClass
 
 
 class QualifierEdit(wx.Dialog):
@@ -146,13 +146,15 @@ class QualifierEdit(wx.Dialog):
 
 
 
-class FeatureEdit(wx.Panel):
+class FeatureEdit(DNApyBaseClass):
 	'''This class makes a panel with a field for editing feature properties and a list for displaying and editing qualifiers'''
 	def __init__(self, parent, id):
 		self.parent = parent
 		wx.Panel.__init__(self, parent)
 
-		
+		#determing which listening group from which to recieve messages about UI updates
+		self.listening_group = 'placeholder' #needs to be assigned or will raise an error		
+		pub.subscribe(self.listen_to_updateUI, self.listening_group)
 
 		##
 		# first panel, for editing feature
@@ -169,7 +171,7 @@ class FeatureEdit(wx.Panel):
 		#feature type control
 		typetext = wx.StaticText(self.feature_dlg, id=wx.ID_ANY, label='Type:')
 		typetext.SetFont(wx.Font(11, wx.DECORATIVE, wx.ITALIC, wx.NORMAL))
-		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
+		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "ncRNA","scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
 		self.type_combobox = wx.ComboBox(self.feature_dlg, id=1002, size=(200, -1), choices=featuretypes, style=wx.CB_READONLY)
 		self.type_combobox.Bind(wx.EVT_COMBOBOX, self.TypeComboboxOnSelect)
 
@@ -179,7 +181,7 @@ class FeatureEdit(wx.Panel):
 #		Binding: "primer_bind", "protein_bind", "misc_binding",
 #		Variation: "variation", "STS", "unsure", "conflict", "modified_base", "misc_difference", "old_sequence",
 #		Repeats: "LTR", "repeat_region", "repeat_unit", "satellite", 
-#		RNA: "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA",
+#		RNA: "mRNA", "rRNA", "tRNA","ncRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA",
 #		Misc.: "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop",
 #		Ig: "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"		
 
@@ -287,6 +289,63 @@ class FeatureEdit(wx.Panel):
 
 
 
+
+
+
+
+####### Modify methods from base calss to fit current needs #########
+
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		pub.sendMessage('from_feature_edit', '')
+
+
+	def update_ownUI(self):
+		'''Updates all fields depending on which feature is chosen'''
+		if len(genbank.gb.get_all_features()) == 0:
+			pass
+		else:
+			index = int(copy.copy(genbank.feature_selection))
+	
+			#update fields
+			self.featuretext.ChangeValue(genbank.gb.get_feature_label(index))
+			self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
+
+			locationstring = ''
+			for location in genbank.gb.get_feature_location(index):
+				if locationstring != '':
+					locationstring += ', '
+				locationstring += str(location)
+			self.location.ChangeValue(locationstring) #update location
+
+			self.complementbox.SetValue(genbank.gb.get_feature_complement(index)) #update complement
+			self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
+			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
+
+			#update qualifier field
+			self.update_qualifiers()
+
+		order = self.orderbox.GetValue()
+		join = self.joinbox.GetValue()
+		assert (join == True and order == True) == False, 'Error, order and join cannot both be True'
+		if order == True:
+			self.joinbox.Enable(False)
+		elif join == True:
+			self.orderbox.Enable(False)
+		elif join == False and order == False:
+			self.joinbox.Enable(True)
+			self.orderbox.Enable(True)
+
+#####################################################################
+
+
+
+
 	def OnAddQualifier(self, event):
 		'''For adding new qualifier'''
 		index = int(copy.copy(genbank.feature_selection))
@@ -380,11 +439,6 @@ class FeatureEdit(wx.Panel):
 
 	def update_qualifier_selection(self, index, number):
 		'''Updates which feature and qualifier is selected'''
-		pub.sendMessage('feature_index', int(copy.copy(index))) #make sure the right feature is selected
-
-		#edit this to work over tabs
-		
-
 		self.qualifier_list.SetItemState(number, wx.LIST_STATE_SELECTED,wx.LIST_STATE_SELECTED) #for the highlight
 		self.qualifier_list.Select(number, True) #to select it
 		self.qualifier_list.Focus(number) #to focus it
@@ -398,7 +452,7 @@ class FeatureEdit(wx.Panel):
 		genbank.gb.set_feature_complement(feature, newcomplement)
 		self.update_ownUI()
 		self.update_globalUI()
-		pub.sendMessage('feature_index', int(copy.copy(index))) #re-select the feature
+
 		
 
 	def JoinCheckboxOnSelect(self, event):
@@ -409,7 +463,7 @@ class FeatureEdit(wx.Panel):
 		genbank.gb.set_feature_join(feature, newjoin)
 		self.update_ownUI()
 		self.update_globalUI()
-		pub.sendMessage('feature_index', int(copy.copy(index))) #re-select the feature
+
 
 	def OrderCheckboxOnSelect(self, event):
 		'''Toggle whether a feature with ultiple locations should be indicated as being in a certain order or not'''
@@ -419,7 +473,7 @@ class FeatureEdit(wx.Panel):
 		genbank.gb.set_feature_order(feature, neworder)
 		self.update_ownUI()
 		self.update_globalUI()
-		pub.sendMessage('feature_index', int(copy.copy(index))) #re-select the feature
+
 		
 	def TypeComboboxOnSelect(self, event):
 		newkey = self.type_combobox.GetValue()
@@ -427,8 +481,7 @@ class FeatureEdit(wx.Panel):
 		feature = genbank.gb.get_feature(index)
 		genbank.gb.set_feature_type(feature, newkey)
 		self.update_ownUI()
-		self.update_globalUI()
-		pub.sendMessage('feature_index', int(copy.copy(index))) #re-select the feature
+		self.update_globalUI()	
 		
 
 	def LocationFieldOnText(self, event):
@@ -453,7 +506,7 @@ class FeatureEdit(wx.Panel):
 
 		elif is_valid == False:
 			self.location.SetForegroundColour(wx.RED)
-
+		
 
 	def FeatureFieldOnText(self, event):
 		newfeaturetext = str(self.featuretext.GetLineText(0)) #get location as string
@@ -482,47 +535,7 @@ class FeatureEdit(wx.Panel):
 			self.qualifier_list.Append([col0, col1])	
 
 
-	def update_globalUI(self):
-		'''This method is intended for later modification by children.
-			It is needed to be flexible on which other components are updated in a full GUI application.'''		
-		pass
-		
 
-	def update_ownUI(self):
-		'''Updates all fields depending on which feature is chosen'''
-		if len(genbank.gb.get_all_features()) == 0:
-			pass
-		else:
-			index = int(copy.copy(genbank.feature_selection))
-	
-			#update fields
-			self.featuretext.ChangeValue(genbank.gb.get_feature_label(index))
-			self.type_combobox.SetStringSelection(genbank.gb.get_feature_type(index)) #update type
-
-			locationstring = ''
-			for location in genbank.gb.get_feature_location(index):
-				if locationstring != '':
-					locationstring += ', '
-				locationstring += str(location)
-			self.location.ChangeValue(locationstring) #update location
-
-			self.complementbox.SetValue(genbank.gb.get_feature_complement(index)) #update complement
-			self.joinbox.SetValue(genbank.gb.get_feature_join(index)) #update join
-			self.orderbox.SetValue(genbank.gb.get_feature_order(index)) #update order
-
-			#update qualifier field
-			self.update_qualifiers()
-
-		order = self.orderbox.GetValue()
-		join = self.joinbox.GetValue()
-		assert (join == True and order == True) == False, 'Error, order and join cannot both be True'
-		if order == True:
-			self.joinbox.Enable(False)
-		elif join == True:
-			self.orderbox.Enable(False)
-		elif join == False and order == False:
-			self.joinbox.Enable(True)
-			self.orderbox.Enable(True)
 
 
 ######################################

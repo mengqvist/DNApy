@@ -46,7 +46,8 @@ import genbank
 
 #GUI components
 import dnaeditor_GUI
-import features_GUI
+import featureedit_GUI
+import featurelist_GUI
 import genbank_GUI
 import mixed_base_codons_GUI
 
@@ -67,53 +68,6 @@ variables=files['default_dir']+"variables"   ##path to the file of the global va
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(variables) #gets all the pre-assigned variables
 execfile(settings) #gets all the pre-assigned settings
-
-
-
-######################## Content for the feature tab ##################
-
-class FeatureList(featurelist_GUI.FeatureList):
-	'''Class that is bacially the same as the old FeatureList, but with updates to how update_globalUI works'''
-	def update_globalUI(self):
-		print('list parent',self.GetParent())
-
-class FeatureEdit(featureedit_GUI.FeatureEdit):
-	'''Class that is bacially the same as the old FeatureList, but with updates to how update_globalUI works'''
-	def update_globalUI(self):
-		print('edit parent',self.GetParent())
-
-class FeatureTab(wx.Panel):
-	'''Class for creating the content for the feature tab'''
-	def __init__(self, parent, id):
-		wx.Panel.__init__(self, parent)
-		
-
-#		if editor == True: #if feature editor should be included
-		splitter1 = wx.SplitterWindow(self, -1, style=wx.SP_3D)
-
-		##
-		#first panel, for showing feature overview
-		self.feature_list = FeatureList(splitter1, id=wx.ID_ANY)
-
-		##
-		#second panel, for editing
-		self.feature_edit = FeatureEdit(splitter1, id=wx.ID_ANY)
-
-		splitter1.SplitHorizontally(self.feature_list, self.feature_edit)
-
-		#global sizer		
-		globsizer = wx.BoxSizer(wx.HORIZONTAL)
-		globsizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
-
-		self.SetSizer(globsizer)
-		self.Centre()
-
-	def updateUI(self):
-		"""Update both panels of the feature tab"""
-		self.feature_list.updateUI()
-		self.feature_edit.updateUI()
-
-
 
 
 class MyFrame(wx.Frame):
@@ -150,7 +104,6 @@ class MyFrame(wx.Frame):
 
 
 		self.generate_dnaview_tab("")
-		self.generate_featureview_tab("")
 		self.generate_vectorview_tab("")
 		self.generate_sequencingview_tab('')
 		self.generate_genbankview_tab("")
@@ -178,35 +131,25 @@ class MyFrame(wx.Frame):
 
 	def generate_dnaview_tab(self, evt):
 		number=len(self.tab_list)
-
-		self.panel.append(wx.Panel(self.DNApy, -1))
-
-		self.dnaview = dnaeditor_GUI.MyPanel(self.panel[number])
+		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
 	
-		self.tab_list.append(self.dnaview)
+	
+		#create splitter and panels
+		splitter1 = wx.SplitterWindow(self.panel[number], 0, style=wx.SP_3D)	
+		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
+		self.dnaview = dnaeditor_GUI.DNAedit(splitter1, id=wx.ID_ANY)
+		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
+	
+		self.tab_list.append(splitter1)
 
-
-		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "DNA")
+		#add to sizer
+		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
 		self.panel[number].SetSizer(sizer_1)
 
+		self.DNApy.AddPage(self.panel[number], "DNA")
 		
 
-	def generate_featureview_tab(self, evt):
-		number=len(self.tab_list)
-
-		self.panel.append(wx.Panel(self.DNApy, -1))
-
-		self.featureview = features_GUI.FeatureTab(self.panel[number], id=wx.ID_ANY)
-	
-		self.tab_list.append(self.featureview)
-
-
-		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "Features")
-		self.panel[number].SetSizer(sizer_1)
 
 
 	def generate_vectorview_tab(self, evt):
@@ -270,10 +213,9 @@ class MyFrame(wx.Frame):
 		name, extension = fileName.split('.')
 		if extension.lower() == 'gb':
 			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
+			self.dnaview.update_ownUI()
+			self.dnaview.update_globalUI()
 
-
-
-			self.dnaview.stc.SetText(genbank.gb.GetDNA())
 			self.SetTitle(fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')

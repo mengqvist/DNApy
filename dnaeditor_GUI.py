@@ -37,8 +37,20 @@
 from copy import deepcopy
 import string
 from os import access,listdir
+
+
 import sys, os
-import wx
+import string
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
+
+
+
+import genbank
 import wx.stc
 from wx.lib.pubsub import Publisher as pub
 
@@ -46,25 +58,11 @@ import pyperclip
 
 import output
 import dna
-import genbank
+from base_class import DNApyBaseClass
 
-import features_GUI
 
+#TODO
 #fix selection so that the statusbar matches the real
-
-
-
-files={}   #dictionary with all configuration files
-
-files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-
-variables=files['default_dir']+"variables"   ##path to the file of the global variables
-settings=files['default_dir']+"settings"   ##path to the file of the global settings
-
-execfile(variables) #gets all the pre-assigned variables
-execfile(settings) #gets all the pre-assigned settings
 
 
 
@@ -185,14 +183,6 @@ class CustomSTC(wx.stc.StyledTextCtrl):
 		self.Bind(wx.stc.EVT_STC_STYLENEEDED, self.OnStyle)
 
 
-
-#	def SetDNA(self, text):
-#		self.SetText('')
-#		rows = len(text)//100
-#		for i in range(0,rows-1):
-#			self.AppendText('%s\n' % text[i*100:(i+1)*100])
-#		print('SetDNA')
-
 	def OnStyle(self, event):
 		# Delegate to custom lexer object if one exists
 		if self.custlex:
@@ -215,26 +205,30 @@ class CustomSTC(wx.stc.StyledTextCtrl):
 
 
 ########### class for text ######################
-class MyPanel(wx.Panel):
-	def __init__(self, parent):
+class DNAedit(DNApyBaseClass):
+	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 		
 
-		#create splitter
-		splitter = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
 		
-		#create line count panel
-#		self.linecount = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
-#		self.linecount.SetEditable(False)
+#		#create line count panel
+##		self.linecount = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
+##		self.linecount.SetEditable(False)
 
-		#create feature list view
-		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = features_GUI.FeatureList(splitter1, id=wx.ID_ANY)
-		
+		#determing which listening group from which to recieve messages about UI updates
+		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
+		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+
+		self.listening_group2 = 'from_feature_edit'		
+		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
+
+		self.listening_group3 = 'dna_selection_request'		
+		pub.subscribe(self.set_dna_selection, self.listening_group3)		
+
 
 		#create dna view panel
-		self.stc = CustomSTC(splitter1)
-		self.stc.SetWrapMode(wx.stc.STC_WRAP_WORD) #enable word wrap
+		self.stc = CustomSTC(self)
+		self.stc.SetWrapMode(wx.stc.STC_WRAP_CHAR) #enable word wrap
 		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache layout calculations and only draw when something changes
 
 		#set lexer styles
@@ -285,21 +279,43 @@ class MyPanel(wx.Panel):
 
 		self.stc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress) #This is important for controlling the input into the editor
 
-		splitter1.SplitHorizontally(self.feature_list, self.stc,sashPosition=-(windowsize[1]-270))
-
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
-		sizer.Add(splitter1, -1, wx.EXPAND)
+		sizer.Add(self.stc, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
+		self.update_ownUI()
 
-		#subscribe to messages sent from feature edit module
-		pub.subscribe(self.listen_to_updateUI, 'dna_edit_updateUI')
 
-	def listen_to_updateUI(self, msg):
-		'''Method for listening updateUI requests'''
-		self.updateUI()
-		
+####### Modify methods from base calss to fit current needs #########
+
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		pub.sendMessage('from_dna_edit', '')
+
+
+	
+	def update_ownUI(self):
+		'''For changing background color of text ranges'''
+		sequence = genbank.gb.GetDNA()
+		if sequence == None:
+			sequence = '  '	
+		self.stc.SetText(sequence) #put the DNA in
+
+
+
+#####################################################################
+
+	def set_dna_selection(self, msg):
+		'''Recieves requests for DNA selection and then sends it.'''
+		genbank.dna_selection = self.get_selection()
+
+
 
 	def OnKeyPress(self, evt):
 		key = evt.GetUniChar()
@@ -314,8 +330,9 @@ class MyPanel(wx.Panel):
 				genbank.gb.Paste(start+1, chr(key).upper())
 			elif shift == False:
 				genbank.gb.Paste(start+1, chr(key).lower())
-			self.updateUI()
-			self.GetTopLevelParent().updateUndoRedo()
+			self.update_ownUI()
+			self.update_globalUI()
+			#self.GetTopLevelParent().updateUndoRedo()
 			self.stc.SetSelection(start+1, start+1)
 
 
@@ -323,13 +340,15 @@ class MyPanel(wx.Panel):
 			start, finish = self.stc.GetSelection()
 			if start != finish: # if a selection, delete it
 				genbank.gb.Delete(start+1, finish)
-				self.updateUI()
-				self.GetTopLevelParent().updateUndoRedo()
+				self.update_ownUI()
+				self.update_globalUI()
+				#self.GetTopLevelParent().updateUndoRedo()
 				self.stc.SetSelection(start+1, start+1)
 			else:
 				genbank.gb.Delete(start, start)
-				self.updateUI()
-				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
+				self.update_ownUI()
+				self.update_globalUI()
+				#self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.stc.SetSelection(start-1, start-1)
 
 		elif key == 127: #delete
@@ -338,8 +357,9 @@ class MyPanel(wx.Panel):
 				genbank.gb.Delete(start+1, finish)
 			else:
 				genbank.gb.Delete(start+1, start+1)
-			self.updateUI()
-			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
+			self.update_ownUI()
+			self.update_globalUI()
+			#self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.stc.SetSelection(start, start)
 
 		elif key == 314 and shift == False: #left
@@ -412,42 +432,46 @@ class MyPanel(wx.Panel):
 		'''Change selection to uppercase'''
 		start, finish = self.get_selection()
 		genbank.gb.Upper(start, finish)
-		self.updateUI()
+		self.update_ownUI()
 		self.stc.SetSelection(start-1, finish)
 	
 	def lowercase(self):
 		'''Change selection to lowercase'''
 		start, finish = self.get_selection()
 		genbank.gb.Lower(start, finish)
-		self.updateUI() 
+		self.update_ownUI() 
 		self.stc.SetSelection(start-1, finish)
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
 		start, finish = self.get_selection()
 		genbank.gb.RCselection(start, finish)
-		self.updateUI()
+		self.update_ownUI()
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, finish)
 
 	def delete(self):
 		'''Deletes a selection and updates dna and features'''
 		start, finish = self.get_selection()
 		genbank.gb.Delete(start, finish)
-		self.updateUI()
+		self.update_ownUI()
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
 		genbank.gb.Cut(start, finish)
-		self.updateUI()
+		self.update_ownUI()
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
 		genbank.gb.CutRC(start, finish)
-		self.updateUI()
+		self.update_ownUI()
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
 
 	def paste(self):
@@ -456,7 +480,8 @@ class MyPanel(wx.Panel):
 		if start != finish: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
 		genbank.gb.Paste(start)
-		self.updateUI() 
+		self.update_ownUI() 
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
 		
 	def paste_reverse_complement(self):
@@ -465,7 +490,8 @@ class MyPanel(wx.Panel):
 		if start != finish: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
 		genbank.gb.PasteRC(start)
-		self.updateUI()
+		self.update_ownUI()
+		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
 
 	def copy(self):
@@ -497,66 +523,6 @@ class MyPanel(wx.Panel):
 #		#piece of code to check if there are assigned colors to the features
 
 
-
-
-	
-	def updateUI(self):
-		'''For changing background color of text ranges'''
-#		self.remove_styling() #first remove old styles
-		self.stc.SetText(genbank.gb.GetDNA()) #put the DNA in
-
-		#match selection to previous one
-#		
-#		if start != finish: self.stc.SetSelection(start, finish)
-#		elif start == finish: self.stc.SetInsertionPoint(start-1)
-#		self.stc.ShowPosition(start) 
-
-	
-		#returns a list of lists [[featuretype1, complement1, start1, end1], [featuretype2, complement2, start2, end2].....] 
-#		featurelist = genbank.gb.get_all_feature_positions()
-#		for entry in featurelist:
-#			featuretype, complement, start, finish = entry
-#			self.get_feature_color(featuretype, complement)
-
-#			color = self.stc.current_highlight_color #get color
-
-#			#do the painting
-#			self.attr = rt.RichTextAttr()
-#			self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-#			self.attr.SetBackgroundColour(color)
-#			self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
-
-	
-#		#color in search hits if any are present
-#		search_hits = genbank.gb.search_hits
-#		if len(search_hits) != 0:
-#			color = '#ffff00'
-#			for i in range(len(search_hits)):
-#				start = int(search_hits[i][0])
-#				finish = int(search_hits[i][1])
-#				#do the painting
-#				self.attr = rt.RichTextAttr()
-#				self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-#				self.attr.SetBackgroundColour(color)
-#				self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
-
-#I need to think carefully about where to place these...
-		#realize the current selection in the DNA editor
-#		
-#		self.stc.SetSelection(start, finish) #update the graphical selection
-#		self.stc.ShowPosition(start) 
-
-		#update feature list
-		self.feature_list.updateUI()
-
-		#use this to get the first line characters 
-		##develop it##
-		#set insertion point to beginning... Make it update on resize
-#		while self.stc.MoveDown() == True:
-#			self.stc.MoveDown()
-#			self.linecount.write(str(self.stc.GetInsertionPoint()+1)+'\n', 'Text')
-
-		##############
 
 
 
@@ -615,7 +581,7 @@ class MyPanel(wx.Panel):
 			file.write(str(foo[0])+"\n"+str(foo[1]))
 			file.close()
 		self.Destroy()
-		self.updateUI() #refresh everything
+		self.update_ownUI() #refresh everything
 
 		
 #	def mouse_position(self, event):
@@ -635,14 +601,43 @@ class MyPanel(wx.Panel):
 #		else:
 #			return None, None
 
-###############################################################
+
+
+
+######################################
+######################################
+
+
+##### main loop
+class MyApp(wx.App):
+	def OnInit(self):
+		frame = wx.Frame(None, -1, title="DNA Edit", size=(700,600))
+		panel =	DNAedit(frame, -1)
+		frame.Centre()
+		frame.Show(True)
+		self.SetTopWindow(frame)
+		return True
+
+
+
 if __name__ == '__main__': #if script is run by itself and not loaded	
-	app = wx.App() # creation of the wx.App object (initialisation of the wxpython toolkit)
 
-	frame = wx.Frame(None, title="DNA editor") # creation of a Frame with a title
-	frame.dnaeditor_GUI = MyPanel(frame) # creation of a richtextctrl in the frame
-	frame.Show() # frames are invisible by default so we use Show() to make them visible
-	frame.dnaeditor_GUI.open_file("")
-	app.MainLoop() # here the app enters a loop waiting for user input
+	files={}   #list with all configuration files
+	files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+	settings=files['default_dir']+"settings"   ##path to the file of the global settings
+	execfile(settings) #gets all the pre-assigned settings
+
+	genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
+	genbank.feature_selection = False #variable for storing current feature selection
+
+	import sys
+	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
+	print('Opening %s' % str(sys.argv[1]))
+
+	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
 
 
+	app = MyApp(0)
+	app.MainLoop()

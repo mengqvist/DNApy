@@ -31,11 +31,11 @@
 #
 
 #TODO
+#improve spead at which large genbank files are loaded
 #fix header parsing
 #fix search and mutate
 #match features with qualifiers (mandatory and optional)
 #add a function that checks that everything is ok
-#add a way of actually adding a new feature...
 #make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
 
 import dna
@@ -44,9 +44,6 @@ import pyperclip
 import oligo_localizer
 
 
-#for asserts and tests
-import types
-import unittest
 
 
 class feature(object):
@@ -75,7 +72,7 @@ class feature(object):
 	def SetType(self, newtype):
 		'''Sets the feature type (its "key"). Input is a string and must match a feature type as specified by the genbank format.'''
 		assert type(newtype) == str, 'Error, %s is not a string' % str(newtype)
-		assert newtype in ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"], 'Error, %s is not a valid feature type' % newtype
+		assert newtype in ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA","ncRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"], 'Error, %s is not a valid feature type' % newtype
 
 		#assert that qualifiers are ok for this one
 
@@ -137,7 +134,6 @@ class gbobject(object):
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self, filepath = None):
 		self.gbfile = {} #this variable stores the whole genbank file
-		self.filepath = '' #for keeping track of the file being edited
 		self.clipboard = {}
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
@@ -146,13 +142,18 @@ class gbobject(object):
 
 
 		self.file_versions = (copy.deepcopy(self.gbfile),) #stores version of the file
-		self.file_version_index = -1 #stores at which index the current file is
+		self.file_version_index = 0 #stores at which index the current file is
 
+		#setup empty file
 		self.gbfile['features'] = []
 		self.gbfile['dna'] = ''
 		self.gbfile['header'] = ''
-		self.gbfile['filepath'] = ''
-		self.readgb(filepath)
+		self.gbfile['filepath'] = filepath
+
+		if filepath == None:
+			pass
+		else:
+			self.readgb(filepath)
 
 ###############################
 
@@ -213,8 +214,7 @@ class gbobject(object):
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
-		assert (type(filepath) == types.StringType or type(filepath) is types.UnicodeType) , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
-#		unittest.assertTrue(type(filepath) is types.StringType or type(filepath) is types.UnicodeType)
+		assert type(filepath) == str or type(filepath) == unicode , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
 		
 		try:
 			a = open(filepath, 'r') #open it for reading
@@ -243,58 +243,99 @@ class gbobject(object):
 			self.gbfile['dna'] = DNA
 		
 			#get the features
-			## need to add single base support!!!! ##
-		
-#			featurelist2 = []
 			featurelist = features.split('\n') #split into lines
-#			templist = []
-#			tempstr = ''
-			feature = {}
-		
 			if featurelist[-1] == '': 
 				del featurelist[-1] #last entry tends to be empty, if so, remove
+			self.parse_features(featurelist)
 
+	def parse_features(self, featurelist):
+		'''Takes a list of lines from a genbank file and parses them into the DNApy data format'''
+		assert type(featurelist) == list, 'Error, the input has to be a list.'
+		feature = {}
 
-			i = 1
-			while i in range(0, len(featurelist)): # go through the lines
-				current_line = featurelist[i]
+		#keep track of loading progress
+		length = len(featurelist)
+		line_0 = 1 
+		line_10 = int(length*0.1) #line number at which 10% of the document has been loaded
+		line_20 = int(length*0.2) #line number at which 20% of the document has been loaded
+		line_30 = int(length*0.3) #line number at which 30% of the document has been loaded
+		line_40 = int(length*0.4) #line number at which 40% of the document has been loaded
+		line_50 = int(length*0.5) #line number at which 50% of the document has been loaded
+		line_60 = int(length*0.6) #line number at which 60% of the document has been loaded
+		line_70 = int(length*0.7) #line number at which 70% of the document has been loaded
+		line_80 = int(length*0.8) #line number at which 80% of the document has been loaded
+		line_90 = int(length*0.9) #line number at which 90% of the document has been loaded
+		line_100 = length-1 #line number at which 100% of the document has been loaded
 
-				#while loop is to deal with qualifiers and locations broken over several lines
-				if i != len(featurelist)-1: #don't test after the last line
-					while (featurelist[i+1][0:21] == '                     ' and featurelist[i+1][21] != '/'):
-						current_line += featurelist[i+1][21:]
-						i += 1
+		i = 1
+		while i in range(0, len(featurelist)): # go through the lines
+			#while loop is to deal with qualifiers and locations broken over several lines
+			current_line = featurelist[i]
 
-				#now parse the line
-				dictionary = self.treat_input_line(current_line)
-				dictionary_keys = dictionary.keys()
-				if 'key' in dictionary_keys:
-					if feature != {}:
-						self.gbfile['features'].append(copy.deepcopy(feature))
-						feature = {}
-						feature['key'] = copy.deepcopy(dictionary['key'])
-						location, complement, join, order = self.parse_location(dictionary['location'])
-						feature['location'] = copy.deepcopy(location)
-						feature['complement'] = copy.deepcopy(complement)
-						feature['join'] = copy.deepcopy(join)
-						feature['order'] = copy.deepcopy(order)
-						feature['qualifiers'] = []
-					elif feature == {}:	
-						feature['key'] = copy.deepcopy(dictionary['key'])
-						location, complement, join, order = self.parse_location(dictionary['location'])
-						feature['location'] = copy.deepcopy(location)
-						feature['complement'] = copy.deepcopy(complement)
-						feature['join'] = copy.deepcopy(join)
-						feature['order'] = copy.deepcopy(order)
-						feature['qualifiers'] = []
-					else:
-						raise ValueError
-				elif 'qualifier' in dictionary_keys:
-					feature['qualifiers'].append(copy.deepcopy(dictionary['qualifier']))
-					
+			#keep track of loading progress
+			if i == line_0:
+				print('0%')
+			elif i == line_10:
+				print('10%')
+			elif i == line_20:
+				print('20%')
+			elif i == line_30:
+				print('30%')
+			elif i == line_40:
+				print('40%')
+			elif i == line_50:
+				print('50%')
+			elif i == line_60:
+				print('60%')
+			elif i == line_70:
+				print('70%')
+			elif i == line_80:
+				print('80%')
+			elif i == line_90:
+				print('90%')
+			elif i == line_100:
+				print('100%')
+
+			#print('......line........', current_line)
+			if i != len(featurelist)-1: #don't test after the last line
+				while (featurelist[i+1][0:21] == '                     ' and featurelist[i+1][21] != '/'):
+					current_line += featurelist[i+1][21:]
+					i += 1
+
+			if current_line == '': #catch empty lines (that should not be there in any case) and move to next line
 				i += 1
-			self.gbfile['features'].append(copy.deepcopy(feature)) #catch last line
+				continue
 
+			#now parse the line
+			dictionary = self.treat_input_line(current_line)
+			dictionary_keys = dictionary.keys()
+			if 'key' in dictionary_keys:
+				if feature != {}:
+					self.gbfile['features'].append(copy.deepcopy(feature))
+					feature = {}
+					feature['key'] = copy.deepcopy(dictionary['key'])
+					location, complement, join, order = self.parse_location(dictionary['location'])
+					feature['location'] = copy.deepcopy(location)
+					feature['complement'] = copy.deepcopy(complement)
+					feature['join'] = copy.deepcopy(join)
+					feature['order'] = copy.deepcopy(order)
+					feature['qualifiers'] = []
+				elif feature == {}:	
+					feature['key'] = copy.deepcopy(dictionary['key'])
+					location, complement, join, order = self.parse_location(dictionary['location'])
+					feature['location'] = copy.deepcopy(location)
+					feature['complement'] = copy.deepcopy(complement)
+					feature['join'] = copy.deepcopy(join)
+					feature['order'] = copy.deepcopy(order)
+					feature['qualifiers'] = []
+				else:
+					raise ValueError
+			elif 'qualifier' in dictionary_keys:
+				feature['qualifiers'].append(copy.deepcopy(dictionary['qualifier']))
+				
+			i += 1
+		self.gbfile['features'].append(copy.deepcopy(feature)) #catch last line
+		self.clutter = self.clean_clutter() #check the stored features for Vector NTI and ApE clutter and store result
 				
 
 	def parse_location(self, locationstring):
@@ -316,6 +357,7 @@ class gbobject(object):
 			order = False
 						
 		#get location numbering
+		## need to add single base support!!!! ##
 		tempsites = []
 		commasplit = locationstring.split(',')
 		for entry in commasplit:
@@ -339,20 +381,24 @@ class gbobject(object):
 		location = tempsites
 			
 		return location, complement, join, order
-#				#add qualifiers		
-#				templist = []
-#				for n in range(2, len(featurelist2[i])): #get all other tags
-#					templist.append(featurelist2[i][n])
-#				Feature['qualifiers'] = templist
-#			
-#				#add dictionary to list
-#				features.append(Feature)
-			
-#			self.gbfile['features'] = features
-#			self.gbfile['filepath'] = filepath
-#			self.clutter = self.ApEandVNTI_clutter() #check for Vector NTI and ApE clutter and store result
 
-	
+
+	def clean_clutter(self):
+		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
+		deletionlist = []
+		for i in range(len(self.gbfile['features'])):
+			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+					deletionlist.append((i, n))
+#				elif ''\'' in self.gbfile['features'][i]['qualifiers'][n]:
+#					self.gbfile['features'][i]['qualifiers'][n] = self.gbfile['features'][i]['qualifiers'][n].replace(''\'', ' ')
+
+		#remove qualifiers based on deletionlist
+		while len(deletionlist)>0:
+			index, number = deletionlist[-1]
+			del self.gbfile['features'][index]['qualifiers'][number]
+			del deletionlist[-1]
+
 
 
 ############# undo and redo functions #################
@@ -366,12 +412,10 @@ class gbobject(object):
 			This should be added after the current version and should delete all later versions if there are any.'''
 		index = self.get_file_version_index()
 		if index == len(self.file_versions)-1: #if the current version is the last one
-			print('last version.......')
 			self.file_versions += (copy.deepcopy(self.gbfile),)
 		else:
 			self.file_versions = self.file_versions[0:index]+(copy.deepcopy(self.gbfile),)
 		self.set_file_version_index(index+1)
-		print('index', self.get_file_version_index())
 
 	def get_file_version_index(self):
 		'''Get the index of the current file version'''
@@ -571,7 +615,7 @@ class gbobject(object):
 		'''Takes a location list and tests whether it is valid'''
 		result = True		
 		try:
-			assert type(locationlist) == types.ListType
+			assert type(locationlist) == list
 			for location in locationlist:
 				start, finish = location.split('..')
 				start = int(start)
@@ -599,10 +643,10 @@ class gbobject(object):
 
 	def set_qualifier(self, index, number, qualifier, tag):
 		'''Sets the qualifier and tag for a given qualifier'''
-		assert type(index) is types.IntType, "Index is not an integer: %s" % str(index)
-		assert type(number) is types.IntType, "Number is not an integer: %s" % str(number)
-		assert type(qualifier) is types.StringType, "Qualifier is not a string: %s" % str(qualifier)
-		assert type(tag) is types.StringType, "Tag is not a string: %s" % str(tag)
+		assert type(index) is int, "Index is not an integer: %s" % str(index)
+		assert type(number) is int, "Number is not an integer: %s" % str(number)
+		assert type(qualifier) is str, "Qualifier is not a string: %s" % str(qualifier)
+		assert type(tag) is str, "Tag is not a string: %s" % str(tag)
 		try:
 			self.gbfile['features'][index]['qualifiers'][number] = '/%s=%s' % (qualifier, tag)
 		except:
@@ -875,30 +919,13 @@ class gbobject(object):
 				self.gbfile['features'][index]['qualifiers'][number+1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number+1]
 
 
-	def ApEandVNTI_clutter(self):
-		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
-		for i in range(len(self.gbfile['features'])):
-			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
-				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
-					return True
-		return False
-
-
-	def clean_clutter(self):
-		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
-		deletionlist = []
-		for i in range(len(self.gbfile['features'])):
-			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
-				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
-					deletionlist.append((i, n))
-#				elif ''\'' in self.gbfile['features'][i]['qualifiers'][n]:
-#					self.gbfile['features'][i]['qualifiers'][n] = self.gbfile['features'][i]['qualifiers'][n].replace(''\'', ' ')
-
-		#remove qualifiers based on deletionlist
-		while len(deletionlist)>0:
-			index, number = deletionlist[-1]
-			del self.gbfile['features'][index]['qualifiers'][number]
-			del deletionlist[-1]
+#	def ApEandVNTI_clutter(self):
+#		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
+#		for i in range(len(self.gbfile['features'])):
+#			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+#				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+#					return True
+#		return False
 
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
@@ -933,9 +960,12 @@ class gbobject(object):
 			print('Error, wrong option in add_or_subtract_to_locations')	
 
 		#now add brackets back
-		if len(brackets) == 0: pass					
-		elif brackets[0] == '<': start = '<' + start
-		elif brackets[0] == '>' or brackets[1] == '>': finish = '>' + finish
+		if len(brackets) == 0: 
+			pass					
+		elif brackets[0] == '<': 
+			start = '<' + str(start)
+		elif brackets[0] == '>' or brackets[1] == '>': 
+			finish = '>' + str(finish)
 		location = str(start) + '..' + str(finish)		
 		return location		
 

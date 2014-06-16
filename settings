@@ -70,6 +70,7 @@ satellite = grey
 mRNA = grey
 rRNA = grey
 tRNA = grey
+ncRNA = grey
 scRNA = grey
 snRNA = grey
 snoRNA = grey
