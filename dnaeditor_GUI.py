@@ -332,7 +332,7 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Paste(start+1, chr(key).lower())
 			self.update_ownUI()
 			self.update_globalUI()
-			#self.GetTopLevelParent().updateUndoRedo()
+			self.GetTopLevelParent().updateUndoRedo()
 			self.stc.SetSelection(start+1, start+1)
 
 
@@ -342,13 +342,13 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Delete(start+1, finish)
 				self.update_ownUI()
 				self.update_globalUI()
-				#self.GetTopLevelParent().updateUndoRedo()
+				self.GetTopLevelParent().updateUndoRedo()
 				self.stc.SetSelection(start+1, start+1)
 			else:
 				genbank.gb.Delete(start, start)
 				self.update_ownUI()
 				self.update_globalUI()
-				#self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
+				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.stc.SetSelection(start-1, start-1)
 
 		elif key == 127: #delete
@@ -359,7 +359,7 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Delete(start+1, start+1)
 			self.update_ownUI()
 			self.update_globalUI()
-			#self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
+			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.stc.SetSelection(start, start)
 
 		elif key == 314 and shift == False: #left

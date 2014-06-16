@@ -864,9 +864,9 @@ class gbobject(object):
 		else:
 			print('Order error')
 			return False
-
-		self.gbfile['features'].append(feature) #change append to sth that works for dicts
 		
+		self.gbfile['features'].append(feature) #change append to sth that works for dicts
+		self.add_file_version()
 		
 	def remove_feature(self, feature):
 		"""Function removes the feature that is passed to it from the genbank file"""
@@ -876,7 +876,7 @@ class gbobject(object):
 			print('feature identify error')
 		else:
 			del self.gbfile['features'][position]
-
+		self.add_file_version()
 
 	def move_feature(self, feature, upordown):
 		'''Moves a feature one step up or down the list (up defined as closer to the beginning)'''
@@ -886,7 +886,7 @@ class gbobject(object):
 
 		elif upordown == 'd' and index != len(self.gbfile['features'])-1:
 			self.gbfile['features'][index+1], self.gbfile['features'][index] = self.gbfile['features'][index], self.gbfile['features'][index+1]
-
+		self.add_file_version()
 
 	def add_qualifier(self, feature, newqualifier):
 		'''Adds qualifier tag to existing feature'''
@@ -895,7 +895,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['qualifiers'].append(newqualifier)  #change append to sth that works for dicts
-		
+		self.add_file_version()		
 		
 	def remove_qualifier(self, feature, number):
 		'''Removes a qualifier tag from an existing feature'''
@@ -904,7 +904,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			del self.gbfile['features'][index]['qualifiers'][number]
-
+		self.add_file_version()
 
 	def move_qualifier(self, feature, number, upordown):
 		'''Moves a qualifier one step up or down the list (up defined as closer to the beginning)'''
@@ -917,7 +917,7 @@ class gbobject(object):
 
 			elif upordown == 'd' and number != len(self.gbfile['features'][index]['qualifiers'])-1:
 				self.gbfile['features'][index]['qualifiers'][number+1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number+1]
-
+		self.add_file_version()
 
 #	def ApEandVNTI_clutter(self):
 #		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''

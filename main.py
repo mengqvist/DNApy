@@ -602,7 +602,8 @@ Put Table here
 
 	def updateUI(self):
 		#and now actually update the UI
-		self.tab_list[self.current_tab].updateUI()
+		self.dnaview.update_ownUI()
+		self.dnaview.update_globalUI()
 
 ######################################
 
