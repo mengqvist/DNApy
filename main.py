@@ -43,6 +43,7 @@ import subprocess
 
 import dna
 import genbank
+import output
 
 #GUI components
 import dnaeditor_GUI
@@ -613,7 +614,8 @@ Put Table here
 		tabtext = 'Replace!'
 		self.output.write('%s | List features\n' % tabtext, 'File')
 		featurelist = genbank.gb.ListFeatures()
-		self.output.write(featurelist, 'Text')
+		for feature in featurelist:
+			self.output.write('%s\n' % feature, 'Text')
 		self.outputframe.Show()
 
 

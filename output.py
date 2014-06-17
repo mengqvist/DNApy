@@ -32,12 +32,12 @@
 
 import wx.richtext as rt
 import wx
-
+from base_class import DNApyBaseClass
 
 class create(rt.RichTextCtrl):
 	'''A class to print colored output to a rich textctrl'''
 	def __init__(self, parent, style):
-		rt.RichTextCtrl.__init__(self, parent, style)
+		rt.RichTextCtrl.__init__(self, parent, id=-1, style=style)
 		self.SetEditable(False) #make it not editable
 		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Source Code Pro', encoding=wx.FONTENCODING_DEFAULT) #could also use Inconsolata
 		self.SetFont(font)

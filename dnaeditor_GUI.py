@@ -543,20 +543,22 @@ class DNAedit(DNApyBaseClass):
 		'''Generate output in the output.panel'''
 #		tabtext = str(self.stc.GetPageText(self.stc.GetSelection()))
 		self.make_outputpopup()			
-		self.output.write('%s | Translate %s\n' % (tabtext, info), 'File')
+		self.output.write('Translate %s\n' % (info), 'File')
 		self.output.write(('%d AA from %d bases, %d bases left untranslated' % (len(protein), len(DNA), len(DNA)%3))+'\n', 'Text')
 		self.output.write(protein, 'Protein')
 		self.outputframe.Show()
 	
 	def translate_selection(self):
 		'''Translate selected DNA'''
-		DNA = self.stc.GetStringSelection()
+		start, finish = self.get_selection()
+		DNA = genbank.gb.GetDNA(start, finish)
 		protein = dna.Translate(DNA)
 		self.translate_output(protein, DNA, 'leading strand')
 		
 	def translate_selection_reverse_complement(self):
 		'''Translate reverse-complement of selected DNA'''
-		DNA = self.stc.GetStringSelection()
+		start, finish = self.get_selection()
+		DNA = genbank.gb.GetDNA(start, finish)
 		protein = dna.Translate(dna.RC(DNA))
 		self.translate_output(protein, DNA, 'complement strand')
 

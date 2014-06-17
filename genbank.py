@@ -774,7 +774,7 @@ class gbobject(object):
 		self.allgbfeatures_templist = copy.deepcopy(self.gbfile['features'])
 		for i in range(len(self.gbfile['features'])): #checks to match dna change
 			if len(self.gbfile['features'][i]['location']) == 1:
-				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'])
+				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'][0])
 			else:
 				n = 0
 				featurestart = self.get_location(self.gbfile['features'][i]['location'][n])[0]
@@ -1040,7 +1040,7 @@ class gbobject(object):
 
 	def ListFeatures(self):
 		'''List all features as a string output'''
-		featurelist = ''		
+		featurelist = []		
 		for i in range(len(self.gbfile['features'])):
 			feature = self.gbfile['features'][i]
 			if feature['complement'] == True:
@@ -1050,8 +1050,8 @@ class gbobject(object):
 			currentfeature = '>[%s] %s at %s on %s strand' % (str(i), feature['qualifiers'][0], feature['location'], complement)
 			print(currentfeature)
 #			print('\n')
-#			featurelist += currentfeature
-#		return featurelist
+			featurelist.append(currentfeature)
+		return featurelist
 
 
 #### Find methods ####
@@ -1178,9 +1178,12 @@ indeces >-1 are feature indeces'''
 
 	def get_location(self, location):
 		'''Takes a location entry and extracts the start and end numbers'''	
+		#This needs a serious update to deal with more exotic arrangements
 		templocation = ''
-		for n in range(len(location)): #for each character
-			if location[n] != '<' and location[n] != '>': templocation += location[n]
+		print('location', location)
+		for n in range(0,len(location)): #for each character
+			if location[n] != '<' and location[n] != '>': 
+				templocation += location[n]
 		start, finish = templocation.split('..')
 		return int(start), int(finish)
 
