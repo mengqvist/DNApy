@@ -37,20 +37,13 @@
 import ast
 import wx
 from wx.lib.agw import ultimatelistctrl as ULC
-from wx.lib.pubsub import Publisher as pub
+from wx.lib.pubsub import pub
 
 import genbank
 
 
 import sys, os
 import string
-files={}   #list with all configuration files
-files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
-
 
 import copy
 
@@ -58,6 +51,15 @@ import copy
 import types
 import unittest
 from base_class import DNApyBaseClass
+
+
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
+
 
 
 class QualifierEdit(wx.Dialog):
@@ -154,7 +156,7 @@ class FeatureEdit(DNApyBaseClass):
 
 		#determing which listening group from which to recieve messages about UI updates
 		self.listening_group = 'placeholder' #needs to be assigned or will raise an error		
-		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
 		##
 		# first panel, for editing feature
@@ -298,11 +300,11 @@ class FeatureEdit(DNApyBaseClass):
 	def update_globalUI(self):
 		'''Method should be modified as to update other panels in response to changes in own panel.
 		Preferred use is through sending a message using the pub module.
-		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.sendMessage('from_feature_edit', '')
+		pub.Publisher.sendMessage('from_feature_edit', '')
 
 
 	def update_ownUI(self):

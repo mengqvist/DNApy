@@ -593,8 +593,7 @@ Put Table here
 			self.frame_1_toolbar.EnableTool(513, False)
 		else:
 			self.frame_1_toolbar.EnableTool(513, True)
-		print('index', genbank.gb.get_file_version_index())
-		print('len -1', len(genbank.gb.file_versions)-1)
+
 		if genbank.gb.get_file_version_index() >= len(genbank.gb.file_versions)-1: #if there are no redos available
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:

@@ -41,18 +41,10 @@ from os import access,listdir
 
 import sys, os
 import string
-files={}   #list with all configuration files
-files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
-
-
 
 import genbank
 import wx.stc
-from wx.lib.pubsub import Publisher as pub
+from wx.lib.pubsub import pub
 
 import pyperclip
 
@@ -65,6 +57,13 @@ from base_class import DNApyBaseClass
 #fix selection so that the statusbar matches the real
 
 
+
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
 
 
 ############# Set up custom stc lexer class ##########################
@@ -217,13 +216,13 @@ class DNAedit(DNApyBaseClass):
 
 		#determing which listening group from which to recieve messages about UI updates
 		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
-		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
 		self.listening_group2 = 'from_feature_edit'		
-		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
 		self.listening_group3 = 'dna_selection_request'		
-		pub.subscribe(self.set_dna_selection, self.listening_group3)		
+		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)		
 
 
 		#create dna view panel
@@ -292,11 +291,11 @@ class DNAedit(DNApyBaseClass):
 	def update_globalUI(self):
 		'''Method should be modified as to update other panels in response to changes in own panel.
 		Preferred use is through sending a message using the pub module.
-		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.sendMessage('from_dna_edit', '')
+		pub.Publisher.sendMessage('from_dna_edit', '')
 
 
 	

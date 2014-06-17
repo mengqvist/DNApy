@@ -37,29 +37,25 @@
 import ast
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx
-from wx.lib.pubsub import Publisher as pub
+from wx.lib.pubsub import pub
 
 import sys, os
 import string
+
+
+import copy
+
+
+import genbank
+from base_class import DNApyBaseClass
+import featureedit_GUI
+
 files={}   #list with all configuration files
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
 files['default_dir']=string.replace(files['default_dir'], "\\", "/")
 files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
-
-
-
-
-import copy
-
-#for asserts and tests
-import types
-import unittest
-
-import genbank
-from base_class import DNApyBaseClass
-import featureedit_GUI
 
 
 class NewFeatureDialog(wx.Dialog):
@@ -100,9 +96,9 @@ class NewFeatureDialog(wx.Dialog):
 #		'''Reject new feeature from the "new feature" popup'''
 #		genbank.gb.remove_feature(genbank.gb.get_feature(index=-1))
 #		genbank.feature_selection = 0
-##		pub.sendMessage('feature_index', 0)
-#		pub.sendMessage('feature_list_updateUI', 'update UI pls')
-##		pub.sendMessage('dna_edit_updateUI', 'update UI pls')
+##		pub.Publisher.sendMessage('feature_index', 0)
+#		pub.Publisher.sendMessage('feature_list_updateUI', 'update UI pls')
+##		pub.Publisher.sendMessage('dna_edit_updateUI', 'update UI pls')
 #		self.Destroy()
 
 
@@ -124,10 +120,10 @@ class FeatureList(DNApyBaseClass):
 
 		#determing which listening group from which to recieve messages about UI updates
 		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
-		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+		pub.Publisher.subscribe(self.listen_to_updateUI, str(self.listening_group))
 
 		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
 		
 		#buttons
 		imageFile = files['default_dir']+"/icon/new_small.png"
@@ -221,11 +217,11 @@ class FeatureList(DNApyBaseClass):
 	def update_globalUI(self):
 		'''Method should be modified as to update other panels in response to changes in own panel.
 		Preferred use is through sending a message using the pub module.
-		Example use is: pub.sendMessage('feature_list_updateUI', '').
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.sendMessage('from_feature_list', '')
+		pub.Publisher.sendMessage('from_feature_list', '')
 
 ######################################################
 
@@ -258,7 +254,6 @@ class FeatureList(DNApyBaseClass):
 		
 		genbank.gb.add_feature(key='misc_feature', qualifiers=['/note=New feature'], location=['%s..%s' % (start, finish)], complement=False, join=False, order=False)
 		genbank.feature_selection = copy.copy(len(genbank.gb.get_all_features())-1)
-		pub.sendMessage('feature_list_updateUI', 'update UI pls')
 
 		dlg = NewFeatureDialog(None, 'New Feature') # creation of a dialog with a title
 		dlg.ShowModal()
@@ -309,17 +304,12 @@ class FeatureList(DNApyBaseClass):
 
 	def OnEditFeature(self, event):
 		'''Edit a feature that is already present'''
-#		genbank.feature_selection = 		
-#		pub.sendMessage('feature_list_updateUI', 'update UI pls')
-
 		dlg = NewFeatureDialog(None, 'Edit Feature') # creation of a dialog with a title
 		dlg.ShowModal()
 		dlg.Center()		
 
 	def focus_feature_selection(self):
 		index = copy.copy(genbank.feature_selection)
-#		print('type', type(index))
-#		print('index', index)
 
 		self.feature_list.SetItemState(item=index, state=ULC.ULC_STATE_SELECTED, stateMask=wx.LIST_STATE_SELECTED) #for the highlight
 		self.feature_list.Select(index, True) #to select it
@@ -361,7 +351,7 @@ class FeatureList(DNApyBaseClass):
 
 	def get_dna_selection(self):
 		'''This method is needed to get the dna selection for creating new features.'''
-		pub.sendMessage('dna_selection_request', '') #sends a request for a DNA selection update
+		pub.Publisher.sendMessage('dna_selection_request', '') #sends a request for a DNA selection update
 		return genbank.dna_selection
 
 
