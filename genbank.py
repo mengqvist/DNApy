@@ -42,7 +42,7 @@ import dna
 import copy
 import pyperclip
 import oligo_localizer
-
+import peptide_localizer
 
 
 
@@ -180,37 +180,6 @@ class gbobject(object):
 		else:
 			print('error', input_string)
 
-		
-############################
-
-#		templist = input_string.split('  ')
-
-#		templist[:] = [x for x in templist if x != ''] #remove empty entries
-#		
-#		#to remove any \r and \n newline characters at the end
-#		for i in range(len(templist)): 
-#			templist[i] = templist[i].rstrip('\r\n')
-
-#		#remove single whitespace in front
-#		for i in range(len(templist)): 
-#			if templist[i][0] == ' ':
-#				templist[i] = templist[i][1:]
-#	
-#		#to deal with feature descriptions or amino acid sequences that break over several lines 
-#		done = False
-#		i = 2
-#		while done != True:
-#			listlen = len(templist)
-##			print('i', i)
-##			print('templist',templist)
-#			if templist[i][0] != '/': 
-#				templist[i-1] += templist[i]
-#				del templist[i]
-#				i = 1
-#			if i >= listlen-1:
-#				done = True
-#			i += 1
-#		return templist
 
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
@@ -227,7 +196,7 @@ class gbobject(object):
 		else:
 		
 			#split the file
-			headerandfeatures, dna = gbfile.split('ORIGIN') #origin is the word in the file that seperates features from dna
+			headerandfeatures, DNA = gbfile.split('ORIGIN') #origin is the word in the file that seperates features from dna
 			header, features = headerandfeatures.split('FEATURES')
 			header = header[0:-1] #removes the \n at the end		
 		
@@ -236,10 +205,7 @@ class gbobject(object):
 		
 		
 			#get the DNA and clean it from numbering and spaces
-			DNA = '' 
-			for i in range(len(dna)):
-				if dna[i].lower() == 'a' or dna[i].lower() == 't' or dna[i].lower() == 'c' or dna[i].lower() == 'g':
-					DNA = DNA + dna[i]
+			DNA = dna.CleanDNA(DNA, silent=True) 
 			self.gbfile['dna'] = DNA
 		
 			#get the features
@@ -296,11 +262,13 @@ class gbobject(object):
 			elif i == line_100:
 				print('100%')
 
-			#print('......line........', current_line)
-			if i != len(featurelist)-1: #don't test after the last line
+			#for dealing with qualifiers that are broken over several lines
+			if i<len(featurelist)-1:
 				while (featurelist[i+1][0:21] == '                     ' and featurelist[i+1][21] != '/'):
 					current_line += featurelist[i+1][21:]
 					i += 1
+					if i == len(featurelist)-1:
+						break
 
 			if current_line == '': #catch empty lines (that should not be there in any case) and move to next line
 				i += 1
@@ -335,7 +303,9 @@ class gbobject(object):
 				
 			i += 1
 		self.gbfile['features'].append(copy.deepcopy(feature)) #catch last line
-		self.clutter = self.clean_clutter() #check the stored features for Vector NTI and ApE clutter and store result
+		
+		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
+
 				
 
 	def parse_location(self, locationstring):
@@ -465,14 +435,8 @@ class gbobject(object):
 
 	def get_feature(self, index):
 		"""Returns the entire feature from a certain index"""
-		num_features = len(self.get_all_features()) #number of features already present
-		if index == -1:
-			index = num_features-1
-		try:
-			return self.gbfile['features'][index]
-		except:
-			print('This is not a valid index')
-			return False
+		assert -1<=index<len(self.get_all_features()), 'This is not a valid index'
+		return self.gbfile['features'][index]
 
 	def get_feature_index(self, feature):
 		'''Get the index of a feature in the self.gbfile data structure'''
@@ -919,13 +883,13 @@ class gbobject(object):
 				self.gbfile['features'][index]['qualifiers'][number+1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number+1]
 		self.add_file_version()
 
-#	def ApEandVNTI_clutter(self):
-#		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
-#		for i in range(len(self.gbfile['features'])):
-#			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
-#				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
-#					return True
-#		return False
+	def ApEandVNTI_clutter(self):
+		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
+		for i in range(len(self.gbfile['features'])):
+			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+					return True
+		return False
 
 
 	def changegbfeatureid(self, oldfeatureid, newfeatureid):
@@ -977,15 +941,7 @@ class gbobject(object):
 		DNA = ''
 		for entry in self.gbfile['features'][index]['location']:
 			start, finish = self.get_location(entry)
-			
-			if self.gbfile['features'][index]['join'] == False and self.gbfile['features'][index]['order'] == False:
-				DNA = self.GetDNA(start, finish)
-			
-			elif self.gbfile['features'][index]['join'] == True:
-				DNA += self.GetDNA(start, finish)
-				
-			elif self.gbfile['features'][index]['order'] == True: #I probably need to change the reversecomplement function to not remove /n
-				DNA += self.GetDNA(start, finish) + '\n'
+			DNA += self.GetDNA(start, finish)
 		
 		if self.gbfile['features'][index]['complement'] == True:
 			DNA = dna.RC(DNA)
@@ -1054,73 +1010,199 @@ class gbobject(object):
 		return featurelist
 
 
-#### Find methods ####
+################## Find methods ###################################
 
-	def FindNucleotide(self, searchstring, searchframe):
+	def FindNucleotide(self, searchstring, searchframe=-1, searchRC=False):
 		'''Method for finding a certain DNA sequence. Degenerate codons are supported.
-Searchstring should be a string of numbers or DNA characers and searchframe should be an index for a feature. 
--1 indicates search in entire genbank file
+Searchstring should be a string of numbers or DNA characers.
+searchRC is True or False and determines whether the reverse complement should also be searched. 
+Searchframe should be an index for a feature. -1 indicates search in entire genbank file
 indeces >-1 are feature indeces'''
 
-		#fix the set_dna_selection functions here
-	
-		assert type(searchstring) == str or type(searchstring) == unicode
-		assert type(searchframe) == int
 
+### Need to implement the searchRC variable
+
+		#fix the set_dna_selection functions here
+		assert type(searchstring) == str or type(searchstring) == unicode, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
+		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
+
+		#empty search string
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
-			return None
+			return []
 
+		#searching for a position (by number)
 		elif searchstring.isdigit(): #if search is numbers only
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			searchstring = int(searchstring)
 			if searchframe == -1: #if index is -1, that means search in molecule
-				search_hits = [(int(searchstring)-1, int(searchstring))]
+				search_hits = [(int(searchstring), int(searchstring))]
 				return search_hits
-#				self.set_dna_selection(self.search_hits[0])
-			else: #otherwise search in feature indicated by the index
-				complement = self.get_feature_complement(searchframe) # is feature complement or not
-				feature = self.get_feature(searchframe)
-				first, last = self.GetFirstLastLocation(feature)
 
-				#add check ensuring that you cannot search outsite of feature bounds	
-				if complement == True:
-					search_hits = [(last+1 - int(searchstring)-1, last+1 - int(searchstring))]
-					return search_hits
-#					self.set_dna_selection(self.search_hits[0])					
-				elif complement == False:
-					search_hits = [(first-1 + int(searchstring)-1, first-1 + int(searchstring))]
-					return search_hits
-#					self.set_dna_selection(self.search_hits[0])					
+			else: #otherwise search in feature indicated by the index
+				feature = self.get_feature(searchframe)
+				locations = copy.deepcopy(feature['location']) #get list of all locations
+				cleaned_locations = []
+				for i in range(len(locations)): # remove all < > and such..
+					cleaned_locations.append(self.get_location(locations[i]))
+
+				gaps = [] #for storing gap sizes (between locations)
+				for i in range(0,len(cleaned_locations)-1):
+					gaps.append(cleaned_locations[i+1][0] - cleaned_locations[i][1]) #subtract end of last location from the beginnning of current
+
+				#now find where the searchstring is located
+				if complement == False:
+					for i in range(0,len(cleaned_locations)):
+						if i == 0:		
+							start, finish = cleaned_locations[i]
+							searchstring += start-1
+						else:	
+							start, finish = cleaned_locations[i]
+							searchstring += gaps[i-1]-1												
+						if start<=searchstring<=finish: #if the chosen number is in the range of the current location
+							return [(searchstring,searchstring)]
+							break
+					print('No matches were found')	
+					return []
 				
-		else: #if searchstring is not numbers
+				elif complement == True:
+					cleaned_locations = cleaned_locations[::-1] #reverse location list
+					for i in range(len(cleaned_locations)):
+						cleaned_locations[i] = cleaned_locations[i][::-1]
+					gaps = gaps[::-1]
+					for i in range(0,len(cleaned_locations)):
+						if i == 0:		
+							start, finish = cleaned_locations[i]
+							searchstring = -searchstring
+							searchstring += start+1
+						else:	
+							start, finish = cleaned_locations[i]
+							searchstring -= gaps[i-1]-1												
+
+						#is the chosen number is in the range of the current location
+						if start>=searchstring>=finish: 
+							print('Match found')
+							return [(searchstring,searchstring)]
+							break
+					print('No matches were found')
+					return []
+
+		#searching for string, not numbers	
+		else: 
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
 			#need to test that the characters are valid
 			if searchframe == -1: #if index is -1, that means search in molecule
 				dna_seq = self.GetDNA()
-				dna_seq = dna_seq.upper()
-				searchstring = searchstring.upper()
-				dna_seq = list(dna_seq)
-				dna_seq = oligo_localizer.cleaner(dna_seq)
-				if oligo_localizer.match_oligo(dna_seq, searchstring)!=[]:
-					search_hits = []
-					for match in oligo_localizer.match_oligo(dna_seq, searchstring):
-						lm=len(match[2])
-						search_hits.append((match[0],match[1]+lm))
-					return search_hits
-#					self.set_dna_selection(self.search_hits[0])
-				else:
-					print('No matches were found')			
-					return None
+				search_hits = []
+				for match in oligo_localizer.match_oligo(dna_seq, searchstring):
+					lm=len(match[2])
+					search_hits.append((match[0]+1,match[1]+lm))
+				return search_hits
+#				self.set_dna_selection(self.search_hits[0])
 
-	def FindAminoAcid(self, searchsting, searchframe):
+			else:
+				#strategy is to find location of the sting inside the feature DNA and then to map those onto the whole molecule
+				DNA = self.GetFeatureDNA(searchframe)
+				search_hits = []
+				for match in oligo_localizer.match_oligo(DNA, searchstring):
+					lm=len(match[2])
+					search_hits.append((match[0]+1,match[1]+lm))
+
+				#now map them one by one to the whole molecule	
+				re_mapped_search_hits = []	
+				for i in range(len(search_hits)):
+					start = self.FindNucleotide(str(search_hits[i][0]), searchframe)[0][0]
+					finish = self.FindNucleotide(str(search_hits[i][1]), searchframe)[0][0]
+					re_mapped_search_hits.append((start,finish))
+				
+				#if feature is on complement then I need to reverse the list of hits and the tuples inside
+				if complement == True:
+					re_mapped_search_hits = re_mapped_search_hits[::-1]
+					for i in range(len(re_mapped_search_hits)):
+						re_mapped_search_hits[i] = re_mapped_search_hits[i][::-1]
+				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######
+
+
+	def FindAminoAcid(self, searchstring, searchframe, searchRC=False):
 		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
-		pass
-		return None
+		#empty search string
+		if searchstring=='':
+			print 'The searchstring is missing, please check your input'
+			return []
+
+		#searching for a position (by number)
+		elif searchstring.isdigit(): #if search is numbers only
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			searchstring = int(searchstring)
+
+			#get the dna triplet positions for the amino acid
+			start = searchstring*3 -2 
+			finish = searchstring*3
+			if searchframe == -1: #if index is -1, that means search in molecule
+				search_hits = [(start, finish)]
+				return search_hits
+
+			else: #otherwise search in feature indicated by the index
+				start = self.FindNucleotide(str(start), searchframe)[0][0]
+				finish = self.FindNucleotide(str(finish), searchframe)[0][0]
+				
+				search_hits = [(start, finish)]
+				search_hits[0] = tuple(sorted(search_hits[0]))
+				return search_hits
+		
+		#searching for an amino acid sequence
+		else:
+			#strategy is to find location of the sting inside the feature DNA and then to map those onto the whole molecule
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			if searchframe == -1: #if index is -1, that means search in molecule
+				DNA = self.GetDNA()
+				protein = dna.Translate(DNA)
+
+				#find hits on protein level
+				search_hits = []
+				for match in peptide_localizer.match_peptide(protein, searchstring):
+					lm=len(match[2])
+					search_hits.append((match[0]+1,match[1]+lm))
+				print('hits', search_hits)
+
+				#now map them one by one to the whole molecule	
+				re_mapped_search_hits = []	
+				for i in range(len(search_hits)):
+					start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
+					finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2
+					re_mapped_search_hits.append((start,finish))
+				print('re-mapped', re_mapped_search_hits)
+				return re_mapped_search_hits
+
+			else:
+				DNA = self.GetFeatureDNA(searchframe)
+				if complement == True:
+					protein = dna.TranslateRC(DNA)
+				elif complement == False:
+					protein = dna.Translate(DNA)
+
+				search_hits = []
+				for match in peptide_localizer.match_peptide(protein, searchstring):
+					lm=len(match[2])
+					search_hits.append((match[0]+1,match[1]+lm))
+				print('protein hits', search_hits)
+
+				#now map them one by one to the whole molecule	
+				re_mapped_search_hits = []	
+				for i in range(len(search_hits)):
+					start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
+					finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2  #something is not quite working with the re-mapping here
+					re_mapped_search_hits.append((start,finish))
+				print('re-mapped', re_mapped_search_hits)
+				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######
 
 
 	def FindFeature(self, searchstring):
 		'''Method for finding a certain feature in a genbank file'''
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
-			return None
+			return []
 		else:
 			search_hits = []
 			hits = []
@@ -1133,7 +1215,7 @@ indeces >-1 are feature indeces'''
 
 		if len(hits) == 0:
 			print('Sorry, no matches were found')
-			return None
+			return []
 		else:
 			for feature in hits:
 				start, finish = self.GetFirstLastLocation(feature)
@@ -1145,42 +1227,46 @@ indeces >-1 are feature indeces'''
 
 	def find_previous(self):
 		'''Switch to the previous search hit'''
-		start, finish = self.get_dna_selection()
-		for i in range(len(self.search_hits)):
-			print('start', start)
-			print('hits', self.search_hits[0][0])
-			if start < self.search_hits[0][0]:
-				self.set_dna_selection(self.search_hits[-1])
-				break
-			elif start <= self.search_hits[i][0]:
-				self.set_dna_selection(self.search_hits[i-1])
-				break
+#		start, finish = self.get_dna_selection()
+#		for i in range(len(self.search_hits)):
+#			print('start', start)
+#			print('hits', self.search_hits[0][0])
+#			if start < self.search_hits[0][0]:
+#				self.set_dna_selection(self.search_hits[-1])
+#				break
+#			elif start <= self.search_hits[i][0]:
+#				self.set_dna_selection(self.search_hits[i-1])
+#				break
+		pass
 
 
 	def find_next(self):
 		'''Switch to the next search hit'''
-		start, finish = self.get_dna_selection()
-		for i in range(len(self.search_hits)):
-			if start < self.search_hits[i][0]:
-				self.set_dna_selection(self.search_hits[i])
-				break
-			elif i == len(self.search_hits)-1:
-				self.set_dna_selection(self.search_hits[0])
-				break
+#		start, finish = self.get_dna_selection()
+#		for i in range(len(self.search_hits)):
+#			if start < self.search_hits[i][0]:
+#				self.set_dna_selection(self.search_hits[i])
+#				break
+#			elif i == len(self.search_hits)-1:
+#				self.set_dna_selection(self.search_hits[0])
+#				break
+		pass
 
 
+
+	def mutate(self, mutation):
+		'''Takes a'''
+		pass
 
 #################################
+#################################
 
-	def mutate():
-		pass
 
 
 	def get_location(self, location):
 		'''Takes a location entry and extracts the start and end numbers'''	
 		#This needs a serious update to deal with more exotic arrangements
 		templocation = ''
-		print('location', location)
 		for n in range(0,len(location)): #for each character
 			if location[n] != '<' and location[n] != '>': 
 				templocation += location[n]
@@ -1294,7 +1380,7 @@ indeces >-1 are feature indeces'''
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
 					if start<changestart<=finish: #if change is within the feature
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'f')
-					elif changestart<=start<=finish: #if change is before feature
+					elif changestart<=start: #if change is before feature
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'b')
 		
 		
@@ -1316,13 +1402,13 @@ indeces >-1 are feature indeces'''
 						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
 						#print('encompass start')
 					elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart), 'f')	
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart)-1, 'f')	 #finish
 						#print('encompass finish')
 					elif changestart<=start and finish<=changeend: #if change encompasses whole feature, add to deletion list
 						deletionlist.append(copy.deepcopy((i, n)))
 						#print('encompass all')
 					elif changestart<start and changeend<start: #if change is before feature, change start and finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')				
+						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')	 #both			
 						#print('before start')
 			#execute deletions (if any)
 			while len(deletionlist)>0:

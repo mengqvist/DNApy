@@ -30,63 +30,53 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
+import string
 
-def R(dna):
-	"""Returns the reverse of a DNA string"""
-	dna = dna.replace('\n','')
-	return dna[::-1]  #makes the reverse of the input string
-		
-def C(dna):
-	"""Returns the complement of a DNA string"""
-	dna = dna.replace('\n','')
-	compdna = ''
-	for i in range(len(dna)):    #this loop makes the complement of a string
-		if dna[i] == 'a':
-			base = 't'
-			
-		elif dna[i] == 't':
-			base = 'a'
-
-		elif dna[i] == 'c':
-			base = 'g'
-
-		elif dna[i] == 'g':
-			base = 'c'
-
-		elif dna[i] == 'n':
-			base = 'n'
-			
-		elif dna[i] == 'A':
-			base = 'T'
-
-		elif dna[i] == 'T':
-			base = 'A'
-
-		elif dna[i] == 'C':
-			base = 'G'
-
-		elif dna[i] == 'G':
-			base = 'C'
-
-		elif dna[i] == 'N':
-			base = 'N'
-			
-		elif dna[i] == '\n': #\n is the end of line character found in many files
-			base = ''	
-
+def CleanDNA(DNA, ambiguous=False, silent=False):
+	'''Function for cleaning DNA of non-DNA characters'''
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	if ambiguous == False:
+		bases = 'GATC'
+	elif ambiguous == True:
+		bases = 'GATCRYWSMKHBVDN'
+	cleaned_seq = ''
+	for char in DNA:
+		if (char in string.digits) or (char in string.whitespace) or char==('/'or'\\'or ' ' or '  ') or (char.upper() not in bases):
+			if silent == False:
+				print('Character "%s" is not a valid DNA character and was deleted' % char)
 		else:
-			base = 'x'
-		compdna = compdna + base
-	return compdna
+			cleaned_seq += char
+	return cleaned_seq
+
+
+def R(DNA):
+	"""Returns the reverse of a DNA string"""
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	DNA = CleanDNA(DNA, ambiguous=True)
+	return DNA[::-1]  #makes the reverse of the input string
+
+		
+def C(DNA):
+	"""Returns the complement of a DNA string"""
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	DNA = CleanDNA(DNA, ambiguous=True)
+	complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n', 
+'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
+	bases = list(DNA) 
+	bases = [complement[base] for base in bases] 
+	return ''.join(bases)
+
 	
-	
-def RC(dna):
+def RC(DNA):
 	"""Returns the reverse complement of a DNA string"""
-	return R(C(dna))
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	return R(C(DNA))
 
 
-def Translate(dna):
+def Translate(DNA):
 	"""Returns protein sequence from DNA string input"""
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	DNA = CleanDNA(DNA)
 	F = ['TTT', 'TTC'];
 	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
 	S = ['TCT', 'TCC', 'TCA', 'TCG', 'AGC', 'AGT'];
@@ -110,71 +100,72 @@ def Translate(dna):
 	G = ['GGA', 'GGT', 'GGC', 'GGG']
 
 	protein = ''
-	dna = dna.upper()
-	dna = dna.replace('\n', '') #get rid of row breaks
-	dna = dna.replace('U', 'T')
+	DNA = DNA.upper()
+	DNA = DNA.replace('\n', '') #get rid of row breaks
+	DNA = DNA.replace('U', 'T')
 
-	for i in range(len(dna)):
+	for i in range(len(DNA)):
 		if i%3==0:
-			if i+3>len(dna):
+			if i+3>len(DNA):
 				pass
-			elif any(dna[i:(i+3)] in s for s in F):
+			elif any(DNA[i:(i+3)] in s for s in F):
 				protein = protein + 'F'
-			elif any(dna[i:(i+3)] in s for s in L):
+			elif any(DNA[i:(i+3)] in s for s in L):
 				protein = protein + 'L'
-			elif any(dna[i:(i+3)] in s for s in S):
+			elif any(DNA[i:(i+3)] in s for s in S):
 				protein = protein + 'S'
-			elif any(dna[i:(i+3)] in s for s in Y):
+			elif any(DNA[i:(i+3)] in s for s in Y):
 				protein = protein + 'Y'
-			elif any(dna[i:(i+3)] in s for s in stop):
+			elif any(DNA[i:(i+3)] in s for s in stop):
 				protein = protein + '*'
-			elif any(dna[i:(i+3)] in s for s in C):
+			elif any(DNA[i:(i+3)] in s for s in C):
 				protein = protein + 'C'
-			elif any(dna[i:(i+3)] in s for s in W):
+			elif any(DNA[i:(i+3)] in s for s in W):
 				protein = protein + 'W'
-			elif any(dna[i:(i+3)] in s for s in P):
+			elif any(DNA[i:(i+3)] in s for s in P):
 				protein = protein + 'P'
-			elif any(dna[i:(i+3)] in s for s in H):
+			elif any(DNA[i:(i+3)] in s for s in H):
 				protein = protein + 'H'
-			elif any(dna[i:(i+3)] in s for s in E):
+			elif any(DNA[i:(i+3)] in s for s in E):
 				protein = protein + 'E'
-			elif any(dna[i:(i+3)] in s for s in R):
+			elif any(DNA[i:(i+3)] in s for s in R):
 				protein = protein + 'R'
-			elif any(dna[i:(i+3)] in s for s in I):
+			elif any(DNA[i:(i+3)] in s for s in I):
 				protein = protein + 'I'
-			elif any(dna[i:(i+3)] in s for s in M):
+			elif any(DNA[i:(i+3)] in s for s in M):
 				protein = protein + 'M'
-			elif any(dna[i:(i+3)] in s for s in T):
+			elif any(DNA[i:(i+3)] in s for s in T):
 				protein = protein + 'T'
-			elif any(dna[i:(i+3)] in s for s in N):
+			elif any(DNA[i:(i+3)] in s for s in N):
 				protein = protein + 'N'
-			elif any(dna[i:(i+3)] in s for s in K):
+			elif any(DNA[i:(i+3)] in s for s in K):
 				protein = protein + 'K'
-			elif any(dna[i:(i+3)] in s for s in V):
+			elif any(DNA[i:(i+3)] in s for s in V):
 				protein = protein + 'V'
-			elif any(dna[i:(i+3)] in s for s in A):
+			elif any(DNA[i:(i+3)] in s for s in A):
 				protein = protein + 'A'
-			elif any(dna[i:(i+3)] in s for s in D):
+			elif any(DNA[i:(i+3)] in s for s in D):
 				protein = protein + 'D'
-			elif any(dna[i:(i+3)] in s for s in Q):
+			elif any(DNA[i:(i+3)] in s for s in Q):
 				protein = protein + 'Q'
-			elif any(dna[i:(i+3)] in s for s in G):
+			elif any(DNA[i:(i+3)] in s for s in G):
 				protein = protein + 'G'
 			else:
 				protein = protein + '?'
 	return protein	
 
-def TranslateRC(dna):
+def TranslateRC(DNA):
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	'''Translate the reverse complement of DNA'''
-	dna = RC(dna)
-	return Translate(dna)
+	DNA = RC(DNA)
+	return Translate(DNA)
 
-#add randomize dna
+#add randomize DNA
 
 
 #add abireader function
 
-#add function for fetching dna from uniprot, ncbi...
+#add function for fetching DNA from uniprot, ncbi...
 
 
 
@@ -273,12 +264,12 @@ def blast(blast_type, database, seq): #function for blasting
 	
 
 
-def smithwaterman(dna1, dna2):
+def smithwaterman(DNA1, DNA2):
 	"""Module aligns two DNA sequences and returns aligned seqA, alignment "bars (|)" and aligned seqB"""
 	##got script from Kevin Kwok and modified...
 	##http://kevinakwok.tumblr.com/post/18372160357/smith-waterman-algorithm
-	seqA = dna1
-	seqB = dna2
+	seqA = DNA1
+	seqB = DNA2
 	seqB = seqB.upper()
 	seqA = seqA.upper()
 	seqB = seqB[:-1]

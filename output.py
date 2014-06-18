@@ -33,41 +33,74 @@
 import wx.richtext as rt
 import wx
 from base_class import DNApyBaseClass
+from wx.lib.pubsub import pub
 
-class create(rt.RichTextCtrl):
+class create(DNApyBaseClass):
 	'''A class to print colored output to a rich textctrl'''
 	def __init__(self, parent, style):
-		rt.RichTextCtrl.__init__(self, parent, id=-1, style=style)
-		self.SetEditable(False) #make it not editable
+		super(create, self).__init__(parent, style) 
+
+		self.rtc = rt.RichTextCtrl(self)
+		
+		
+		self.rtc.SetEditable(False) #make it not editable
 		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Source Code Pro', encoding=wx.FONTENCODING_DEFAULT) #could also use Inconsolata
-		self.SetFont(font)
-		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
+		self.rtc.SetFont(font)
+#		self.rtc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
+
+		#determing which listening group from which to recieve messages about UI updates
+		self.listening_group = 'placeholder' 		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+
+		sizer = wx.BoxSizer(wx.HORIZONTAL)
+		sizer.Add(item=self.rtc, proportion=-1, flag=wx.EXPAND)
+		self.SetSizer(sizer)
+
+
+
+####### Modify methods from base calss to fit current needs #########
+
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		pass
+
+
+	def update_ownUI(self):
+		'''Updates all fields depending on which feature is chosen'''
+		pass
+#####################################################################
+
 
 	def OnKeyPress(self, evt):
 		print('keypress')
 
 	def clear(self):
 		'''Remove any text already in the Output Panel'''
-		self.Clear()
+		self.rtc.Clear()
 
 	def write(self, string, stringtype):
 		'''General method for printing to the Output Panel'''
 		if stringtype == 'DNA':
-			self.BeginTextColour('#009999')
+			self.rtc.BeginTextColour('#009999')
 		elif stringtype == 'DNAcolor':
 			#this is too slow!
-			self.WriteText(string)
+			self.rtc.WriteText(string)
 			
 			color = '#333333'
-			self.attr.SetTextColour(color)
-			self.SetStyleEx(rt.RichTextRange(insertionpoint, insertionpoint+30), self.attr)
+			self.rtc.attr.SetTextColour(color)
+			self.rtc.SetStyleEx(rt.RichTextRange(insertionpoint, insertionpoint+30), self.attr)
 			
 			previousbase = ''
 			
 			string=string.upper()
 			i = 0
 
-			[(self.attr.SetTextColour('#33CC00'), self.SetStyleEx(rt.RichTextRange(insertionpoint + i, insertionpoint + i+1), self.attr)) for base in string for i in xrange(len(string)) if base =='A'] 
+			[(self.rtc.attr.SetTextColour('#33CC00'), self.rtc.SetStyleEx(rt.RichTextRange(insertionpoint + i, insertionpoint + i+1), self.rtc.attr)) for base in string for i in xrange(len(string)) if base =='A'] 
 #			for base in string:
 #				start = insertionpoint + i
 #				end = start + 1
@@ -84,22 +117,22 @@ class create(rt.RichTextCtrl):
 #				self.SetStyleEx(rt.RichTextRange(start, end), self.attr)
 #				i += 1
 		elif stringtype == 'Protein':
-			self.BeginTextColour('#CC6600')
+			self.rtc.BeginTextColour('#CC6600')
 		elif stringtype == 'Text':
-			self.BeginTextColour('#333333')
+			self.rtc.BeginTextColour('#333333')
 		elif stringtype == 'File':
-			self.BeginTextColour('#330099')
+			self.rtc.BeginTextColour('#330099')
 		elif stringtype == 'Barcode':	
-			self.BeginTextColour('#FF00FF')
+			self.rtc.BeginTextColour('#FF00FF')
 			
-		self.WriteText(string)
-		self.EndTextColour()
+		self.rtc.WriteText(string)
+		self.rtc.EndTextColour()
 		
 		
 		if stringtype == 'Replace':
-			self.BeginTextColour('#333333')
-			self.SetValue(string)
-			self.EndTextColour()
+			self.rtc.BeginTextColour('#333333')
+			self.rtc.SetValue(string)
+			self.rtc.EndTextColour()
 			
 	def write_image(self, image):
 		'''General method for printing images to the Output Panel'''

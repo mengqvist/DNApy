@@ -100,7 +100,8 @@ class DNALexer(BaseLexer):
 	STC_STYLE_BURGUNDY_RV = 18
 	STC_STYLE_GREY_FW = 19
 	STC_STYLE_GREY_RV = 20
-
+	STC_STYLE_SEARCH_HITS = 21
+	STC_STYLE_ENZYMES = 22
 
 	def __init__(self):
 		super(DNALexer, self).__init__()
@@ -122,7 +123,6 @@ class DNALexer(BaseLexer):
 			color = eval(featuretype)['color'] #get the color of feature (as string)
 			assert type(color) == str
 
-			stc.StartStyling(start, 0x1f)
 			if color == 'red' and complement == False: 
 				style = DNALexer.STC_STYLE_RED_FW
 			elif color == 'red' and complement == True: 
@@ -166,9 +166,27 @@ class DNALexer(BaseLexer):
 			else: 
 				print('nonononononon')
 				style = DNALexer.STC_STYLE_DEFAULT
-
+			stc.StartStyling(start, 0x1f)
 			length = finish-start
+			if length == 0:
+				stc.StartStyling(start-1, 0x1f)
+				length = 1
 			stc.SetStyling(length, style)
+
+		if genbank.search_hits != None:
+			for hit in genbank.search_hits:
+				print('hit', hit)
+				start, finish = hit
+				style = DNALexer.STC_STYLE_SEARCH_HITS
+				stc.StartStyling(start-1, 0x1f)
+				length = finish-(start-1)
+				if length == 0:
+					stc.StartStyling(start-1, 0x1f)
+					length = 1
+				stc.SetStyling(length, style)
+
+#		for enzyme in genbank.highlighted_enzymes:
+#			style = DNALexer.STC_STYLE_ENZYMES
 
 
 class CustomSTC(wx.stc.StyledTextCtrl):
@@ -273,6 +291,13 @@ class DNAedit(DNApyBaseClass):
 		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['fw'])
 		style = DNALexer.STC_STYLE_GREY_RV
 		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['rv'])
+		style = DNALexer.STC_STYLE_SEARCH_HITS
+		self.stc.StyleSetSpec(style, "fore:#000000,back:#CCFFOO,face:Mono,size:10")
+		style = DNALexer.STC_STYLE_ENZYMES
+		self.stc.StyleSetSpec(style, "fore:#000000,back:#FFOO33,face:Mono,size:10")
+
+
+
 
 		self.stc.SetLexer(wx.stc.STC_LEX_CONTAINER, DNALexer())
 
@@ -420,7 +445,6 @@ class DNAedit(DNApyBaseClass):
 	def get_selection(self):
 		'''Gets the text editor selection and adjusts it to DNA locations'''
 		start, finish = self.stc.GetSelection()
-		print(start, finish)
 		if start == finish: # if not a selection
 			selection = (start+1, finish+1)
 		else:

@@ -102,7 +102,7 @@ class MyFrame(wx.Frame):
 
 		genbank.dna_selection = (0, 0)	 #variable for storing current DNA selection
 		genbank.feature_selection = False #variable for storing current feature selection
-
+		genbank.search_hits = []
 
 		self.generate_dnaview_tab("")
 		self.generate_vectorview_tab("")
@@ -164,7 +164,7 @@ class MyFrame(wx.Frame):
 
 		self.panel.append(wx.Panel(self.DNApy, -1))
 		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
-		self.genbankview.SetEditable(False)
+		self.genbankview.rtc.SetEditable(False)
 
 		self.tab_list.append(self.genbankview)
 
@@ -762,30 +762,28 @@ Put Table here
 		searchstring = self.searchinput.GetValue()
 
 		if searchtype == 'Nucleotide':
-			genbank.gb.FindNucleotide(searchstring, searchframe)
+			genbank.search_hits = genbank.gb.FindNucleotide(searchstring, searchframe)
 		elif searchtype == 'Amino Acid':
-			genbank.gb.FindAminoAcid(searchstring, searchframe)
+			genbank.search_hits = genbank.gb.FindAminoAcid(searchstring, searchframe)
 		elif searchtype == 'Feature':
-			genbank.gb.FindFeature(searchstring)
+			genbank.search_hits = genbank.gb.FindFeature(searchstring)
 
 		self.updateUI()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
-		self.dnaview.stc.ShowPosition(start) 
+
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
 		genbank.gb.find_previous()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
-		self.dnaview.stc.ShowPosition(start) 
 
 	def find_next(self, evt):
 		'''Select next search hit'''
 		genbank.gb.find_next()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
-		self.dnaview.stc.ShowPosition(start) 
 
 	def mutate(self, evt):
 		pass
@@ -873,7 +871,7 @@ Put Table here
 		wx.EVT_MENU(self, 9, self.Undo)
 
 		#redo
-		self.edit.Append(10, "Redo\tCtrl+Y", "Redo")
+		self.edit.Append(10, "Redo\tShift+Ctrl+Z", "Redo")
 		wx.EVT_MENU(self, 10, self.Redo)
 		self.edit.AppendSeparator() #________________________devider
 
@@ -907,7 +905,7 @@ Put Table here
 		self.edit.AppendSeparator() #________________________devider
 		
 		#select all
-		self.edit.Append(14, "Select all", "Select all text")
+		self.edit.Append(14, "Select all\tCtrl+A", "Select all text")
 		wx.EVT_MENU(self, 14, self.select_all)
 		self.edit.AppendSeparator() #________________________devider
 
