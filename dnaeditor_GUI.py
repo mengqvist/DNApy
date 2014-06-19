@@ -100,7 +100,7 @@ class DNALexer(BaseLexer):
 	STC_STYLE_BURGUNDY_RV = 18
 	STC_STYLE_GREY_FW = 19
 	STC_STYLE_GREY_RV = 20
-	STC_STYLE_SEARCH_HITS = 21
+	STC_STYLE_SEARCH_HITS_FW = 21
 	STC_STYLE_ENZYMES = 22
 
 	def __init__(self):
@@ -175,9 +175,9 @@ class DNALexer(BaseLexer):
 
 		if genbank.search_hits != None:
 			for hit in genbank.search_hits:
-				print('hit', hit)
+				##add logic here for hits that are broken up
 				start, finish = hit
-				style = DNALexer.STC_STYLE_SEARCH_HITS
+				style = DNALexer.STC_STYLE_SEARCH_HITS_FW
 				stc.StartStyling(start-1, 0x1f)
 				length = finish-(start-1)
 				if length == 0:
@@ -250,7 +250,7 @@ class DNAedit(DNApyBaseClass):
 
 		#set lexer styles
 		style = DNALexer.STC_STYLE_DEFAULT
-		self.stc.StyleSetSpec(style, "fore:#000000,face:Mono,size:10")
+		self.stc.StyleSetSpec(style, "fore:#000000,back:#FFFFFF,face:Mono,size:10")
 		style = DNALexer.STC_STYLE_RED_FW
 		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % red['fw'])
 		style = DNALexer.STC_STYLE_RED_RV
@@ -291,8 +291,11 @@ class DNAedit(DNApyBaseClass):
 		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['fw'])
 		style = DNALexer.STC_STYLE_GREY_RV
 		self.stc.StyleSetSpec(style, "fore:#000000,back:%s,face:Mono,size:10" % grey['rv'])
-		style = DNALexer.STC_STYLE_SEARCH_HITS
-		self.stc.StyleSetSpec(style, "fore:#000000,back:#CCFFOO,face:Mono,size:10")
+		style = DNALexer.STC_STYLE_SEARCH_HITS_FW
+		self.stc.StyleSetSpec(style, "fore:#000000,back:#CCFFOO,face:Mono,bold,size:10")
+#		style = DNALexer.STC_STYLE_SEARCH_HITS_RV
+#		self.stc.StyleSetSpec(style, "fore:#000000,back:#CCFF33,face:Mono,bold,size:10")
+
 		style = DNALexer.STC_STYLE_ENZYMES
 		self.stc.StyleSetSpec(style, "fore:#000000,back:#FFOO33,face:Mono,size:10")
 

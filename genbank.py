@@ -1082,10 +1082,8 @@ indeces >-1 are feature indeces'''
 
 						#is the chosen number is in the range of the current location
 						if start>=searchstring>=finish: 
-							print('Match found')
 							return [(searchstring,searchstring)]
 							break
-					print('No matches were found')
 					return []
 
 		#searching for string, not numbers	
@@ -1096,18 +1094,15 @@ indeces >-1 are feature indeces'''
 				dna_seq = self.GetDNA()
 				search_hits = []
 				for match in oligo_localizer.match_oligo(dna_seq, searchstring):
-					lm=len(match[2])
-					search_hits.append((match[0]+1,match[1]+lm))
+					search_hits.append((match[0], match[1]))
 				return search_hits
-#				self.set_dna_selection(self.search_hits[0])
 
 			else:
 				#strategy is to find location of the sting inside the feature DNA and then to map those onto the whole molecule
 				DNA = self.GetFeatureDNA(searchframe)
 				search_hits = []
 				for match in oligo_localizer.match_oligo(DNA, searchstring):
-					lm=len(match[2])
-					search_hits.append((match[0]+1,match[1]+lm))
+					search_hits.append((match[0], match[1]))
 
 				#now map them one by one to the whole molecule	
 				re_mapped_search_hits = []	
@@ -1162,8 +1157,7 @@ indeces >-1 are feature indeces'''
 				#find hits on protein level
 				search_hits = []
 				for match in peptide_localizer.match_peptide(protein, searchstring):
-					lm=len(match[2])
-					search_hits.append((match[0]+1,match[1]+lm))
+					search_hits.append((match[0],match[1]))
 				print('hits', search_hits)
 
 				#now map them one by one to the whole molecule	
@@ -1177,22 +1171,22 @@ indeces >-1 are feature indeces'''
 
 			else:
 				DNA = self.GetFeatureDNA(searchframe)
-				if complement == True:
-					protein = dna.TranslateRC(DNA)
-				elif complement == False:
-					protein = dna.Translate(DNA)
+				protein = dna.Translate(DNA)
 
 				search_hits = []
 				for match in peptide_localizer.match_peptide(protein, searchstring):
-					lm=len(match[2])
-					search_hits.append((match[0]+1,match[1]+lm))
+					search_hits.append((match[0],match[1]))
 				print('protein hits', search_hits)
 
 				#now map them one by one to the whole molecule	
 				re_mapped_search_hits = []	
 				for i in range(len(search_hits)):
-					start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
-					finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2  #something is not quite working with the re-mapping here
+					if complement == False:
+						start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
+						finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2 
+					elif complement == True:
+						start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
+						finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2  
 					re_mapped_search_hits.append((start,finish))
 				print('re-mapped', re_mapped_search_hits)
 				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######

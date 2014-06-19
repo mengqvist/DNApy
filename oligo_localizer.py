@@ -12,6 +12,9 @@
 ##################################################################################
 
 
+#script from above source modified by Martin Engqvist 
+
+
 import re
 import string
 
@@ -63,6 +66,6 @@ def match_oligo(seq,oligo,mismatches=0):
 	re_oligo=re_const(oligo)
 	L_out=[]
 	for match in re_oligo.finditer(seq):
-		L_out.append([match.end(),match.start(),match.group(1)])
+		L_out.append([match.start()+1, match.end()+len(match.group(1))])
 	return L_out
 

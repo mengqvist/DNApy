@@ -32,7 +32,7 @@
 
 import string
 
-def CleanDNA(DNA, ambiguous=False, silent=False):
+def CleanDNA(DNA, ambiguous=False, silent=True):
 	'''Function for cleaning DNA of non-DNA characters'''
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	if ambiguous == False:
@@ -52,14 +52,12 @@ def CleanDNA(DNA, ambiguous=False, silent=False):
 def R(DNA):
 	"""Returns the reverse of a DNA string"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
-	DNA = CleanDNA(DNA, ambiguous=True)
 	return DNA[::-1]  #makes the reverse of the input string
 
 		
 def C(DNA):
 	"""Returns the complement of a DNA string"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
-	DNA = CleanDNA(DNA, ambiguous=True)
 	complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n', 
 'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
 	bases = list(DNA) 
@@ -76,7 +74,6 @@ def RC(DNA):
 def Translate(DNA):
 	"""Returns protein sequence from DNA string input"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
-	DNA = CleanDNA(DNA)
 	F = ['TTT', 'TTC'];
 	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
 	S = ['TCT', 'TCC', 'TCA', 'TCG', 'AGC', 'AGT'];
@@ -154,9 +151,10 @@ def Translate(DNA):
 				protein = protein + '?'
 	return protein	
 
+
 def TranslateRC(DNA):
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	'''Translate the reverse complement of DNA'''
+	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	DNA = RC(DNA)
 	return Translate(DNA)
 
