@@ -841,7 +841,7 @@ Put Table here
 		wx.EVT_MENU(self, 3, self.save_file)
 
 		#save document as
-		fileitem.Append(4, "Save as", "Save a copy of current file")
+		fileitem.Append(4, "Save as\tShift+Ctrl+S", "Save a copy of current file")
 		wx.EVT_MENU(self, 4, self.save_as_file)
 
 		#save all
