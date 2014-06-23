@@ -165,8 +165,8 @@ class FeatureList(DNApyBaseClass):
 
 		#add feature list and buttons horisontally	
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer2.Add(item=self.feature_list, proportion=3, flag=wx.EXPAND)
 		sizer2.Add(item=sizer, proportion=0, flag=wx.EXPAND)
+		sizer2.Add(item=self.feature_list, proportion=3, flag=wx.EXPAND)
 
 		self.SetSizer(sizer2)
 		self.update_ownUI()

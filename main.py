@@ -49,6 +49,7 @@ import output
 import dnaeditor_GUI
 import featureedit_GUI
 import featurelist_GUI
+import plasmid_GUI
 import genbank_GUI
 import mixed_base_codons_GUI
 
@@ -81,8 +82,8 @@ class MyFrame(wx.Frame):
 	def __init__(self, parent, id, title):
 		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
-		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
-		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
+#		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
+#		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
 		#create toolbars
 		self.__generate_toolbar()
@@ -104,10 +105,17 @@ class MyFrame(wx.Frame):
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
 
-		self.generate_dnaview_tab("")
-		self.generate_vectorview_tab("")
-		self.generate_sequencingview_tab('')
-		self.generate_genbankview_tab("")
+		#create splitter and panels
+		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
+
+		self.splitter1 = wx.SplitterWindow(self.splitter2, 0, style=wx.SP_3D)	
+		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
+		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
+		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
+
+			
+		self.plasmid_view = plasmid_GUI.PlasmidView(self.splitter2, -1)
+		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/3))
 		
 		self.do_layout()
 		self.Centre()
@@ -116,63 +124,37 @@ class MyFrame(wx.Frame):
 
 	def do_layout(self):
 		'''Pack toolbar and the tabs in their sizers'''
-		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
+		#add to sizer
+		sizer_1 = wx.BoxSizer(wx.VERTICAL)
+		sizer_1.Add(self.frame_1_toolbar, 0, wx.EXPAND)
+		sizer_1.Add(item=self.splitter2, proportion=-1, flag=wx.EXPAND)
 		#if second toolbar is present, add that too.
 		try:
 			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		except:
 			pass
-		sizer.Add(self.DNApy, -1, wx.EXPAND)
-		self.SetSizer(sizer)	
-		
-
-
-##### Generate tabs and define content #####
-
-	def generate_dnaview_tab(self, evt):
-		number=len(self.tab_list)
-		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-	
-	
-		#create splitter and panels
-		splitter1 = wx.SplitterWindow(self.panel[number], 0, style=wx.SP_3D)	
-		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
-		self.dnaview = dnaeditor_GUI.DNAedit(splitter1, id=wx.ID_ANY)
-		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
-	
-		self.tab_list.append(splitter1)
-
-		#add to sizer
-		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
-		self.panel[number].SetSizer(sizer_1)
-
-		self.DNApy.AddPage(self.panel[number], "DNA")
+		self.SetSizer(sizer_1)
 		
 
 
 
-	def generate_vectorview_tab(self, evt):
-		pass
-
-	def generate_sequencingview_tab(self, evt):
-		pass
-
-	def generate_genbankview_tab(self, evt):
-		number=len(self.tab_list)
-
-		self.panel.append(wx.Panel(self.DNApy, -1))
-		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
-		self.genbankview.rtc.SetEditable(False)
-
-		self.tab_list.append(self.genbankview)
+	
 
 
-		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "GenBank")
-		self.panel[number].SetSizer(sizer_1)
+#	def generate_genbankview_tab(self, evt):
+#		number=len(self.tab_list)
+#
+#		self.panel.append(wx.Panel(self.DNApy, -1))
+#		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
+#		self.genbankview.rtc.SetEditable(False)
+#
+#		self.tab_list.append(self.genbankview)
+#
+#
+#		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
+#		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
+#		self.DNApy.AddPage(self.panel[number], "GenBank")
+#		self.panel[number].SetSizer(sizer_1)
 
 ################ file functions #################
 
@@ -183,7 +165,7 @@ class MyFrame(wx.Frame):
 
 
 			self.SetTitle('NewFile - DNApy')
-			self.page_change("")
+#			self.page_change("")
 
 			self.frame_1_toolbar.EnableTool(502, 1)
 			self.frame_1_toolbar.EnableTool(503, 1)
@@ -298,15 +280,15 @@ class MyFrame(wx.Frame):
 ##########################################################
 
 
-	def page_change(self, ev):
-		'''When changing between tabs'''
-		self.Refresh()
-		self.current_tab=self.DNApy.GetSelection()
+#	def page_change(self, ev):
+#		'''When changing between tabs'''
+#		self.Refresh()
+#		self.current_tab=self.DNApy.GetSelection()
 #		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
-		try:
-			self.updateUI()
-		except:
-			pass
+#		try:
+#			self.updateUI()
+#		except:
+#			pass
 
 	def update_statusbar(self, evt):
 		'''Updates statusbar'''
@@ -317,47 +299,47 @@ class MyFrame(wx.Frame):
 #			string = 'File unmodified'
 #		elif self.tab_list[self.current_tab].modify==1:
 #			string = 'File not yet saved'
-		self.current_tab=self.DNApy.GetSelection()
-		if self.current_tab == 0: #if dna editor is active
+#		self.current_tab=self.DNApy.GetSelection()
+#		if self.current_tab == 0: #if dna editor is active
 			
-			#mposition, Feature = self.dnaview.mouse_position("") #get mouse position
-			mposition = 'None'
-			Feature = "None"
-		
-			try:
-				Position = str(mposition+1)
-			except:
-				Position = ""
-		
-			try:
-				Feature = str(Feature)
-			except:
-				Feature = ""
-		
-			try:		
-				SelectionFrom, SelectionTo = (str(self.dnaview.stc.GetSelection()[0]+1), str(self.dnaview.stc.GetSelection()[1]))
-				if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-					SelectionFrom, SelectionTo = ("0", "0")
-			except:
+		#mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+		mposition = 'None'
+		Feature = "None"
+	
+		try:
+			Position = str(mposition+1)
+		except:
+			Position = ""
+	
+		try:
+			Feature = str(Feature)
+		except:
+			Feature = ""
+	
+		try:		
+			SelectionFrom, SelectionTo = (str(self.dnaview.stc.GetSelection()[0]+1), str(self.dnaview.stc.GetSelection()[1]))
+			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
 				SelectionFrom, SelectionTo = ("0", "0")
-			try:	
-				Length = str(self.dnaview.stc.GetSelection()[1] - self.dnaview.stc.GetSelection()[0])
-			except:
-				Length = ""
+		except:
+			SelectionFrom, SelectionTo = ("0", "0")
+		try:	
+			Length = str(self.dnaview.stc.GetSelection()[1] - self.dnaview.stc.GetSelection()[0])
+		except:
+			Length = ""
 
 
-			self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-		
-			if float(Length)/3 == 1: #if one triplet is selected, show the AA
-				AA = ': %s' % dna.Translate(self.dnaview.stc.GetSelectedText())
-			else:
-				AA = ''
-			
-			self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
-
+		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
+	
+		if float(Length)/3 == 1: #if one triplet is selected, show the AA
+			AA = ': %s' % dna.Translate(self.dnaview.stc.GetSelectedText())
 		else:
-			self.SetStatusText('', 0)
-			self.SetStatusText('', 1)		
+			AA = ''
+		
+		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+
+#		else:
+#			self.SetStatusText('', 0)
+#			self.SetStatusText('', 1)		
 
 
 ######### get and set methods #########

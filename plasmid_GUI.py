@@ -31,20 +31,143 @@
 #
 
 
-from buffer_test import BufferedWindow
-
-
 
 import wx
 import wx.lib.graphics
+from wx.lib.pubsub import pub
 
 import math
 import genbank
 
 import os, sys
 import string
+from base_class import DNApyBaseClass
 
-class Test(BufferedWindow):
+
+files={}   #list with all configuration files
+files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+settings=files['default_dir']+"settings"   ##path to the file of the global settings
+execfile(settings) #gets all the pre-assigned settings
+
+class Base(DNApyBaseClass):
+	def __init__(self, parent, id):
+		wx.Panel.__init__(self, parent)
+
+		#determing which listening group from which to recieve messages about UI updates
+		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+
+		self.listening_group2 = 'from_feature_edit'		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
+
+#		self.listening_group3 = 'dna_selection_request'		
+#		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)	
+
+
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		#pub.Publisher.sendMessage('from_dna_edit', '')
+		pass
+
+	
+	def update_ownUI(self):
+		'''For changing background color of text ranges'''
+		pass
+
+	def set_dna_selection(self):
+		pass
+
+
+class BufferedWindow(Base):
+
+    """
+
+    A Buffered window class.
+
+    To use it, subclass it and define a Draw(DC) method that takes a DC
+    to draw to. In that method, put the code needed to draw the picture
+    you want. The window will automatically be double buffered, and the
+    screen will be automatically updated when a Paint event is received.
+
+    When the drawing needs to change, you app needs to call the
+    UpdateDrawing() method. Since the drawing is stored in a bitmap, you
+    can also save the drawing to file by calling the
+    SaveToFile(self, file_name, file_type) method.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        # make sure the NO_FULL_REPAINT_ON_RESIZE style flag is set.
+ 
+#        kwargs['style'] = kwargs.setdefault('style', wx.NO_FULL_REPAINT_ON_RESIZE) | wx.NO_FULL_REPAINT_ON_RESIZE
+        Base.__init__(self, *args, **kwargs)
+
+        wx.EVT_PAINT(self, self.OnPaint)
+        wx.EVT_SIZE(self, self.OnSize)
+
+        # OnSize called to make sure the buffer is initialized.
+        # This might result in OnSize getting called twice on some
+        # platforms at initialization, but little harm done.
+        self.OnSize(None)
+        self.paint_count = 0
+
+
+    def Draw(self, dc):
+        ## just here as a place holder.
+        ## This method should be over-ridden when subclassed
+        pass
+
+    def OnPaint(self, event):
+        # All that is needed here is to draw the buffer to screen
+        dc = wx.BufferedPaintDC(self, self._Buffer)
+
+    def OnSize(self,event):
+        # The Buffer init is done here, to make sure the buffer is always
+        # the same size as the Window
+        #Size  = self.GetClientSizeTuple()
+        Size  = self.ClientSize
+        self.size = Size
+
+        # Make new offscreen bitmap: this bitmap will always have the
+        # current drawing in it, so it can be used to save the image to
+        # a file, or whatever.
+        self._Buffer = wx.EmptyBitmap(*Size)
+        self.UpdateDrawing()
+
+    def SaveToFile(self, FileName, FileType=wx.BITMAP_TYPE_PNG):
+        ## This will save the contents of the buffer
+        ## to the specified file. See the wxWindows docs for 
+        ## wx.Bitmap::SaveFile for the details
+        self._Buffer.SaveFile(FileName, FileType)
+
+    def UpdateDrawing(self):
+        """
+        This would get called if the drawing needed to change, for whatever reason.
+
+        The idea here is that the drawing is based on some data generated
+        elsewhere in the system. If that data changes, the drawing needs to
+        be updated.
+
+        This code re-draws the buffer, then calls Update, which forces a paint event.
+        """
+        dc = wx.MemoryDC()
+        dc.SelectObject(self._Buffer)
+        self.Draw(dc)
+        del dc # need to get rid of the MemoryDC before Update() is called.
+        self.Refresh()
+        self.Update()
+
+
+
+
+class PlasmidView(BufferedWindow):
 	def __init__(self, *args, **kwargs):	
 		self.x = 0
 		self.y = 0
@@ -264,27 +387,18 @@ class Test(BufferedWindow):
 
 
 
-class TestFrame(wx.Frame):
-	def __init__(self, parent=None):
-		wx.Frame.__init__(self, parent, size = (500,500), title="Double Buffered Test", style=wx.DEFAULT_FRAME_STYLE)
-
-		self.Window = Test(self)
-		self.Show()
-
-
-
-
 
 
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
-		frame = TestFrame() #None, -1, title="Plasmid View", size=(700,600)
-#		panel =	DNAedit(frame, -1)
+		frame = wx.Frame(None, -1, title="Plasmid View", size=(700,600), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+		panel =	PlasmidView(frame, -1)
 		frame.Centre()
 		frame.Show(True)
 		self.SetTopWindow(frame)
 		return True
+
 
 if __name__ == '__main__': #if script is run by itself and not loaded	
 
