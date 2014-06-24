@@ -116,7 +116,7 @@ class DNALexer(BaseLexer):
 		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
 
-			featuretype, complement, start, finish = entry
+			featuretype, complement, start, finish, name = entry
 			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
 			featuretype = featuretype.replace("5'", "a5") #for 5' features
 			featuretype = featuretype.replace("3'", "a3") #for 5' features

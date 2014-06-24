@@ -62,8 +62,8 @@ class Base(DNApyBaseClass):
 		self.listening_group2 = 'from_feature_edit'		
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-#		self.listening_group3 = 'dna_selection_request'		
-#		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)	
+		self.listening_group3 = 'dna_selection_request'		
+		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)	
 
 
 	def update_globalUI(self):
@@ -79,9 +79,9 @@ class Base(DNApyBaseClass):
 	
 	def update_ownUI(self):
 		'''For changing background color of text ranges'''
-		pass
+		self.UpdateDrawing()
 
-	def set_dna_selection(self):
+	def set_dna_selection(self, msg):
 		pass
 
 
@@ -186,11 +186,45 @@ class PlasmidView(BufferedWindow):
 		wx.EVT_MOTION(self, self.OnMotion)
 
 
+	def find_overlap(self, drawn_locations, new_range):
+		'''Takes two ranges and determines whether the new range has overlaps with the old one.
+		If there are overlaps the overlap locations are returned.'''
+		assert type(drawn_locations) == list			
+		assert type(new_range) == tuple
+
+		if drawn_locations == []:
+			drawn_locations.append([new_range])
+			return drawn_locations, 0
+		else:
+			i = 0
+			while i < len(drawn_locations):
+				overlap_found = False
+				for n in range(0,len(drawn_locations[i])):
+					if drawn_locations[i][n][0]<=new_range[0]<=drawn_locations[i][n][1] or drawn_locations[i][n][0]<=new_range[1]<=drawn_locations[i][n][1]: #if they overlap
+						overlap_found = True
+					elif new_range[0]<=drawn_locations[i][n][0]<=new_range[1] or new_range[0]<=drawn_locations[i][n][1]<=new_range[1]: #if they overlap
+						overlap_found = True
+
+				if overlap_found == False:
+					drawn_locations[i].append(new_range)
+					return drawn_locations, i
+					break	
+				elif i+1==len(drawn_locations):
+					drawn_locations.append([new_range])
+					return drawn_locations, i
+					break
+				i += 1
+
+
 
 	def Draw(self, dc):
 		# make a path that contains a circle and some lines
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
+		if self.centre_x > self.centre_y:
+			self.Radius = self.centre_y/1.3
+		else:
+			self.Radius = self.centre_x/1.3
 
 #		dc.SetDeviceOrigin(size_x/2, size_y/2)
 
@@ -199,88 +233,18 @@ class PlasmidView(BufferedWindow):
 
 		gcdc = wx.GCDC(dc)
 
-		if self.centre_x > self.centre_y:
-			self.Radius = self.centre_y/1.5
-		else:
-			self.Radius = self.centre_x/1.5
-
 		#DNA circles
 		gcdc.SetPen(wx.Pen(colour='#444444', width=3))
 		gcdc.SetBrush(wx.Brush("White"))
 		gcdc.DrawCircle(x=self.centre_x, y=self.centre_y, radius=self.Radius) #outer DNA circle
-		gcdc.DrawCircle(x=self.centre_x, y=self.centre_y, radius=self.Radius-5) #inner DNA circle
 
+		#draw features
+		self.Draw_features(gcdc)
 
-		#features
-		featurelist = genbank.gb.get_all_feature_positions()
-		for entry in featurelist: 
-			featuretype, complement, start, finish = entry
-			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
-			featuretype = featuretype.replace("5'", "a5") #for 5' features
-			featuretype = featuretype.replace("3'", "a3") #for 5' features
+		#draw enzymes
+		self.Draw_enzymes(gcdc)
 
-			start_angle, finish_angle = self.pos_to_angle(start, finish)
-
-
-			if complement == False:
-				color = eval(featuretype)['fw'] #get the color of feature (as string)
-				assert type(color) == str
-
-				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
-				gcdc.SetBrush(wx.Brush(color))
-
-				xc=self.centre_x
-				yc=self.centre_y
-			
-				pointlist = []
-
-				step = 0.25			
-				i = 0
-				while i <= int(finish_angle-start_angle):
-					x1 = xc + (self.Radius+25) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-					y1 = yc + (self.Radius+25) * math.sin((finish_angle-i-90)*(math.pi/180))
-					pointlist.append((x1,y1))
-					i += step
-
-				i = int(finish_angle-start_angle)
-				while i >= 0:
-					x1 = xc + (self.Radius+0) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-					y1 = yc + (self.Radius+0) * math.sin((finish_angle-i-90)*(math.pi/180))
-					pointlist.append((x1,y1))
-					i -= step
-
-			elif complement == True:
-				color = eval(featuretype)['rv'] #get the color of feature (as string)
-				assert type(color) == str
-
-				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
-				gcdc.SetBrush(wx.Brush(color))
-
-				xc=self.centre_x
-				yc=self.centre_y
-			
-				pointlist = []
-
-				step = 0.5			
-				i = 0
-				while i <= int(finish_angle-start_angle):
-					x1 = xc + (self.Radius-6) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-					y1 = yc + (self.Radius-6) * math.sin((finish_angle-i-90)*(math.pi/180))
-					pointlist.append((x1,y1))
-					i += step
-
-				i = int(finish_angle-start_angle)
-				while i >= 0:
-					x1 = xc + (self.Radius-31) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-					y1 = yc + (self.Radius-31) * math.sin((finish_angle-i-90)*(math.pi/180))
-					pointlist.append((x1,y1))
-					i -= step
-
-			gcdc.DrawPolygon(pointlist)
-
-
-
-		#selection
+		#draw selection
 		gcdc.SetPen(wx.Pen(colour='#444444', width=1))
 		gcdc.SetBrush(wx.Brush(colour=wx.Colour(0,75,255,128))) #blue
 		if self.selection_down != None and self.selection_up != None:
@@ -292,8 +256,206 @@ class PlasmidView(BufferedWindow):
 			y2 = yc + self.Radius * math.sin((self.selection_down-90)*(math.pi/180))
 			gcdc.DrawArc(x1, y1, x2, y2, xc, yc)
 			
-		#enzymes
-		#names
+
+
+
+	def Draw_enzymes(self, gcdc):
+		pass
+
+	def Draw_features(self, gcdc):
+		'''Function dedicated to drawing feature arrows. It was too messy to have it in the main Draw function'''
+		feature_thickness = 25 #thickness of feature arrows
+		outside_space = feature_thickness/2
+		arrowhead_length = 5 #length of arrowhead
+		step = 0.25 #degree interval at which polygon point should be drawn
+		spacer = 5 #for in-between features
+		cutoff = 80 #at which cutoff (pixel length)text should go on the outside and not the inside features
+		drawn_locations = [] #for keeping track of how many times a certain region has been painted on
+
+		#features
+		featurelist = genbank.gb.get_all_feature_positions()
+		for entry in featurelist: 
+			featuretype, complement, start, finish, name = entry
+			drawn_locations, level = self.find_overlap(drawn_locations, (start, finish))
+			
+			#check so that stuff is not drawn too close to center
+			#if it is too close, draw at top level
+			if outside_space+feature_thickness+(feature_thickness+spacer)*level > self.Radius:
+				level = 0
+
+			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
+			featuretype = featuretype.replace("5'", "a5") #for 5' features
+			featuretype = featuretype.replace("3'", "a3") #for 5' features
+
+
+			start_angle, finish_angle = self.pos_to_angle(start, finish)
+			pointlist = [] #for storing drawing points for polygon
+			xc=self.centre_x #centre of circle
+			yc=self.centre_y #centre of circle
+
+			if complement == False:
+				color = eval(featuretype)['fw'] #get the color of feature (as string)
+				assert type(color) == str
+				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
+				gcdc.SetBrush(wx.Brush(color))
+
+				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
+					#near side of box
+					i = 0
+					while i <= int(finish_angle-start_angle):
+						x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+						y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i += step
+
+					#far side of box
+					i = int(finish_angle-start_angle)
+					while i >= 0:
+						x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+						y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i -= step
+
+				else: #if not too short, draw arrow
+					#near side of arrow
+					i = 0
+					while i <= int(finish_angle-start_angle):
+						if i == 0:
+							x1 = xc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						elif i < arrowhead_length:
+							pass
+						elif i == arrowhead_length:
+							x1 = xc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						else:
+							x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i += step
+
+					#far side of arrow
+					i = int(finish_angle-start_angle)
+					while i >= 0:
+						if i < arrowhead_length:
+							pass
+						elif i == arrowhead_length:
+							x1 = xc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						else:
+							x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i -= step
+
+
+			elif complement == True:
+				color = eval(featuretype)['rv'] #get the color of feature (as string)
+				assert type(color) == str
+				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
+				gcdc.SetBrush(wx.Brush(color))
+
+				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
+					#near side of box
+					i = 0
+					while i <= int(finish_angle-start_angle):
+						x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+						y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i += step
+
+					#far side of box
+					i = int(finish_angle-start_angle)
+					while i >= 0:
+						x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+						y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i -= step		
+	
+				else: #otherwise make arrow
+					#near side of arrow
+					i = 0
+					while i <= int(finish_angle-start_angle):
+						if i == int(finish_angle-start_angle):
+							x1 = xc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						elif i > int(finish_angle-start_angle)-arrowhead_length:
+							pass
+						elif i == int(finish_angle-start_angle)-arrowhead_length:
+							x1 = xc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						else:
+							x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i += step
+				
+					#far side of arrow
+					i = int(finish_angle-start_angle)
+					while i >= 0:
+						if i > int(finish_angle-start_angle)-arrowhead_length:
+							pass
+						elif i == int(finish_angle-start_angle)-arrowhead_length:
+							x1 = xc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						else:
+							x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+							y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
+						pointlist.append((x1,y1))
+						i -= step
+			gcdc.DrawPolygon(pointlist)
+
+
+			###############
+			# Draw labels #
+			###############
+
+			#draw label for feature
+			font = wx.Font(pointSize=feature_thickness*0.7, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+			gcdc.SetFont(font)
+			gcdc.SetTextForeground((0,0,0))
+			gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=1))
+			xc=self.centre_x #centre of circle
+			yc=self.centre_y #centre of circle
+			feature_name = name
+			name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
+			feature_radius = self.Radius-outside_space-((feature_thickness+spacer)*level) #the feature radius depends on where on the plasmid it is drawn
+			feature_length = feature_radius*((finish_angle-start_angle)*math.pi)/float(180) #length of feature in pixels  len=radius*((theta*pi)/180)
+			
+			if feature_length > cutoff and name_length[0] < feature_length*0.9: #if feature is long enough to put text inside, do it, even if text has to be truncated a little
+				mid_text = start_angle+(finish_angle-start_angle)/2	#middle of text should be here (angle)
+				angle = mid_text-((name_length[0]/2+gcdc.GetTextExtent(feature_name[0])[0]/2)*180)/(math.pi*feature_radius) #subtract length of the first half of the feature name and one gets where the text should start. theta = (len*180)/(pi*radius)
+				for i in range(0,len(feature_name)):
+					if i != 0:
+						angle += ((gcdc.GetTextExtent(feature_name[i-1])[0]/2+gcdc.GetTextExtent(feature_name[i])[0]/2+2)*180)/(math.pi*feature_radius) #add length of previous letter
+					x1 = xc + feature_radius * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+					y1 = yc + feature_radius * math.sin((angle-90)*(math.pi/180))
+					gcdc.DrawRotatedText(feature_name[i], x1, y1, -(angle))
+			
+			else: #if feature is too short to put text inside,  put text on the outside
+				font = wx.Font(pointSize=10, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+				gcdc.SetFont(font)
+				gcdc.SetTextForeground((0,0,0))
+				name_length = gcdc.GetTextExtent(feature_name)
+
+				while name_length[0] > 120: #shorten text if it is too long 
+					feature_name = feature_name[:-3]+'..'
+					name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
+		
+				#draw the lines to the label and the label itself		
+				angle = start_angle+(finish_angle-start_angle)/2
+				x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+				y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((angle-90)*(math.pi/180))
+				x2 = xc + (self.Radius+40) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+				y2 = yc + (self.Radius+40) * math.sin((angle-90)*(math.pi/180))
+				gcdc.DrawLine(x1,y1,x2,y2)
+				if angle <= 180:
+					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)
+					gcdc.DrawText(feature_name,x2+3,y2-gcdc.GetTextExtent(feature_name)[1])
+				elif angle > 180:
+					gcdc.DrawLine(x2,y2,x2-name_length[0],y2)
+					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
+
 
 	def pos_to_angle(self, start, finish):
 		'''Calculate angles from DNA positions'''

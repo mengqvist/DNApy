@@ -1275,11 +1275,12 @@ indeces >-1 are feature indeces'''
 		for feature in self.gbfile['features']:
 			Key = feature['key']
 			Complement = feature['complement']
+			name = feature['qualifiers'][0].split('=')[1]
 			for entry in feature['location']:
 				start, finish = self.get_location(entry)
 				start = int(start)-1
 				finish = int(finish)
-				positionlist.append([Key, Complement, start, finish])
+				positionlist.append([Key, Complement, start, finish, name])
 		return positionlist
 
 

@@ -111,11 +111,11 @@ class MyFrame(wx.Frame):
 		self.splitter1 = wx.SplitterWindow(self.splitter2, 0, style=wx.SP_3D)	
 		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
 		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
-		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
+		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-240))
 
 			
 		self.plasmid_view = plasmid_GUI.PlasmidView(self.splitter2, -1)
-		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/3))
+		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
 		
 		self.do_layout()
 		self.Centre()
@@ -206,7 +206,6 @@ class MyFrame(wx.Frame):
 				dlg.Destroy()
 				if result == wx.ID_YES: #if yes, remove clutter
 					genbank.gb.clean_clutter()
-			self.page_change("")
 
 			self.frame_1_toolbar.EnableTool(502, True)
 			self.frame_1_toolbar.EnableTool(503, True)
