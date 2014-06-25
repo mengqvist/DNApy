@@ -101,7 +101,7 @@ class MyFrame(wx.Frame):
 		self.fileopen = False #used to see if a file is open
 		self.new_file(None) #create new genbank file
 
-		genbank.dna_selection = (0, 0)	 #variable for storing current DNA selection
+		genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
 
@@ -130,7 +130,7 @@ class MyFrame(wx.Frame):
 		sizer_1.Add(item=self.splitter2, proportion=-1, flag=wx.EXPAND)
 		#if second toolbar is present, add that too.
 		try:
-			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
+			sizer_1.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		except:
 			pass
 		self.SetSizer(sizer_1)
@@ -206,6 +206,8 @@ class MyFrame(wx.Frame):
 				dlg.Destroy()
 				if result == wx.ID_YES: #if yes, remove clutter
 					genbank.gb.clean_clutter()
+					self.dnaview.update_ownUI()
+					self.dnaview.update_globalUI()				
 
 			self.frame_1_toolbar.EnableTool(502, True)
 			self.frame_1_toolbar.EnableTool(503, True)

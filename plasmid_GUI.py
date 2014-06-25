@@ -36,6 +36,7 @@ import wx
 import wx.lib.graphics
 from wx.lib.pubsub import pub
 
+
 import math
 import genbank
 
@@ -62,8 +63,8 @@ class Base(DNApyBaseClass):
 		self.listening_group2 = 'from_feature_edit'		
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-		self.listening_group3 = 'dna_selection_request'		
-		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)	
+		self.listening_group3 = 'from_dna_edit'		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
 
 
 	def update_globalUI(self):
@@ -73,16 +74,31 @@ class Base(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		#pub.Publisher.sendMessage('from_dna_edit', '')
-		pass
+		pub.Publisher.sendMessage('from_plasmid_view', '')
 
 	
 	def update_ownUI(self):
-		'''For changing background color of text ranges'''
-		self.UpdateDrawing()
+		"""
+		This would get called if the drawing needed to change, for whatever reason.
 
-	def set_dna_selection(self, msg):
-		pass
+		The idea here is that the drawing is based on some data generated
+		elsewhere in the system. If that data changes, the drawing needs to
+		be updated.
+
+		This code re-draws the buffer, then calls Update, which forces a paint event.
+		"""
+		dc = wx.MemoryDC()
+		dc.SelectObject(self._Buffer)
+		self.Draw(dc)
+		del dc # need to get rid of the MemoryDC before Update() is called.
+		self.Refresh()
+		self.Update()
+
+
+	def set_dna_selection(self, selection):
+		'''Recieves requests for DNA selection and then sends it.'''
+		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
+		genbank.dna_selection = selection
 
 
 class BufferedWindow(Base):
@@ -139,7 +155,7 @@ class BufferedWindow(Base):
         # current drawing in it, so it can be used to save the image to
         # a file, or whatever.
         self._Buffer = wx.EmptyBitmap(*Size)
-        self.UpdateDrawing()
+        self.update_ownUI()
 
     def SaveToFile(self, FileName, FileType=wx.BITMAP_TYPE_PNG):
         ## This will save the contents of the buffer
@@ -147,33 +163,12 @@ class BufferedWindow(Base):
         ## wx.Bitmap::SaveFile for the details
         self._Buffer.SaveFile(FileName, FileType)
 
-    def UpdateDrawing(self):
-        """
-        This would get called if the drawing needed to change, for whatever reason.
-
-        The idea here is that the drawing is based on some data generated
-        elsewhere in the system. If that data changes, the drawing needs to
-        be updated.
-
-        This code re-draws the buffer, then calls Update, which forces a paint event.
-        """
-        dc = wx.MemoryDC()
-        dc.SelectObject(self._Buffer)
-        self.Draw(dc)
-        del dc # need to get rid of the MemoryDC before Update() is called.
-        self.Refresh()
-        self.Update()
-
 
 
 
 class PlasmidView(BufferedWindow):
 	def __init__(self, *args, **kwargs):	
-		self.x = 0
-		self.y = 0
-
-		self.selection_down = None
-		self.selection_up = None
+		genbank.dna_selection = (1,1)
 
 		self.centre_x = 0
 		self.centre_y = 0
@@ -211,7 +206,7 @@ class PlasmidView(BufferedWindow):
 					break	
 				elif i+1==len(drawn_locations):
 					drawn_locations.append([new_range])
-					return drawn_locations, i
+					return drawn_locations, i+1
 					break
 				i += 1
 
@@ -222,9 +217,9 @@ class PlasmidView(BufferedWindow):
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		if self.centre_x > self.centre_y:
-			self.Radius = self.centre_y/1.3
+			self.Radius = self.centre_y/1.5
 		else:
-			self.Radius = self.centre_x/1.3
+			self.Radius = self.centre_x/1.5
 
 #		dc.SetDeviceOrigin(size_x/2, size_y/2)
 
@@ -232,6 +227,7 @@ class PlasmidView(BufferedWindow):
 		dc.Clear() # make sure you clear the bitmap!
 
 		gcdc = wx.GCDC(dc)
+#		gcdc = SVGFileDC('test.svg', width=320, height=240, dpi=72)
 
 		#DNA circles
 		gcdc.SetPen(wx.Pen(colour='#444444', width=3))
@@ -245,16 +241,19 @@ class PlasmidView(BufferedWindow):
 		self.Draw_enzymes(gcdc)
 
 		#draw selection
+		start, finish = genbank.dna_selection
+		start_angle, finish_angle = self.pos_to_angle(start, finish)
+
 		gcdc.SetPen(wx.Pen(colour='#444444', width=1))
 		gcdc.SetBrush(wx.Brush(colour=wx.Colour(0,75,255,128))) #blue
-		if self.selection_down != None and self.selection_up != None:
-			xc=self.centre_x
-			yc=self.centre_y
-			x1 = xc + self.Radius * math.cos((self.selection_up-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-			y1 = yc + self.Radius * math.sin((self.selection_up-90)*(math.pi/180))
-			x2 = xc + self.Radius * math.cos((self.selection_down-90)*(math.pi/180))
-			y2 = yc + self.Radius * math.sin((self.selection_down-90)*(math.pi/180))
-			gcdc.DrawArc(x1, y1, x2, y2, xc, yc)
+
+		xc=self.centre_x
+		yc=self.centre_y
+		x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+		y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
+		x2 = xc + self.Radius * math.cos((start_angle-90)*(math.pi/180))
+		y2 = yc + self.Radius * math.sin((start_angle-90)*(math.pi/180))
+		gcdc.DrawArc(x1, y1, x2, y2, xc, yc)
 			
 
 
@@ -268,7 +267,7 @@ class PlasmidView(BufferedWindow):
 		outside_space = feature_thickness/2
 		arrowhead_length = 5 #length of arrowhead
 		step = 0.25 #degree interval at which polygon point should be drawn
-		spacer = 5 #for in-between features
+		spacer = feature_thickness/2 #for in-between features
 		cutoff = 80 #at which cutoff (pixel length)text should go on the outside and not the inside features
 		drawn_locations = [] #for keeping track of how many times a certain region has been painted on
 
@@ -277,7 +276,7 @@ class PlasmidView(BufferedWindow):
 		for entry in featurelist: 
 			featuretype, complement, start, finish, name = entry
 			drawn_locations, level = self.find_overlap(drawn_locations, (start, finish))
-			
+
 			#check so that stuff is not drawn too close to center
 			#if it is too close, draw at top level
 			if outside_space+feature_thickness+(feature_thickness+spacer)*level > self.Radius:
@@ -411,10 +410,10 @@ class PlasmidView(BufferedWindow):
 			###############
 
 			#draw label for feature
-			font = wx.Font(pointSize=feature_thickness*0.7, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+			font = wx.Font(pointSize=feature_thickness*0.6, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 			gcdc.SetFont(font)
 			gcdc.SetTextForeground((0,0,0))
-			gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=1))
+			gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=2))
 			xc=self.centre_x #centre of circle
 			yc=self.centre_y #centre of circle
 			feature_name = name
@@ -457,95 +456,104 @@ class PlasmidView(BufferedWindow):
 					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
 
 
+	def angle_to_pos(self, angle):
+		'''Calculate DNA position from a start and end angle'''
+		len_dna = float(len(genbank.gb.GetDNA()))
+		dna_pos = (angle/float(360))*len_dna
+		return dna_pos
+
 	def pos_to_angle(self, start, finish):
 		'''Calculate angles from DNA positions'''
 		len_dna = float(len(genbank.gb.GetDNA()))
-		start_angle = 360*(start/len_dna)
-		finish_angle = 360*(finish/len_dna)
-
+		if len_dna == 0:
+			start_angle = 0
+			finish_angle = 1
+		else:
+			start_angle = 360*(start/len_dna)
+			finish_angle = 360*(finish/len_dna)
 		return start_angle, finish_angle
 
-	def calc_location(self):
-		'''Calculates the DNA location corresponding to mouse clicks (as a fraction float)'''
-		z = math.sqrt(math.pow((self.x-self.centre_x),2) + math.pow((self.y-self.centre_y),2)) #determine z
-#		cosangle = (self.x-centre_x)/z
+	def calc_angle(self, x, y):
+		'''Calculates the angle corresponding to mouse clicks (as a fraction float)'''
+		z = math.sqrt(math.pow((x-self.centre_x),2) + math.pow((y-self.centre_y),2)) #determine z
+#		cosangle = (x-centre_x)/z
 #		cos_radians = math.acos(cosangle)
 #		degrees = cos_radians*(180/math.pi)
 #		print('cos', degrees)
 
-		sinangle = (self.y-self.centre_y)/z 	
+		sinangle = (y-self.centre_y)/z 	
 		sin_radians = math.asin(sinangle)
 		degrees = sin_radians*(180/math.pi)	
 		#now I have the angle of the triangle. Based on where it is placed I have to calculate the 'real' angle
 
 		#for these calculations it is important to remember that y increases as you go down...
-		x_difference = self.x-self.centre_x
-		y_difference = self.y-self.centre_y
-		if x_difference > 0 and y_difference > 0: #triangle is in bottom right of circle
+		x_difference = x-self.centre_x
+		y_difference = y-self.centre_y
+		if x_difference >= 0 and y_difference >= 0: #triangle is in bottom right of circle
 			angle = 90+degrees
 #			print('bottom right')
-		elif  x_difference < 0 and y_difference < 0: #triangle is in top left of circle
+		elif  x_difference <= 0 and y_difference <= 0: #triangle is in top left of circle
 			angle = 180+90-degrees
 #			print('top left')
-		elif x_difference > 0 and y_difference < 0: #triangle is in in top right of circle
+		elif x_difference >= 0 and y_difference <= 0: #triangle is in in top right of circle
 			angle = 90+degrees
 #			print('top right')
-		elif x_difference < 0 and y_difference > 0: #triangle is in bottom left of circle
+		elif x_difference <= 0 and y_difference >= 0: #triangle is in bottom left of circle
 			angle = 180+90-degrees
-#			print('bottom left')
-#		print('angle', angle)
-
-		#now calculate what percentage of the circle that is
-		#length = (diameter*pi*angle)/360
-#		length = (self.Radius*2*math.pi*angle)/360
-#		percent_length = length/(self.Radius*2*math.pi)
-#		print('percent', percent_length)
+		else:
+			ValueError
 		return angle
 
 
 	def OnLeftDown(self, event):
+		print('plasmid down')
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-		self.x = x
-		self.y = y
 
-		angle = self.calc_location()
-		self.selection_down = angle
-		self.selection_up = angle +1
-		self.UpdateDrawing()
+		angle = self.calc_angle(x, y)
+
+		self.set_dna_selection((self.angle_to_pos(angle), self.angle_to_pos(angle)))
+		self.update_ownUI()
+
 
 	def OnLeftUp(self, event):
+		print('plasmid up')
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-		self.x = x
-		self.y = y
 
-		angle = self.calc_location()
-		if (self.selection_down-1)<=angle<=(self.selection_down+1):
-			self.selection_up = self.selection_down +1
-		else:
-			self.selection_up = angle
-		self.UpdateDrawing()
+		angle = self.calc_angle(x, y)
+		finish = self.angle_to_pos(angle)
+		start = genbank.dna_selection[0]
+
+		self.set_dna_selection((start, finish))
+		self.update_ownUI()
+		self.update_globalUI()
 
 
 
 
 	def OnMotion(self, event):
-	#	time.sleep(0.01)
+		'''Beginning angle is taken from already establi'''
 		if event.Dragging() and event.LeftIsDown():
+			print('plasmid motion')
 			x, y = self.ScreenToClient(wx.GetMousePosition())	
-			self.x = x
-			self.y = y
 
-			angle = self.calc_location()
-			self.selection_up = angle
+			angle = self.calc_angle(x, y)
+			finish = self.angle_to_pos(angle)
+			start = genbank.dna_selection[0]			
+			
 
-			self.UpdateDrawing()
+			self.set_dna_selection((start, finish))
+			self.update_ownUI()
+			self.update_globalUI()
+
+			
+
 
 	def OnRightUp(self, event):
-		self.Close()
+		print('plasmid right')
 
 
 

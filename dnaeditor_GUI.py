@@ -242,11 +242,19 @@ class DNAedit(DNApyBaseClass):
 		self.listening_group3 = 'dna_selection_request'		
 		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)		
 
+		self.listening_group4 = 'from_plasmid_view'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
+
 
 		#create dna view panel
 		self.stc = CustomSTC(self)
 		self.stc.SetWrapMode(wx.stc.STC_WRAP_CHAR) #enable word wrap
 		self.stc.SetLayoutCache(wx.stc.STC_CACHE_DOCUMENT) #cache layout calculations and only draw when something changes
+
+		self.stc.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+		self.stc.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+		self.stc.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
+		self.stc.Bind(wx.EVT_MOTION, self.OnMotion)
 
 		#set lexer styles
 		style = DNALexer.STC_STYLE_DEFAULT
@@ -333,8 +341,28 @@ class DNAedit(DNApyBaseClass):
 		if sequence == None:
 			sequence = '  '	
 		self.stc.SetText(sequence) #put the DNA in
+		self.stc.SetSelection(genbank.dna_selection[0], genbank.dna_selection[1]) #update selection
 
 
+######################################################
+
+	def OnLeftDown(self, event):
+		event.Skip() #very important to make the event propagate and fulfill its original function
+
+	def OnLeftUp(self, event):
+		self.set_dna_selection('')
+		self.update_globalUI()
+		event.Skip() #very important to make the event propagate and fulfill its original function
+
+	def OnMotion(self, event):
+		if event.Dragging() and event.LeftIsDown():
+			self.set_dna_selection('')	
+			self.update_globalUI()
+		event.Skip() #very important to make the event propagate and fulfill its original function
+
+	def OnRightUp(self, event):
+		print('dna right up')
+		event.Skip() #very important to make the event propagate and fulfill its original function
 
 #####################################################################
 
