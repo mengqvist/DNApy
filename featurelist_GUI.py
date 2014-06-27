@@ -351,7 +351,6 @@ class FeatureList(DNApyBaseClass):
 
 	def get_dna_selection(self):
 		'''This method is needed to get the dna selection for creating new features.'''
-		pub.Publisher.sendMessage('dna_selection_request', '') #sends a request for a DNA selection update
 		return genbank.dna_selection
 
 

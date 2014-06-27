@@ -39,6 +39,7 @@ from wx.lib.pubsub import pub
 
 import math
 import genbank
+import copy
 
 import os, sys
 import string
@@ -65,6 +66,9 @@ class Base(DNApyBaseClass):
 
 		self.listening_group3 = 'from_dna_edit'		
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
+
+		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
 
 
 	def update_globalUI(self):
@@ -98,6 +102,7 @@ class Base(DNApyBaseClass):
 	def set_dna_selection(self, selection):
 		'''Recieves requests for DNA selection and then sends it.'''
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
+		selection = (int(selection[0]), int(selection[1]))
 		genbank.dna_selection = selection
 
 
@@ -138,7 +143,7 @@ class BufferedWindow(Base):
     def Draw(self, dc):
         ## just here as a place holder.
         ## This method should be over-ridden when subclassed
-        pass
+        raise NotImplementedError
 
     def OnPaint(self, event):
         # All that is needed here is to draw the buffer to screen
@@ -241,19 +246,27 @@ class PlasmidView(BufferedWindow):
 		self.Draw_enzymes(gcdc)
 
 		#draw selection
-		start, finish = genbank.dna_selection
-		start_angle, finish_angle = self.pos_to_angle(start, finish)
-
 		gcdc.SetPen(wx.Pen(colour='#444444', width=1))
 		gcdc.SetBrush(wx.Brush(colour=wx.Colour(0,75,255,128))) #blue
 
-		xc=self.centre_x
-		yc=self.centre_y
-		x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-		y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
-		x2 = xc + self.Radius * math.cos((start_angle-90)*(math.pi/180))
-		y2 = yc + self.Radius * math.sin((start_angle-90)*(math.pi/180))
-		gcdc.DrawArc(x1, y1, x2, y2, xc, yc)
+		start, finish = copy.copy(genbank.dna_selection)
+		start_angle, finish_angle = self.pos_to_angle(start, finish)
+
+		if start_angle == finish_angle:
+			xc=self.centre_x
+			yc=self.centre_y
+			x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180))
+			y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
+			gcdc.DrawLine(xc, yc, x1, y1)
+		
+		else:	
+			xc=self.centre_x
+			yc=self.centre_y
+			x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+			y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
+			x2 = xc + self.Radius * math.cos((start_angle-90)*(math.pi/180))
+			y2 = yc + self.Radius * math.sin((start_angle-90)*(math.pi/180))
+			gcdc.DrawArc(x1, y1, x2, y2, xc, yc)
 			
 
 
@@ -269,6 +282,15 @@ class PlasmidView(BufferedWindow):
 		step = 0.25 #degree interval at which polygon point should be drawn
 		spacer = feature_thickness/2 #for in-between features
 		cutoff = 80 #at which cutoff (pixel length)text should go on the outside and not the inside features
+
+		#text parameters
+		font = wx.Font(pointSize=feature_thickness*0.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+		gcdc.SetFont(font)
+		gcdc.SetTextForeground((0,0,0))
+		gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=2))
+		max_label_length = 120 #max length of label in pixels
+
+
 		drawn_locations = [] #for keeping track of how many times a certain region has been painted on
 
 		#features
@@ -410,10 +432,6 @@ class PlasmidView(BufferedWindow):
 			###############
 
 			#draw label for feature
-			font = wx.Font(pointSize=feature_thickness*0.6, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-			gcdc.SetFont(font)
-			gcdc.SetTextForeground((0,0,0))
-			gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=2))
 			xc=self.centre_x #centre of circle
 			yc=self.centre_y #centre of circle
 			feature_name = name
@@ -421,7 +439,7 @@ class PlasmidView(BufferedWindow):
 			feature_radius = self.Radius-outside_space-((feature_thickness+spacer)*level) #the feature radius depends on where on the plasmid it is drawn
 			feature_length = feature_radius*((finish_angle-start_angle)*math.pi)/float(180) #length of feature in pixels  len=radius*((theta*pi)/180)
 			
-			if feature_length > cutoff and name_length[0] < feature_length*0.9: #if feature is long enough to put text inside, do it, even if text has to be truncated a little
+			if name_length[0] < feature_length*0.9: #if feature is long enough to put text inside, do it
 				mid_text = start_angle+(finish_angle-start_angle)/2	#middle of text should be here (angle)
 				angle = mid_text-((name_length[0]/2+gcdc.GetTextExtent(feature_name[0])[0]/2)*180)/(math.pi*feature_radius) #subtract length of the first half of the feature name and one gets where the text should start. theta = (len*180)/(pi*radius)
 				for i in range(0,len(feature_name)):
@@ -432,12 +450,12 @@ class PlasmidView(BufferedWindow):
 					gcdc.DrawRotatedText(feature_name[i], x1, y1, -(angle))
 			
 			else: #if feature is too short to put text inside,  put text on the outside
-				font = wx.Font(pointSize=10, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-				gcdc.SetFont(font)
-				gcdc.SetTextForeground((0,0,0))
-				name_length = gcdc.GetTextExtent(feature_name)
+#				font = wx.Font(pointSize=10, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#				gcdc.SetFont(font)
+#				gcdc.SetTextForeground((0,0,0))
+#				name_length = gcdc.GetTextExtent(feature_name)
 
-				while name_length[0] > 120: #shorten text if it is too long 
+				while name_length[0] > max_label_length: #shorten text if it is too long 
 					feature_name = feature_name[:-3]+'..'
 					name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
 		
@@ -467,10 +485,10 @@ class PlasmidView(BufferedWindow):
 		len_dna = float(len(genbank.gb.GetDNA()))
 		if len_dna == 0:
 			start_angle = 0
-			finish_angle = 1
+			finish_angle = 0
 		else:
-			start_angle = 360*(start/len_dna)
-			finish_angle = 360*(finish/len_dna)
+			start_angle = 360*(start/float(len_dna))
+			finish_angle = 360*(finish/float(len_dna))
 		return start_angle, finish_angle
 
 	def calc_angle(self, x, y):
@@ -506,48 +524,53 @@ class PlasmidView(BufferedWindow):
 
 
 	def OnLeftDown(self, event):
-		print('plasmid down')
+		'''When left mouse button is pressed down, store angle at which this happened.'''
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-
 		angle = self.calc_angle(x, y)
-
-		self.set_dna_selection((self.angle_to_pos(angle), self.angle_to_pos(angle)))
-		self.update_ownUI()
+		self.left_down_angle = angle #save the angle at which left button was clicked for later use
 
 
 	def OnLeftUp(self, event):
-		print('plasmid up')
+		'''When left mouse button is lifted up, determine the DNA selection from angles generated at down an up events.'''
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
 
-		angle = self.calc_angle(x, y)
-		finish = self.angle_to_pos(angle)
-		start = genbank.dna_selection[0]
+		up_angle = self.calc_angle(x, y)
+		down_angle = self.left_down_angle
+
+		if down_angle <= up_angle:
+			start = self.angle_to_pos(down_angle)
+			finish = self.angle_to_pos(up_angle)
+		elif down_angle > up_angle:
+			start = self.angle_to_pos(up_angle)
+			finish = self.angle_to_pos(down_angle)
 
 		self.set_dna_selection((start, finish))
 		self.update_ownUI()
-		self.update_globalUI()
-
-
+		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 
 
 	def OnMotion(self, event):
-		'''Beginning angle is taken from already establi'''
+		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
 		if event.Dragging() and event.LeftIsDown():
-			print('plasmid motion')
 			x, y = self.ScreenToClient(wx.GetMousePosition())	
 
-			angle = self.calc_angle(x, y)
-			finish = self.angle_to_pos(angle)
-			start = genbank.dna_selection[0]			
-			
+			up_angle = self.calc_angle(x, y)
+			down_angle = self.left_down_angle
+
+			if down_angle <= up_angle:
+				start = self.angle_to_pos(down_angle)
+				finish = self.angle_to_pos(up_angle)
+			elif down_angle > up_angle:
+				start = self.angle_to_pos(up_angle)
+				finish = self.angle_to_pos(down_angle)			
 
 			self.set_dna_selection((start, finish))
 			self.update_ownUI()
-			self.update_globalUI()
+			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 
 			
 

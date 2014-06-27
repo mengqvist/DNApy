@@ -47,6 +47,7 @@ import wx.stc
 from wx.lib.pubsub import pub
 
 import pyperclip
+import copy
 
 import output
 import dna
@@ -239,12 +240,11 @@ class DNAedit(DNApyBaseClass):
 		self.listening_group2 = 'from_feature_edit'		
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-		self.listening_group3 = 'dna_selection_request'		
-		pub.Publisher.subscribe(self.set_dna_selection, self.listening_group3)		
-
 		self.listening_group4 = 'from_plasmid_view'
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
 
+		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_plasmid_view'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
 
 		#create dna view panel
 		self.stc = CustomSTC(self)
@@ -341,7 +341,7 @@ class DNAedit(DNApyBaseClass):
 		if sequence == None:
 			sequence = '  '	
 		self.stc.SetText(sequence) #put the DNA in
-		self.stc.SetSelection(genbank.dna_selection[0], genbank.dna_selection[1]) #update selection
+		self.stc.SetSelection(genbank.dna_selection[0]-1, genbank.dna_selection[1]-1) #update selection
 
 
 ######################################################
@@ -350,14 +350,14 @@ class DNAedit(DNApyBaseClass):
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnLeftUp(self, event):
-		self.set_dna_selection('')
-		self.update_globalUI()
+		self.set_dna_selection('') #update the varable keeping track of DNA selection
+		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnMotion(self, event):
 		if event.Dragging() and event.LeftIsDown():
-			self.set_dna_selection('')	
-			self.update_globalUI()
+			self.set_dna_selection('') #update the varable keeping track of DNA selection
+			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnRightUp(self, event):
@@ -368,7 +368,9 @@ class DNAedit(DNApyBaseClass):
 
 	def set_dna_selection(self, msg):
 		'''Recieves requests for DNA selection and then sends it.'''
-		genbank.dna_selection = self.get_selection()
+		selection = self.get_selection()
+		print('sel', selection)
+		genbank.dna_selection = selection
 
 
 
@@ -441,6 +443,9 @@ class DNAedit(DNApyBaseClass):
 		elif key == 317 and shift == True: #down + select
 			self.stc.LineDownExtend()
 
+		self.set_dna_selection('') #update the varable keeping track of DNA selection
+		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+
 ##########################
 	def make_outputpopup(self):
 		'''Creates a popup window in which output can be printed'''
@@ -476,10 +481,7 @@ class DNAedit(DNApyBaseClass):
 	def get_selection(self):
 		'''Gets the text editor selection and adjusts it to DNA locations'''
 		start, finish = self.stc.GetSelection()
-		if start == finish: # if not a selection
-			selection = (start+1, finish+1)
-		else:
-			selection = (start+1, finish)
+		selection = (start+1, finish)
 		return selection
 
 	def uppercase(self):
