@@ -222,9 +222,11 @@ class PlasmidView(BufferedWindow):
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		if self.centre_x > self.centre_y:
-			self.Radius = self.centre_y/1.5
+			window_length = self.centre_y
 		else:
-			self.Radius = self.centre_x/1.5
+			window_length = self.centre_x
+		
+		self.Radius = window_length/1.5
 
 #		dc.SetDeviceOrigin(size_x/2, size_y/2)
 
@@ -234,13 +236,31 @@ class PlasmidView(BufferedWindow):
 		gcdc = wx.GCDC(dc)
 #		gcdc = SVGFileDC('test.svg', width=320, height=240, dpi=72)
 
-		#DNA circles
+		#draw DNA circles
 		gcdc.SetPen(wx.Pen(colour='#444444', width=3))
 		gcdc.SetBrush(wx.Brush("White"))
 		gcdc.DrawCircle(x=self.centre_x, y=self.centre_y, radius=self.Radius) #outer DNA circle
 
+		#draw plasmid name
+		name = genbank.fileName.split('.')[0]
+		basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
+
+		font = wx.Font(pointSize=window_length/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+		gcdc.SetFont(font)
+		gcdc.SetTextForeground(('#666666'))
+		name_length = gcdc.GetTextExtent(name) #length of text in pixels
+		gcdc.DrawText(name, self.centre_x-name_length[0]/2, self.centre_y-name_length[1])
+
+		font = wx.Font(pointSize=window_length/20, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		gcdc.SetFont(font)
+		gcdc.SetTextForeground(('#666666'))
+		basepairs_length = gcdc.GetTextExtent(basepairs)
+		gcdc.DrawText(basepairs, self.centre_x-basepairs_length[0]/2, self.centre_y+basepairs_length[1]/2)
+
+
 		#draw features
 		self.Draw_features(gcdc)
+
 
 		#draw enzymes
 		self.Draw_enzymes(gcdc)
@@ -276,18 +296,24 @@ class PlasmidView(BufferedWindow):
 
 	def Draw_features(self, gcdc):
 		'''Function dedicated to drawing feature arrows. It was too messy to have it in the main Draw function'''
-		feature_thickness = 25 #thickness of feature arrows
-		outside_space = feature_thickness/2
+		if self.centre_x > self.centre_y:
+			window_length = self.centre_y #length of shortest part of window
+		else:
+			window_length = self.centre_x #length of shortest part of window
+
+		feature_thickness = window_length/12 #thickness of feature arrows and is used for a bunch of derived measurements
+		outside_space = feature_thickness/2 #space between the outermost feature and the DNA circle
 		arrowhead_length = 5 #length of arrowhead
 		step = 0.25 #degree interval at which polygon point should be drawn
 		spacer = feature_thickness/2 #for in-between features
-		cutoff = 80 #at which cutoff (pixel length)text should go on the outside and not the inside features
+#		cutoff = 80 #at which cutoff (pixel length)text should go on the outside and not the inside features
 
 		#text parameters
-		font = wx.Font(pointSize=feature_thickness*0.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+		font = wx.Font(pointSize=feature_thickness*0.6, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
 		gcdc.SetTextForeground((0,0,0))
 		gcdc.SetPen(wx.Pen(colour='#a8a8a8', width=2))
+		label_line_length = window_length/6
 		max_label_length = 120 #max length of label in pixels
 
 
@@ -463,8 +489,8 @@ class PlasmidView(BufferedWindow):
 				angle = start_angle+(finish_angle-start_angle)/2
 				x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
 				y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((angle-90)*(math.pi/180))
-				x2 = xc + (self.Radius+40) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-				y2 = yc + (self.Radius+40) * math.sin((angle-90)*(math.pi/180))
+				x2 = xc + (self.Radius+label_line_length) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
+				y2 = yc + (self.Radius+label_line_length) * math.sin((angle-90)*(math.pi/180))
 				gcdc.DrawLine(x1,y1,x2,y2)
 				if angle <= 180:
 					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)

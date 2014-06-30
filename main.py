@@ -54,8 +54,6 @@ import genbank_GUI
 import mixed_base_codons_GUI
 
 #TODO
-
-#add vector view
 #add pretty dna view
 #make rightklick menus
 #fix search and mutate
@@ -104,18 +102,22 @@ class MyFrame(wx.Frame):
 		genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
+		genbank.fileName = ''
 
 		#create splitter and panels
-		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
+#		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
 
-		self.splitter1 = wx.SplitterWindow(self.splitter2, 0, style=wx.SP_3D)	
+		self.splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
 		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
 		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
 		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-240))
 
-			
-		self.plasmid_view = plasmid_GUI.PlasmidView(self.splitter2, -1)
-		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
+
+		#plasmid view
+		self.plasmid_frame = wx.Frame(None, -1, title="Plasmid view", size=(500,500))
+		self.plasmid_view = plasmid_GUI.PlasmidView(self.plasmid_frame, -1)		
+
+#		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
 		
 		self.do_layout()
 		self.Centre()
@@ -127,7 +129,7 @@ class MyFrame(wx.Frame):
 		#add to sizer
 		sizer_1 = wx.BoxSizer(wx.VERTICAL)
 		sizer_1.Add(self.frame_1_toolbar, 0, wx.EXPAND)
-		sizer_1.Add(item=self.splitter2, proportion=-1, flag=wx.EXPAND)
+		sizer_1.Add(item=self.splitter1, proportion=-1, flag=wx.EXPAND)
 		#if second toolbar is present, add that too.
 		try:
 			sizer_1.Add(self.frame_2_toolbar, 0, wx.EXPAND)
@@ -186,20 +188,20 @@ class MyFrame(wx.Frame):
 		self.dir_to_open = default_filepath
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
 		dlg.ShowModal()
-		fileName = dlg.GetFilename()
+		genbank.fileName = dlg.GetFilename()
 		all_path=dlg.GetPath()
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
-		if(fileName == None or fileName == "" ):
+		if(genbank.fileName == None or genbank.fileName == "" ):
 			return1
 		
-		name, extension = fileName.split('.')
+		name, extension = genbank.fileName.split('.')
 		if extension.lower() == 'gb':
 			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
 			self.dnaview.update_ownUI()
 			self.dnaview.update_globalUI()
 
-			self.SetTitle(fileName+' - DNApy')
+			self.SetTitle(genbank.fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
 				result = dlg.ShowModal()
@@ -247,13 +249,14 @@ class MyFrame(wx.Frame):
 		if (fileName == None or fileName == ""):
 			return
 		else:
-			if fileName[-3:].lower() != '.gb': #make sure it has gb file ending
+			genbank.fileName = fileName
+			if genbank.fileName[-3:].lower() != '.gb': #make sure it has gb file ending
 				all_path += '.gb'
-				fileName += '.gb'
+				genbank.fileName += '.gb'
 			#try:
 			genbank.gb.SetFilepath(all_path)
 			self.save_file("")
-			self.SetTitle(fileName+' - DNApy')
+			self.SetTitle(genbank.fileName+' - DNApy')
 			#except:
 			#	error_window(7, self)
 
@@ -644,6 +647,10 @@ Put Table here
 		#Print current window
 #   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
  #  		wx.EVT_TOOL(self, 510, self.print_setup)
+
+   		self.frame_1_toolbar.AddCheckTool(516, wx.Bitmap(files['default_dir']+"/icon/plasmid.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/plasmid.png", wx.BITMAP_TYPE_ANY), 'Plasmid view', 'Plasmid view')
+   		wx.EVT_TOOL(self, 516, self.toggle_plasmid_view)
+
    		self.frame_1_toolbar.AddCheckTool(511, wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Find', 'Find')
    		wx.EVT_TOOL(self, 511, self.toggle_searchandmutate_toolbar)
 
@@ -675,6 +682,17 @@ Put Table here
 
 		self.frame_2_toolbar.Realize()
 		self.frame_2_toolbar.Hide()
+
+	def toggle_plasmid_view(self, event):
+		'''When the plasmid view button is toggled, show/hide the plasmid veiw'''
+		if self.frame_1_toolbar.GetToolState(516) == True:
+			self.plasmid_frame.Show()
+
+		elif self.frame_1_toolbar.GetToolState(516) == False:
+			try:
+				self.plasmid_frame.Hide()
+			except:
+				pass
 
 
 	def add_search_tools(self, typeof):

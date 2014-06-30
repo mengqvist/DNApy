@@ -2,7 +2,7 @@
 default_filepath = '/home/martin/Work/4_LA/Vectors/'
 
 ## Windowsize ##
-windowsize = (1200, 600)
+windowsize = (650, 700)
 
 ## Available colors ##
 #rv color is same as fw, just lighter

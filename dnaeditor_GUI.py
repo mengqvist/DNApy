@@ -369,7 +369,6 @@ class DNAedit(DNApyBaseClass):
 	def set_dna_selection(self, msg):
 		'''Recieves requests for DNA selection and then sends it.'''
 		selection = self.get_selection()
-		print('sel', selection)
 		genbank.dna_selection = selection
 
 
