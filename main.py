@@ -83,6 +83,8 @@ class MyFrame(wx.Frame):
 #		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
 #		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
+		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
 		#create toolbars
 		self.__generate_toolbar()
 		self.__generate_searchandmutate_toolbar()
@@ -102,7 +104,7 @@ class MyFrame(wx.Frame):
 		genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
-		genbank.fileName = ''
+		genbank.gb.fileName = ''
 
 		#create splitter and panels
 #		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
@@ -114,7 +116,7 @@ class MyFrame(wx.Frame):
 
 
 		#plasmid view
-		self.plasmid_frame = wx.Frame(None, -1, title="Plasmid view", size=(500,500))
+		self.plasmid_frame = wx.Frame(self, -1, title="Plasmid view", size=(500,500))
 		self.plasmid_view = plasmid_GUI.PlasmidView(self.plasmid_frame, -1)		
 
 #		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
@@ -128,7 +130,7 @@ class MyFrame(wx.Frame):
 		'''Pack toolbar and the tabs in their sizers'''
 		#add to sizer
 		sizer_1 = wx.BoxSizer(wx.VERTICAL)
-		sizer_1.Add(self.frame_1_toolbar, 0, wx.EXPAND)
+		sizer_1.Add(item=self.frame_1_toolbar, proportion=0, flag=wx.EXPAND)
 		sizer_1.Add(item=self.splitter1, proportion=-1, flag=wx.EXPAND)
 		#if second toolbar is present, add that too.
 		try:
@@ -188,20 +190,20 @@ class MyFrame(wx.Frame):
 		self.dir_to_open = default_filepath
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
 		dlg.ShowModal()
-		genbank.fileName = dlg.GetFilename()
+		genbank.gb.fileName = dlg.GetFilename()
 		all_path=dlg.GetPath()
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
-		if(genbank.fileName == None or genbank.fileName == "" ):
+		if(genbank.gb.fileName == None or genbank.gb.fileName == "" ):
 			return1
 		
-		name, extension = genbank.fileName.split('.')
+		name, extension = genbank.gb.fileName.split('.')
 		if extension.lower() == 'gb':
 			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
 			self.dnaview.update_ownUI()
 			self.dnaview.update_globalUI()
 
-			self.SetTitle(genbank.fileName+' - DNApy')
+			self.SetTitle(genbank.gb.fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
 				dlg = wx.MessageDialog(self, style=wx.YES_NO|wx.CANCEL, message='This file contains tags from the Vector NTI or ApE programs. Keeping these tags may break compatibility with other software. Removing them will clean up the file, but may result in the loss of some personalized styling options when this file is viewed in Vector NTI or ApE. Do you wish to REMOVE these tags?')
 				result = dlg.ShowModal()
@@ -249,50 +251,38 @@ class MyFrame(wx.Frame):
 		if (fileName == None or fileName == ""):
 			return
 		else:
-			genbank.fileName = fileName
-			if genbank.fileName[-3:].lower() != '.gb': #make sure it has gb file ending
+			genbank.gb.fileName = fileName
+			if genbank.gb.fileName[-3:].lower() != '.gb': #make sure it has gb file ending
 				all_path += '.gb'
-				genbank.fileName += '.gb'
+				genbank.gb.fileName += '.gb'
 			#try:
 			genbank.gb.SetFilepath(all_path)
 			self.save_file("")
-			self.SetTitle(genbank.fileName+' - DNApy')
+			self.SetTitle(genbank.gb.fileName+' - DNApy')
 			#except:
 			#	error_window(7, self)
 
 
 	def quit(self, evt):
 		'''Function for quiting program'''
-		print("close")
-#    		self.close_all("")
-       		self.Close()
-       		#self.Destroy()		
+		self.Close()
+		self.Destroy()		
 
 
 	def OnCloseWindow(self, evt):
-		'''not currently used'''
-#		self.close_all("")
+		'''Function for when window is closed'''
+
 #		foo=self.GetSize()  ###except for the window size of file 
 #		if(self.IsMaximized()==0):
 #			file=open(files['size'], "w")
 #			file.write(str(foo[0])+"\n"+str(foo[1]))
 #			file.close()
-		self.Close()
-		#self.Destroy()
+		self.Destroy()
 
 
 ##########################################################
 
 
-#	def page_change(self, ev):
-#		'''When changing between tabs'''
-#		self.Refresh()
-#		self.current_tab=self.DNApy.GetSelection()
-#		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
-#		try:
-#			self.updateUI()
-#		except:
-#			pass
 
 	def update_statusbar(self, evt):
 		'''Updates statusbar'''
@@ -604,6 +594,24 @@ Put Table here
 			self.output.write('%s\n' % feature, 'Text')
 		self.outputframe.Show()
 
+	def view_genbank(self, evt):
+		'''View the genbank file as text'''
+		dlg = wx.Frame(self, id=wx.ID_ANY, title="Edit Qualifier", size=(600,600)) #make frame
+		genbankview = genbank_GUI.MyPanel(dlg, style=wx.VSCROLL|wx.HSCROLL) #put the genbank view panel inside
+		genbankview.rtc.SetEditable(False)	
+		sizer = wx.BoxSizer(wx.VERTICAL) #make sizer
+		sizer.Add(item=genbankview, proportion=-1, flag=wx.EXPAND)	#put panel in sizer
+		dlg.SetSizer(sizer) #assign sizer to window
+		dlg.Show()
+
+	def view_output(self, evt):	
+		'''Make an output window in which things can be printed'''
+		self.outputframe = wx.Frame(self, title="Output Panel") # creation of a Frame with a title
+		self.outputwindow = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
+		sizer = wx.BoxSizer(wx.VERTICAL) #make sizer
+		sizer.Add(item=self.outputwindow, proportion=-1, flag=wx.EXPAND)	#put panel in sizer
+		self.outputframe.SetSizer(sizer) #assign sizer to window
+		self.outputframe.Show()		
 
 ######### Toolbar and Menu ############
 
@@ -685,6 +693,8 @@ Put Table here
 
 	def toggle_plasmid_view(self, event):
 		'''When the plasmid view button is toggled, show/hide the plasmid veiw'''
+		
+
 		if self.frame_1_toolbar.GetToolState(516) == True:
 			self.plasmid_frame.Show()
 
@@ -864,6 +874,20 @@ Put Table here
 		wx.EVT_MENU(self, 7, self.quit)
 
 		self.menubar.Append(fileitem, "&File")
+
+		######################### For 'View' menu item #############################################		
+		self.view = wx.Menu()
+
+		#view genbank file
+		self.view.Append(201, "View GenBank", "View GenBank")
+		wx.EVT_MENU(self, 201, self.view_genbank)
+
+		#view output panel
+		self.view.Append(202, "View Output", "View Output")
+		wx.EVT_MENU(self, 202, self.view_output)
+		
+
+		self.menubar.Append(self.view, "&View")
 
 		######################### For 'Edit DNA' menu item #############################################
 		self.edit = wx.Menu()

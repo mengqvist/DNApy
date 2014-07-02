@@ -149,6 +149,7 @@ class gbobject(object):
 		self.gbfile['dna'] = ''
 		self.gbfile['header'] = ''
 		self.gbfile['filepath'] = filepath
+		self.fileName = 'New DNA' #name of the file/plasmid name
 
 		if filepath == None:
 			pass
@@ -184,6 +185,9 @@ class gbobject(object):
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
 		assert type(filepath) == str or type(filepath) == unicode , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
+
+		self.fileName = filepath.split('/')[-1] #update the fileName variable
+
 		
 		try:
 			a = open(filepath, 'r') #open it for reading
