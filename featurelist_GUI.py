@@ -58,48 +58,6 @@ settings=files['default_dir']+"settings"   ##path to the file of the global sett
 execfile(settings) #gets all the pre-assigned settings
 
 
-class NewFeatureDialog(wx.Dialog):
-	def __init__(self, parent, title):
-		super(NewFeatureDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(700, 300)) 		
-
-
-		self.feature_edit = featureedit_GUI.FeatureEdit(self, id=wx.ID_ANY)	#get the feature edit panel
-		self.NewFeatureButtonPanel = wx.Panel(self) #make new panel to hold the buttons
-
-		self.OK = wx.Button(self.NewFeatureButtonPanel, 7, 'OK')
-		self.OK.Bind(wx.EVT_BUTTON, self.OnOK, id=7)
-#		self.Cancel = wx.Button(self.NewFeatureButtonPanel, 8, 'Cancel')
-#		self.Cancel.Bind(wx.EVT_BUTTON, self.OnCancel, id=8)
-
-		#organize buttons
-		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-		buttonsizer.Add(self.OK)
-#		buttonsizer.Add(self.Cancel)
-		self.NewFeatureButtonPanel.SetSizer(buttonsizer)
-		
-		#organize feature edit panel and button panel
-		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer.Add(item=self.feature_edit, proportion=-1, flag=wx.EXPAND)
-		sizer.Add(item=self.NewFeatureButtonPanel, proportion=0)
-		self.SetSizer(sizer)		
-
-#		wx.EVT_CLOSE(self, self.OnCancel) #when window is closed on x, cancel
-
-
-
-	def OnOK(self, event):
-		'''Accept new feature from the "new feature" popup"'''
-		self.feature_edit.update_globalUI()
-		self.Destroy()
-
-#	def OnCancel(self, event):
-#		'''Reject new feeature from the "new feature" popup'''
-#		genbank.gb.remove_feature(genbank.gb.get_feature(index=-1))
-#		genbank.feature_selection = 0
-##		pub.Publisher.sendMessage('feature_index', 0)
-#		pub.Publisher.sendMessage('feature_list_updateUI', 'update UI pls')
-##		pub.Publisher.sendMessage('dna_edit_updateUI', 'update UI pls')
-#		self.Destroy()
 
 
 class FeatureList(DNApyBaseClass):
@@ -117,13 +75,17 @@ class FeatureList(DNApyBaseClass):
 #		self.feature_list.SetFont(font)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
-
+#		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
+		
 		#determing which listening group from which to recieve messages about UI updates
 		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
 		pub.Publisher.subscribe(self.listen_to_updateUI, str(self.listening_group))
 
 		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
+
+		self.listening_group4 = 'from_main'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 		
 		#buttons
 		imageFile = files['default_dir']+"/icon/new_small.png"
@@ -255,7 +217,7 @@ class FeatureList(DNApyBaseClass):
 		genbank.gb.add_feature(key='misc_feature', qualifiers=['/note=New feature'], location=['%s..%s' % (start, finish)], complement=False, join=False, order=False)
 		genbank.feature_selection = copy.copy(len(genbank.gb.get_all_features())-1)
 
-		dlg = NewFeatureDialog(None, 'New Feature') # creation of a dialog with a title
+		dlg = featureedit_GUI.FeatureEditDialog(None, 'New Feature') # creation of a dialog with a title
 		dlg.ShowModal()
 		dlg.Center()
 		
@@ -304,7 +266,7 @@ class FeatureList(DNApyBaseClass):
 
 	def OnEditFeature(self, event):
 		'''Edit a feature that is already present'''
-		dlg = NewFeatureDialog(None, 'Edit Feature') # creation of a dialog with a title
+		dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
 		dlg.ShowModal()
 		dlg.Center()		
 

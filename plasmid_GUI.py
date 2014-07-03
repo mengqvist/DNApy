@@ -30,7 +30,12 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
-
+#TODO
+#fix labels so they don't overlap
+#fix labels so they don't run offscreen
+#fix long labels
+#fix long plasmid names
+#add 'dna ruler'
 
 import wx
 import wx.lib.graphics
@@ -44,7 +49,7 @@ import copy
 import os, sys
 import string
 from base_class import DNApyBaseClass
-
+import featureedit_GUI
 
 files={}   #list with all configuration files
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -66,6 +71,9 @@ class Base(DNApyBaseClass):
 
 		self.listening_group3 = 'from_dna_edit'		
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
+
+		self.listening_group4 = 'from_main'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 
 		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
@@ -130,8 +138,8 @@ class BufferedWindow(Base):
 #        kwargs['style'] = kwargs.setdefault('style', wx.NO_FULL_REPAINT_ON_RESIZE) | wx.NO_FULL_REPAINT_ON_RESIZE
         Base.__init__(self, *args, **kwargs)
 
-        wx.EVT_PAINT(self, self.OnPaint)
-        wx.EVT_SIZE(self, self.OnSize)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
 
         # OnSize called to make sure the buffer is initialized.
         # This might result in OnSize getting called twice on some
@@ -181,11 +189,11 @@ class PlasmidView(BufferedWindow):
 		BufferedWindow.__init__(self, *args, **kwargs)
 	
 
-		wx.EVT_LEFT_DOWN(self, self.OnLeftDown)
-		wx.EVT_LEFT_UP(self, self.OnLeftUp)
-		wx.EVT_RIGHT_UP(self, self.OnRightUp)
-		wx.EVT_MOTION(self, self.OnMotion)
-
+		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+		self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
+		self.Bind(wx.EVT_MOTION, self.OnMotion)
+		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
 	def find_overlap(self, drawn_locations, new_range):
 		'''Takes two ranges and determines whether the new range has overlaps with the old one.
@@ -343,7 +351,7 @@ class PlasmidView(BufferedWindow):
 			unique_color = (R,G,B) #for drawing unique colors on the hidden dc
 			self.feature_catalog[str(unique_color+(255,))] = i	
 
-			featuretype, complement, start, finish, name = featurelist[i]
+			featuretype, complement, start, finish, name, index = featurelist[i]
 			drawn_locations, level = self.find_overlap(drawn_locations, (start, finish))
 
 			#check so that stuff is not drawn too close to center
@@ -545,6 +553,12 @@ class PlasmidView(BufferedWindow):
 					gcdc.DrawLine(x2,y2,x2-name_length[0],y2)
 					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
 
+				#draw hidden box at text positon, used for hittests
+				self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
+				self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+				self.hidden_dc.DrawRectangle(x2, y2, gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
+
+					
 
 	def angle_to_pos(self, angle):
 		'''Calculate DNA position from a start and end angle'''
@@ -625,8 +639,8 @@ class PlasmidView(BufferedWindow):
 				start = self.angle_to_pos(down_angle) 
 				finish = self.angle_to_pos(up_angle)
 			else:
-				featuretype, complement, start, finish, name = genbank.gb.get_all_feature_positions()[self.highlighted_feature] #get info for the feature that was 'hit'
-				start -= 1 #need to adjust for some reason
+				featuretype, complement, start, finish, name, index = genbank.gb.get_all_feature_positions()[self.highlighted_feature] #get info for the feature that was 'hit'
+				start += 1 #need to adjust for some reason
 		elif down_angle < up_angle:
 			start = self.angle_to_pos(down_angle)
 			finish = self.angle_to_pos(up_angle)
@@ -665,6 +679,19 @@ class PlasmidView(BufferedWindow):
 				self.highlighted_feature = new_index
 				self.update_ownUI()
 
+	def OnLeftDouble(self, event):
+		'''When left button is duble clicked'''
+		new_index = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
+		if new_index is not False:
+			print('not false')
+		
+			featurelist = genbank.gb.get_all_feature_positions()
+			featuretype, complement, start, finish, name, index = featurelist[new_index]
+			genbank.feature_selection = copy.copy(index)
+
+			dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
+			dlg.ShowModal()
+			dlg.Center()
 
 	def OnRightUp(self, event):
 		print('plasmid right')

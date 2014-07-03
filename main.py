@@ -52,11 +52,13 @@ import featurelist_GUI
 import plasmid_GUI
 import genbank_GUI
 import mixed_base_codons_GUI
+from wx.lib.pubsub import pub
 
 #TODO
 #add pretty dna view
 #make rightklick menus
-#fix search and mutate
+#fix mutate
+#fix find previus and find next
 
 files={}   #dictionary with all configuration files
 
@@ -84,6 +86,20 @@ class MyFrame(wx.Frame):
 #		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
 		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+		self.listening_group = 'from_feature_list'	
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+
+		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
+
+		self.listening_group2 = 'from_feature_edit'		
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
+
+		self.listening_group4 = 'from_plasmid_view'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
+
+
 
 		#create toolbars
 		self.__generate_toolbar()
@@ -418,7 +434,7 @@ class MyFrame(wx.Frame):
 
 #	def delete(self, evt):
 #		self.dnaview.delete()
-#		self.updateUndoRedo()
+
 #		print('deleted')
 
 	def reverse_complement_selection(self, evt):
@@ -555,17 +571,21 @@ Put Table here
 
 	def Undo(self, evt):
 		genbank.gb.Undo()
-		self.updateUI()
-		self.updateUndoRedo()
+		self.update_globalUI()
+
 
 	def Redo(self, evt):
 		genbank.gb.Redo()
-		self.updateUI()
-		self.updateUndoRedo()
-######################################
+		self.update_globalUI()
 
-	def updateUndoRedo(self):
-		#activate/deactivate undo and redo buttons
+######################################
+	def listen_to_updateUI(self, msg):
+		self.update_ownUI()
+
+
+	def update_ownUI(self):
+		#and now actually update the UI
+		print('filever index', genbank.gb.get_file_version_index())
 		if genbank.gb.get_file_version_index() <= 0: #if there are no undos available
 			self.frame_1_toolbar.EnableTool(513, False)
 		else:
@@ -576,10 +596,8 @@ Put Table here
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
 
-	def updateUI(self):
-		#and now actually update the UI
-		self.dnaview.update_ownUI()
-		self.dnaview.update_globalUI()
+	def update_globalUI(self):
+		pub.Publisher.sendMessage('from_main', '')
 
 ######################################
 
@@ -728,11 +746,6 @@ Put Table here
 		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
 		self.frame_2_toolbar.AddControl(self.searchinput)
 	
-		if typeof == 'Mutate':
-			self.tobox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="to")
-			self.frame_2_toolbar.AddControl(self.tobox)
-			self.mutateto=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
-			self.frame_2_toolbar.AddControl(self.mutateto)
 
 		#'in'
 		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
@@ -764,13 +777,15 @@ Put Table here
 	   		wx.EVT_TOOL(self, 604, self.find)
 		elif typeof == 'Mutate':
 			self.frame_2_toolbar.AddLabelTool(604, "Mutate", wx.Bitmap(files['default_dir']+"/icon/up.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Mutate', 'Mutate')
-	   		wx.EVT_TOOL(self, 604, self.find)
+	   		wx.EVT_TOOL(self, 604, self.mutate)
 
 	def find(self, evt):
 		'''Find nucleotide in molecule'''
 		searchtype = self.nucleotideoraminoacid.GetValue() #type of search
 		searchframe = int(self.featurebox.GetSelection())-1 #where to search
 		searchstring = self.searchinput.GetValue()
+		if searchstring.isdigit():
+			searchstring = int(searchstring)
 
 		if searchtype == 'Nucleotide':
 			genbank.search_hits = genbank.gb.FindNucleotide(searchstring, searchframe)
@@ -779,7 +794,7 @@ Put Table here
 		elif searchtype == 'Feature':
 			genbank.search_hits = genbank.gb.FindFeature(searchstring)
 
-		self.updateUI()
+		self.update_globalUI()
 		start, finish = self.get_dna_selection()
 		self.dnaview.stc.SetSelection(start, finish)
 
@@ -797,8 +812,22 @@ Put Table here
 		self.dnaview.stc.SetSelection(start, finish)
 
 	def mutate(self, evt):
-		pass
+		'''Mutate DNA or protein'''
+		mutationtype = self.nucleotideoraminoacid.GetValue() #type of mutation
+		mutationframe = int(self.featurebox.GetSelection())-1 #where to mutate (feature or molecule)
+		mutationinput = self.searchinput.GetValue() #which mutation to perform
+		if ',' in mutationinput: #input allows for many comma-seperated mutations
+			mutation_list = mutationinput.split(',')
+		else:
+			mutation_list = [mutationinput]
 
+		for mutation in mutation_list:
+			if mutationtype == 'Nucleotide':
+				genbank.gb.mutate('D', mutationframe, mutation)
+			elif mutationtype == 'Amino Acid':
+				genbank.gb.mutate('A', mutationframe, mutation)
+		
+		self.update_globalUI()
 
 	def OnChangeSearchParams(self, evt):
 		'''When changes are made to options in the searchbar, update which downstream options are available'''

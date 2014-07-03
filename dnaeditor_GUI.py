@@ -55,6 +55,7 @@ from base_class import DNApyBaseClass
 
 
 #TODO
+#fix statusbar in general
 #fix selection so that the statusbar matches the real
 
 
@@ -119,7 +120,7 @@ class DNALexer(BaseLexer):
 		featurelist = genbank.gb.get_all_feature_positions()
 		for entry in featurelist:
 
-			featuretype, complement, start, finish, name = entry
+			featuretype, complement, start, finish, name, index = entry
 			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
 			featuretype = featuretype.replace("5'", "a5") #for 5' features
 			featuretype = featuretype.replace("3'", "a3") #for 5' features
@@ -263,6 +264,9 @@ class DNAedit(DNApyBaseClass):
 
 		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_plasmid_view'
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
+
+		self.listening_group6 = 'from_main'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group6)
 
 		#create dna view panel
 		self.stc = CustomSTC(self)
@@ -409,7 +413,6 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Paste(start+1, chr(key).lower())
 			self.update_ownUI()
 			self.update_globalUI()
-			self.GetTopLevelParent().updateUndoRedo()
 			self.stc.SetSelection(start+1, start+1)
 
 
@@ -419,13 +422,11 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Delete(start+1, finish)
 				self.update_ownUI()
 				self.update_globalUI()
-				self.GetTopLevelParent().updateUndoRedo()
 				self.stc.SetSelection(start+1, start+1)
 			else:
 				genbank.gb.Delete(start, start)
 				self.update_ownUI()
 				self.update_globalUI()
-				self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 				self.stc.SetSelection(start-1, start-1)
 
 		elif key == 127: #delete
@@ -436,7 +437,6 @@ class DNAedit(DNApyBaseClass):
 				genbank.gb.Delete(start+1, start+1)
 			self.update_ownUI()
 			self.update_globalUI()
-			self.GetTopLevelParent().updateUndoRedo() #for updating the undo and redo buttons in the menu
 			self.stc.SetSelection(start, start)
 
 		elif key == 314 and shift == False: #left

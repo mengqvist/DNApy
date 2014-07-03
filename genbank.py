@@ -217,6 +217,7 @@ class gbobject(object):
 			if featurelist[-1] == '': 
 				del featurelist[-1] #last entry tends to be empty, if so, remove
 			self.parse_features(featurelist)
+			self.add_file_version()
 
 	def parse_features(self, featurelist):
 		'''Takes a list of lines from a genbank file and parses them into the DNApy data format'''
@@ -224,18 +225,18 @@ class gbobject(object):
 		feature = {}
 
 		#keep track of loading progress
-		length = len(featurelist)
-		line_0 = 1 
-		line_10 = int(length*0.1) #line number at which 10% of the document has been loaded
-		line_20 = int(length*0.2) #line number at which 20% of the document has been loaded
-		line_30 = int(length*0.3) #line number at which 30% of the document has been loaded
-		line_40 = int(length*0.4) #line number at which 40% of the document has been loaded
-		line_50 = int(length*0.5) #line number at which 50% of the document has been loaded
-		line_60 = int(length*0.6) #line number at which 60% of the document has been loaded
-		line_70 = int(length*0.7) #line number at which 70% of the document has been loaded
-		line_80 = int(length*0.8) #line number at which 80% of the document has been loaded
-		line_90 = int(length*0.9) #line number at which 90% of the document has been loaded
-		line_100 = length-1 #line number at which 100% of the document has been loaded
+#		length = len(featurelist)
+#		line_0 = 1 
+#		line_10 = int(length*0.1) #line number at which 10% of the document has been loaded
+#		line_20 = int(length*0.2) #line number at which 20% of the document has been loaded
+#		line_30 = int(length*0.3) #line number at which 30% of the document has been loaded
+#		line_40 = int(length*0.4) #line number at which 40% of the document has been loaded
+#		line_50 = int(length*0.5) #line number at which 50% of the document has been loaded
+#		line_60 = int(length*0.6) #line number at which 60% of the document has been loaded
+#		line_70 = int(length*0.7) #line number at which 70% of the document has been loaded
+#		line_80 = int(length*0.8) #line number at which 80% of the document has been loaded
+#		line_90 = int(length*0.9) #line number at which 90% of the document has been loaded
+#		line_100 = length-1 #line number at which 100% of the document has been loaded
 
 		i = 1
 		while i in range(0, len(featurelist)): # go through the lines
@@ -243,28 +244,28 @@ class gbobject(object):
 			current_line = featurelist[i]
 
 			#keep track of loading progress
-			if i == line_0:
-				print('0%')
-			elif i == line_10:
-				print('10%')
-			elif i == line_20:
-				print('20%')
-			elif i == line_30:
-				print('30%')
-			elif i == line_40:
-				print('40%')
-			elif i == line_50:
-				print('50%')
-			elif i == line_60:
-				print('60%')
-			elif i == line_70:
-				print('70%')
-			elif i == line_80:
-				print('80%')
-			elif i == line_90:
-				print('90%')
-			elif i == line_100:
-				print('100%')
+#			if i == line_0:
+#				print('0%')
+#			elif i == line_10:
+#				print('10%')
+#			elif i == line_20:
+#				print('20%')
+#			elif i == line_30:
+#				print('30%')
+#			elif i == line_40:
+#				print('40%')
+#			elif i == line_50:
+#				print('50%')
+#			elif i == line_60:
+#				print('60%')
+#			elif i == line_70:
+#				print('70%')
+#			elif i == line_80:
+#				print('80%')
+#			elif i == line_90:
+#				print('90%')
+#			elif i == line_100:
+#				print('100%')
 
 			#for dealing with qualifiers that are broken over several lines
 			if i<len(featurelist)-1:
@@ -484,6 +485,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['key'] = newkey
+			self.add_file_version()
 
 	def get_feature_complement(self, index):
 		'''Get whether a feature is on leading or complement DNA strand'''
@@ -499,7 +501,8 @@ class gbobject(object):
 		if index is False:
 			print('Error, no index found')
 		else:
-			self.gbfile['features'][index]['complement'] = complement 
+			self.gbfile['features'][index]['complement'] = complement
+			self.add_file_version() 
 
 
 	def get_feature_join(self, index):
@@ -517,6 +520,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['join'] = join 
+			self.add_file_version()
 
 
 	def get_feature_order(self, index):
@@ -534,6 +538,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['order'] = order 
+			self.add_file_version()
 
 
 	def get_feature_location(self, index):
@@ -551,6 +556,7 @@ class gbobject(object):
 			print('Error, no index found')
 		else:
 			self.gbfile['features'][index]['location'] = newlocation
+			self.add_file_version()
 
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
@@ -617,6 +623,7 @@ class gbobject(object):
 		assert type(tag) is str, "Tag is not a string: %s" % str(tag)
 		try:
 			self.gbfile['features'][index]['qualifiers'][number] = '/%s=%s' % (qualifier, tag)
+			self.add_file_version()
 		except:
 			raise IOError('Error setting qualifier')
 
@@ -1018,7 +1025,7 @@ class gbobject(object):
 
 	def FindNucleotide(self, searchstring, searchframe=-1, searchRC=False):
 		'''Method for finding a certain DNA sequence. Degenerate codons are supported.
-Searchstring should be a string of numbers or DNA characers.
+Searchstring should be a integer number or string of DNA characers.
 searchRC is True or False and determines whether the reverse complement should also be searched. 
 Searchframe should be an index for a feature. -1 indicates search in entire genbank file
 indeces >-1 are feature indeces'''
@@ -1027,19 +1034,17 @@ indeces >-1 are feature indeces'''
 ### Need to implement the searchRC variable
 
 		#fix the set_dna_selection functions here
-		assert type(searchstring) == str or type(searchstring) == unicode, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
 		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
 		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
-
 		#empty search string
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
 			return []
 
 		#searching for a position (by number)
-		elif searchstring.isdigit(): #if search is numbers only
+		elif type(searchstring) is int: #if search is numbers only
 			complement = self.get_feature_complement(searchframe) # is feature complement or not
-			searchstring = int(searchstring)
 			if searchframe == -1: #if index is -1, that means search in molecule
 				search_hits = [(int(searchstring), int(searchstring))]
 				return search_hits
@@ -1111,8 +1116,8 @@ indeces >-1 are feature indeces'''
 				#now map them one by one to the whole molecule	
 				re_mapped_search_hits = []	
 				for i in range(len(search_hits)):
-					start = self.FindNucleotide(str(search_hits[i][0]), searchframe)[0][0]
-					finish = self.FindNucleotide(str(search_hits[i][1]), searchframe)[0][0]
+					start = self.FindNucleotide(search_hits[i][0], searchframe)[0][0]
+					finish = self.FindNucleotide(search_hits[i][1], searchframe)[0][0]
 					re_mapped_search_hits.append((start,finish))
 				
 				#if feature is on complement then I need to reverse the list of hits and the tuples inside
@@ -1125,16 +1130,18 @@ indeces >-1 are feature indeces'''
 
 	def FindAminoAcid(self, searchstring, searchframe, searchRC=False):
 		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
+		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
+		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
+
+
 		#empty search string
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
 			return []
 
 		#searching for a position (by number)
-		elif searchstring.isdigit(): #if search is numbers only
-			complement = self.get_feature_complement(searchframe) # is feature complement or not
-			searchstring = int(searchstring)
-
+		elif type(searchstring) is int: #if search is numbers only
 			#get the dna triplet positions for the amino acid
 			start = searchstring*3 -2 
 			finish = searchstring*3
@@ -1143,8 +1150,8 @@ indeces >-1 are feature indeces'''
 				return search_hits
 
 			else: #otherwise search in feature indicated by the index
-				start = self.FindNucleotide(str(start), searchframe)[0][0]
-				finish = self.FindNucleotide(str(finish), searchframe)[0][0]
+				start = self.FindNucleotide(start, searchframe)[0][0]
+				finish = self.FindNucleotide(finish, searchframe)[0][0]
 				
 				search_hits = [(start, finish)]
 				search_hits[0] = tuple(sorted(search_hits[0]))
@@ -1162,15 +1169,15 @@ indeces >-1 are feature indeces'''
 				search_hits = []
 				for match in peptide_localizer.match_peptide(protein, searchstring):
 					search_hits.append((match[0],match[1]))
-				print('hits', search_hits)
+#				print('hits', search_hits)
 
 				#now map them one by one to the whole molecule	
 				re_mapped_search_hits = []	
 				for i in range(len(search_hits)):
-					start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
-					finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2
+					start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+					finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2
 					re_mapped_search_hits.append((start,finish))
-				print('re-mapped', re_mapped_search_hits)
+#				print('re-mapped', re_mapped_search_hits)
 				return re_mapped_search_hits
 
 			else:
@@ -1180,27 +1187,33 @@ indeces >-1 are feature indeces'''
 				search_hits = []
 				for match in peptide_localizer.match_peptide(protein, searchstring):
 					search_hits.append((match[0],match[1]))
-				print('protein hits', search_hits)
+#				print('protein hits', search_hits)
 
 				#now map them one by one to the whole molecule	
 				re_mapped_search_hits = []	
 				for i in range(len(search_hits)):
 					if complement == False:
-						start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
-						finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2 
+						start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+						finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2 
 					elif complement == True:
-						start = self.FindAminoAcid(str(search_hits[i][0]), searchframe)[0][0]
-						finish = self.FindAminoAcid(str(search_hits[i][1]), searchframe)[0][0]+2  
+						start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+						finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2  
 					re_mapped_search_hits.append((start,finish))
-				print('re-mapped', re_mapped_search_hits)
+#				print('re-mapped', re_mapped_search_hits)
 				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######
 
 
 	def FindFeature(self, searchstring):
 		'''Method for finding a certain feature in a genbank file'''
+		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+
 		if searchstring=='':
 			print 'The searchstring is missing, please check your input'
 			return []
+		elif type(searchstring) is int:
+			#assert that the integer is within the number of features
+			#return the position for that feature
+			raise NotImplementedError 
 		else:
 			search_hits = []
 			hits = []
@@ -1252,10 +1265,85 @@ indeces >-1 are feature indeces'''
 
 
 
-	def mutate(self, mutation):
-		'''Takes a'''
-		pass
+	def mutate(self, mutationtype, mutationframe, mutation, silent=False):
+		'''Mutates a given amino acid or DNA base.
+			Mutationtype decides whether AA or DNA.
+			Mutationframe decides whether in a certain feture or in DNA.
+			Mutation is the actual mutation. This can be a list of mutations or a single mutation.
+			Amino acid mutations are in the format: D121E(GAG) were the leading letter connotates the amino acid already present at position.
+			The number is the amino acid number.
+			The trailing letter is the amino acid that one whishes to introduce at the position.
+			The three letters in the bracket is the codon which you wish to use to make the chosen mutation.
+			The leading letter and the codon (within brackets) are optional.
+			DNA mutataions are in the format: A234C
+			The first letter is the base present at the chosen position.
+			The numbers desgnate the chosen position.
+			The trailing letter dessignates the base you want at that position.
+			The leading letter is optional.
+			If the 'silent' variable is False, a feature marking the mutation will be added. If True, no feature will be made.
+			'''
+		if mutationtype == 'A': #if amino acid
+			leadingAA = ''
+			position = ''
+			trailingAA = ''
+			codon = ''
+			complement = self.get_feature_complement(mutationframe) #find whether feature is reverse-complement or not
+			
 
+#			assert ... with regex....
+
+			## I need to get rid of whitespace if present ##
+
+			#assums the pattern D121E(GAG) (with leading letter and trailing bracket with codon being optional)
+			for i in range(0,len(mutation)):
+				if i == 0 and mutation[i].upper() in 'FLSYCWPHERIMTNKVADQG': #leading AA if any
+					leadingAA = mutation[i].upper()
+				elif mutation[i].isdigit(): #for position
+					position += mutation[i]
+				elif mutation[i].upper() in 'ATCG' and type(position) is int: #getting the codon in brackets
+					codon += mutation[i].upper()
+				elif mutation[i].upper() in 'FLSYCWPHERIMTNKVADQG': #trailing AA
+					trailingAA = mutation[i].upper()
+					position = int(position) #important to convert only after the second AA has been found
+
+			#check that position does not exceed feature length
+			if mutationframe == -1: #-1 for entrie molecule
+				length = len(self.GetDNA())/3
+			else:
+				length = len(self.GetFeatureDNA(mutationframe))/3
+			assert position <= length, 'Error, the actual length of feature is %s AA long and is shorter than the specified position %s.' % (str(length), str(position))
+
+			#check that the codon matches the specified amino acid
+			if codon == '':
+				#assign one...
+				codon = dna.GetCodons(trailingAA)[0]
+			assert trailingAA == dna.Translate(codon), 'Error, the specified codon %s does not encode the amino acid %s.' % (codon, trailingAA)	
+
+			#make sure the position has the AA that is specified in the leading letter
+			global_position = self.FindAminoAcid(position, mutationframe) #get the global position (on enire dna) of the mutation
+			if complement is True:
+				positionAA = dna.TranslateRC(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
+			else:
+				positionAA = dna.Translate(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
+			if leadingAA != '':
+				assert positionAA == leadingAA, 'Error, position %s has amino acid %s, and not %s as specified.' % (str(position),  positionAA, leadingAA)
+			
+			#now make the mutation and add corresponding feature if the 'silent' variable is False
+			if complement is True:
+				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(codon))
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionAA, position, trailingAA)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
+				print('Mutation %s%s%s performed.' % (positionAA, position, trailingAA))
+			elif complement is False:
+				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', codon)
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionAA, position, trailingAA)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+				print('Mutation %s%s%s performed.' % (positionAA, position, trailingAA))
+			else:
+				raise ValueError
+
+
+					
+		elif mutationtype == 'D': #if DNA
+			pass
 #################################
 #################################
 
@@ -1276,15 +1364,15 @@ indeces >-1 are feature indeces'''
 		'''Get type, complement, start and finish for each feature'''		
 		positionlist = []
 		
-		for feature in self.gbfile['features']:
-			Key = feature['key']
-			Complement = feature['complement']
-			name = feature['qualifiers'][0].split('=')[1]
-			for entry in feature['location']:
+		for i in range(0,len(self.gbfile['features'])):
+			Key = self.gbfile['features'][i]['key']
+			Complement = self.gbfile['features'][i]['complement']
+			name = self.gbfile['features'][i]['qualifiers'][0].split('=')[1]
+			for entry in self.gbfile['features'][i]['location']:
 				start, finish = self.get_location(entry)
 				start = int(start)-1
 				finish = int(finish)
-				positionlist.append([Key, Complement, start, finish, name])
+				positionlist.append([Key, Complement, start, finish, name, i])
 		return positionlist
 
 

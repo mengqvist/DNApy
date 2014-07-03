@@ -31,7 +31,7 @@
 
 
 #TODO
-#nothing at the moment
+#change how qualifiers are edited
 
 
 import ast
@@ -155,8 +155,9 @@ class FeatureEdit(DNApyBaseClass):
 		wx.Panel.__init__(self, parent)
 
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'placeholder' #needs to be assigned or will raise an error		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+
+		self.listening_group4 = 'from_main'
+		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 
 		##
 		# first panel, for editing feature
@@ -537,7 +538,51 @@ class FeatureEdit(DNApyBaseClass):
 			self.qualifier_list.Append([col0, col1])	
 
 
+######################################
 
+class FeatureEditDialog(wx.Dialog):
+	'''A class that puts the feature edit capabilities in a dialog'''
+	def __init__(self, parent, title):
+		super(FeatureEditDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(700, 300)) 		
+
+
+		self.feature_edit = FeatureEdit(self, id=wx.ID_ANY)	#get the feature edit panel
+		self.NewFeatureButtonPanel = wx.Panel(self) #make new panel to hold the buttons
+
+		self.OK = wx.Button(self.NewFeatureButtonPanel, 7, 'OK')
+		self.OK.Bind(wx.EVT_BUTTON, self.OnOK, id=7)
+#		self.Cancel = wx.Button(self.NewFeatureButtonPanel, 8, 'Cancel')
+#		self.Cancel.Bind(wx.EVT_BUTTON, self.OnCancel, id=8)
+
+		#organize buttons
+		buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+		buttonsizer.Add(self.OK)
+#		buttonsizer.Add(self.Cancel)
+		self.NewFeatureButtonPanel.SetSizer(buttonsizer)
+		
+		#organize feature edit panel and button panel
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(item=self.feature_edit, proportion=-1, flag=wx.EXPAND)
+		sizer.Add(item=self.NewFeatureButtonPanel, proportion=0)
+		self.SetSizer(sizer)		
+
+#		wx.EVT_CLOSE(self, self.OnCancel) #when window is closed on x, cancel
+
+
+
+	def OnOK(self, event):
+		'''Accept new feature from the "new feature" popup"'''
+		self.feature_edit.update_globalUI()
+		self.Destroy()
+
+#	def OnCancel(self, event):
+#		'''Reject new feeature from the "new feature" popup'''
+#		genbank.gb.remove_feature(genbank.gb.get_feature(index=-1))
+#		genbank.feature_selection = 0
+##		pub.Publisher.sendMessage('feature_index', 0)
+#		pub.Publisher.sendMessage('feature_list_updateUI', 'update UI pls')
+##		pub.Publisher.sendMessage('dna_edit_updateUI', 'update UI pls')
+#		self.Destroy()
 
 
 ######################################

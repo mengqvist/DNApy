@@ -158,6 +158,33 @@ def TranslateRC(DNA):
 	DNA = RC(DNA)
 	return Translate(DNA)
 
+def GetCodons(AA):
+	'''Get the codons for a specified AA. Returns a list of strings.'''
+	assert AA.upper() in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
+	F = ['TTT', 'TTC'];
+	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
+	S = ['TCT', 'TCC', 'TCA', 'TCG', 'AGC', 'AGT'];
+	Y = ['TAT', 'TAC'];
+	stop = ['TAA', 'TAG', 'TGA'];
+	C = ['TGT', 'TGC'];
+	W = ['TGG'];
+	P = ['CCT', 'CCA', 'CCG', 'CCC'];
+	H = ['CAT', 'CAC'];
+	E = ['GAA', 'GAG'];
+	R = ['CGT', 'CGA', 'CGG', 'CGC', 'AGG', 'AGA'];
+	I = ['ATT', 'ATC', 'ATA'];
+	M = ['ATG'];
+	T = ['ACG', 'ACC', 'ACA', 'ACT'];
+	N = ['AAT', 'AAC'];
+	K = ['AAA', 'AAG'];
+	V = ['GTT', 'GTA', 'GTG', 'GTC'];
+	A = ['GCG', 'GCC', 'GCA', 'GCT'];
+	D = ['GAT', 'GAC'];
+	Q = ['CAG', 'CAA'];
+	G = ['GGA', 'GGT', 'GGC', 'GGG']
+	codons = eval(AA)
+	return codons
+
 #add randomize DNA
 
 
