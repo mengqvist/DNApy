@@ -12,11 +12,19 @@ The software is being developed on a Linux machine and works well in that enviro
 Implemented Software features
 =====
 
-* Visualization of DNA and sequence features
+* Visualization of DNA sequence with sequence features
+
+* Plasmid view visualization
 
 * DNA editing, copy, paste, reverse complement 
 
 * Unlimited undo/redo 
+
+* Easy search for nucleotide or amino acid positions or sequence
+
+* Easy mutation by nucleotide or amino acid position (this one is pretty awesome!)
+
+* Design of mixed base codons for libraries
 
 * DNA translation to protein
 
@@ -24,30 +32,27 @@ Implemented Software features
 
 * Addition/removal/modification of genbank qualifiers
 
-* Design of mixed base codons for libraries
 
-Not Yet Implemented Software features
+
+Not Yet Implemented Software features (and priority list)
 =====
-
-* Addition/removal/modification of genbank header entries 
-
-* Plasmid view visualization
-
-* Easy mutation of genes by position or sequence
-
-* Restriction enzyme finder
-
-* NCBI blast for homologous genes 
-
-* Fetch genes/genomes/plasmids from NCBI 
-
-* DNA codon optimization 
-
-* Primer design 
 
 * Analysis of sequence reads in the .ab1 format
 
+* Restriction enzyme finder
+
+* Addition/removal/modification of genbank header entries 
+
+* DNA codon optimization 
+
+* Fetch genes/plasmids from NCBI 
+
+* Primer design 
+
 * Calculation of ribosome binding strength 
+
+* NCBI blast for homologous genes
+
 
 
 Project Website

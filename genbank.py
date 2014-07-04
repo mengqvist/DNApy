@@ -43,7 +43,7 @@ import copy
 import pyperclip
 import oligo_localizer
 import peptide_localizer
-
+import re
 
 
 class feature(object):
@@ -1282,32 +1282,46 @@ indeces >-1 are feature indeces'''
 			The leading letter is optional.
 			If the 'silent' variable is False, a feature marking the mutation will be added. If True, no feature will be made.
 			'''
+
+		assert type(mutation) is str or type(mutation) is unicode, 'Error, input must be a string or unicode.'
+		mutation = mutation.upper()
+		if mutationframe == -1: #mutation frame of -1 means entire molecule
+			complement = False
+		else:
+			complement = self.get_feature_complement(mutationframe) #find whether feature is reverse-complement or not
+
 		if mutationtype == 'A': #if amino acid
 			leadingAA = ''
 			position = ''
 			trailingAA = ''
 			codon = ''
-			complement = self.get_feature_complement(mutationframe) #find whether feature is reverse-complement or not
+
+			#make sure input has the right pattern			
+			#matches the patterns '121E' or 'D121E' or '121E(GAA)' or 'D121E(GAA)'  (of course not explicitly, posotion, aa and codon can change)
+			regular_expression = re.compile(r'''^							#match beginning of string
+												[FLSYCWPHERIMTNKVADQG]? 	#zero or one occurances of amino acid
+												[1234567890]+				#one or more digits
+												[FLSYCWPHERIMTNKVADQG]{1}	#exactly one amino acid
+												([(][ATCG]{3}[)])?			#zero or one occurances of brackets with codon inside
+												$							#match end of string
+												''', re.VERBOSE)	
+			assert regular_expression.match(mutation) != None, 'Error, the mutation %s is not a valid input.' % mutation
 			
 
-#			assert ... with regex....
-
-			## I need to get rid of whitespace if present ##
-
-			#assums the pattern D121E(GAG) (with leading letter and trailing bracket with codon being optional)
+			#assumes the pattern D121E(GAG) (with leading letter and trailing bracket with codon being optional)
 			for i in range(0,len(mutation)):
-				if i == 0 and mutation[i].upper() in 'FLSYCWPHERIMTNKVADQG': #leading AA if any
-					leadingAA = mutation[i].upper()
+				if i == 0 and mutation[i] in 'FLSYCWPHERIMTNKVADQG': #leading AA if any
+					leadingAA = mutation[i]
 				elif mutation[i].isdigit(): #for position
 					position += mutation[i]
-				elif mutation[i].upper() in 'ATCG' and type(position) is int: #getting the codon in brackets
-					codon += mutation[i].upper()
-				elif mutation[i].upper() in 'FLSYCWPHERIMTNKVADQG': #trailing AA
-					trailingAA = mutation[i].upper()
+				elif mutation[i] in 'ATCG' and type(position) is int: #getting the codon in brackets
+					codon += mutation[i]
+				elif mutation[i] in 'FLSYCWPHERIMTNKVADQG': #trailing AA
+					trailingAA = mutation[i]
 					position = int(position) #important to convert only after the second AA has been found
 
 			#check that position does not exceed feature length
-			if mutationframe == -1: #-1 for entrie molecule
+			if mutationframe == -1: #-1 for entire molecule
 				length = len(self.GetDNA())/3
 			else:
 				length = len(self.GetFeatureDNA(mutationframe))/3
@@ -1323,27 +1337,79 @@ indeces >-1 are feature indeces'''
 			global_position = self.FindAminoAcid(position, mutationframe) #get the global position (on enire dna) of the mutation
 			if complement is True:
 				positionAA = dna.TranslateRC(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
-			else:
+			if complement is False or mutationframe == -1:
 				positionAA = dna.Translate(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
 			if leadingAA != '':
 				assert positionAA == leadingAA, 'Error, position %s has amino acid %s, and not %s as specified.' % (str(position),  positionAA, leadingAA)
 			
 			#now make the mutation and add corresponding feature if the 'silent' variable is False
-			if complement is True:
-				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(codon))
-				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionAA, position, trailingAA)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
-				print('Mutation %s%s%s performed.' % (positionAA, position, trailingAA))
-			elif complement is False:
+			if complement is False or mutationframe == -1:
 				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', codon)
-				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionAA, position, trailingAA)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s(%s)' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+				print('Mutation %s%s%s performed.' % (positionAA, position, trailingAA))
+			elif complement is True:
+				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(codon))
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s(%s)' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
 				print('Mutation %s%s%s performed.' % (positionAA, position, trailingAA))
 			else:
 				raise ValueError
 
-
 					
 		elif mutationtype == 'D': #if DNA
-			pass
+			leadingnucleotide = ''
+			position = ''
+			trailingnucleotide = ''
+
+			#make sure input has the right pattern			
+			#matches the patterns '325T' or 'A325T' (of course not explicitly, position and nucleotide can change)
+			regular_expression = re.compile(r'''^							#match beginning of string
+												[ATCG]? 					#zero or one occurances of nucleotide
+												[1234567890]+				#one or more digits
+												[ATCG]{1}					#exactly one nucleotide
+												$							#match end of string
+												''', re.VERBOSE)	
+			assert regular_expression.match(mutation) != None, 'Error, the mutation %s is not a valid input.' % mutation
+
+
+			#assumes the pattern 'A325T' (with leading nucleotide being optional)
+			for i in range(0,len(mutation)):
+				if i == 0 and mutation[i] in 'ATCG': #leading base if any
+					leadingnucleotide = mutation[i]
+				elif mutation[i].isdigit(): #for position
+					position += mutation[i]
+				elif mutation[i] in 'ATCG': #trailing nucleotide
+					trailingnucleotide = mutation[i]
+					position = int(position) #important to convert only after the second nucleotide has been found
+
+			#check that position does not exceed feature length
+			if mutationframe == -1: #-1 for entire molecule
+				length = len(self.GetDNA())
+			else:
+				length = len(self.GetFeatureDNA(mutationframe))
+			assert position <= length, 'Error, the actual length of feature is %s nucleotides long and is shorter than the specified position %s.' % (str(length), str(position))
+
+			#make sure the position has the nucleotide that is specified in the leading letter
+			global_position = self.FindNucleotide(position, mutationframe) #get the global position (on enire dna) of the mutation
+			if complement is True:
+				positionnucleotide = dna.RC(self.GetDNA(global_position[0][0], global_position[0][1])).upper()
+			elif complement is False:
+				positionnucleotide = self.GetDNA(global_position[0][0], global_position[0][1]).upper()
+			if leadingnucleotide != '':
+				assert positionnucleotide == leadingnucleotide, 'Error, position %s has the nucleotide %s, and not %s as specified.' % (str(position),  positionnucleotide, leadingnucleotide)
+
+			#now make the mutation and add corresponding feature if the 'silent' variable is False
+			if complement is False or mutationframe == -1:
+				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', trailingnucleotide)
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+				print('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide))
+			elif complement is True:
+				self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(trailingnucleotide))
+				if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
+				print('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide))
+			else:
+				raise ValueError
+
+
 #################################
 #################################
 
