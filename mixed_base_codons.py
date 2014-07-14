@@ -35,6 +35,7 @@
 #this code is awful, I'll need to re-write it so that others, and myself can understand it..
 
 from copy import deepcopy
+import dna
 
 DesiredAA = [] #list that holds the desired amino acids
 
@@ -257,74 +258,6 @@ def degenerate(list):
 	return var;
 
 
-def checkdegenerate(codon):  
-	"""Converts a degenerate codon to a list of regular (ATCG) codons"""
-	var = []	
-	if 'A' in codon:
-		var.append('A')
-
-	elif 'C' in codon:
-		var.append('C')
-
-	elif 'T' in codon:
-		var.append('T')
-
-	elif 'G' in codon:
-		var.append('G')
-
-	elif 'M' in codon:
-		var.append('A')
-		var.append('C')
-
-	elif 'Y' in codon:
-		var.append('C')
-		var.append('T')
-
-	elif 'K' in codon:
-		var.append('G')
-		var.append('T')
-
-	elif 'S' in codon:
-		var.append('C')
-		var.append('G')
-
-	elif 'W' in codon:
-		var.append('A')
-		var.append('T')
-
-	elif 'R' in codon:
-		var.append('A')
-		var.append('G')
-
-	elif 'H' in codon:
-		var.append('C')
-		var.append('T')
-		var.append('A')
-
-	elif 'V' in codon:
-		var.append('C')
-		var.append('A')
-		var.append('G')
-
-	elif 'D' in codon:
-		var.append('T')
-		var.append('A')
-		var.append('G')
-
-	elif 'B' in codon:
-		var.append('C')
-		var.append('T')
-		var.append('G')
-
-	elif 'N' in codon: 
-		var.append('C')
-		var.append('T')
-		var.append('A')
-		var.append('G')
-	else: 
-		var.append('X')
-
-	return var;
 
 
 def combinelists(list1, list2, list3):
@@ -559,7 +492,7 @@ def evaluate(chosenAA, codon_restriction):
 
 
 	###now I just need to convert this to a list of real codons and then check to which aa they match
-	Realcodons = combinelists(checkdegenerate(triplet[0]), checkdegenerate(triplet[1]), checkdegenerate(triplet[2])) #condense the different codons for position 1, 2, and 3 to a list of triplets
+	Realcodons = combinelists(dna.UnAmb(triplet[0]), dna.UnAmb(triplet[1]), dna.UnAmb(triplet[2])) #condense the different codons for position 1, 2, and 3 to a list of triplets
 	ResultingAA = translatecodonlist(Realcodons) #Check which AA these codons code for
 	result = chosenvsresulting(chosenAA, ResultingAA) #Check which of these AA were desired and which were not
 	return (triplet, result)
@@ -676,7 +609,9 @@ def find_multiple_codons(target_AA):
 				codons = []
 				mixed_base_codon = i+j+k
 				codons.append(mixed_base_codon)
-				AA_list = translate(checkdegenerate(mixed_base_codon)) #get AA for given codon
+
+				#change!
+				AA_list = translate(dna.UnAmb(mixed_base_codon)) #wrong usage, have to take a base at the time!!!
 				codon, target, offtarget = get_codon_for_chosen_AA(AA_list)
 				triplet, result = evaluate(AA_list, codon_restriction)
 				target = result[0].sort()
@@ -700,7 +635,7 @@ def find_multiple_codons(target_AA):
 
 					
 
-#	checkdegenerate()
+#	dna.UnAmb()
 
 #	codons = []
 #	triplet, target, offtarget = get_codon_for_chosen_AA(target_AA)

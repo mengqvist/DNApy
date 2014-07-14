@@ -32,9 +32,9 @@ from copy import deepcopy
 import string
 from os import access,listdir
 import sys, os
+import re
 import wx
-import wx.richtext as rt
-
+from wx.lib.pubsub import pub
 
 import pyperclip
 import subprocess
@@ -52,13 +52,12 @@ import featurelist_GUI
 import plasmid_GUI
 import genbank_GUI
 import mixed_base_codons_GUI
-from wx.lib.pubsub import pub
+
 
 #TODO
 #add pretty dna view
 #make rightklick menus
-#fix mutate
-#fix find previus and find next
+
 
 files={}   #dictionary with all configuration files
 
@@ -134,7 +133,8 @@ class MyFrame(wx.Frame):
 		#plasmid view
 		self.plasmid_frame = wx.Frame(self, -1, title="Plasmid view", size=(500,500))
 		self.plasmid_view = plasmid_GUI.PlasmidView(self.plasmid_frame, -1)		
-
+		self.plasmid_frame.Bind(wx.EVT_CLOSE, self.OnPlasmidClose)
+#		self.plasmid_frame.Bind(wx.EVT_ENTER_WINDOW, self.plasmid_frame.SetFocus())
 #		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
 		
 		self.do_layout()
@@ -295,6 +295,10 @@ class MyFrame(wx.Frame):
 #			file.close()
 		self.Destroy()
 
+	def OnPlasmidClose(self, evt):
+		'''When plasmid window is closed, don't destroy it, just hide it'''
+		self.frame_1_toolbar.ToggleTool(516, False)
+		self.toggle_plasmid_view(None)
 
 ##########################################################
 
@@ -311,8 +315,8 @@ class MyFrame(wx.Frame):
 #			string = 'File not yet saved'
 #		self.current_tab=self.DNApy.GetSelection()
 #		if self.current_tab == 0: #if dna editor is active
-			
-		#mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+
+##		mposition, Feature = self.dnaview.mouse_position("") #get mouse position
 		mposition = 'None'
 		Feature = "None"
 	
@@ -365,9 +369,6 @@ class MyFrame(wx.Frame):
 		'''Method for selecting a certain DNA range'''
 		#input needs to be a touple of two values
 		genbank.dna_selection = selection
-		start = selection[0]
-		finish = selection[1]
-#		print('Selection from %s to %s') % (start, finish)
 
 
 		## I should probably modify this method to broadcast by pypub
@@ -743,7 +744,7 @@ Put Table here
 		wx.EVT_COMBOBOX(self, 601, self.OnChangeSearchParams)
 
 		#'input'
-		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(100, 28), value="")
+		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(250, 28), value="")
 		self.frame_2_toolbar.AddControl(self.searchinput)
 	
 
@@ -793,39 +794,57 @@ Put Table here
 			genbank.search_hits = genbank.gb.FindAminoAcid(searchstring, searchframe)
 		elif searchtype == 'Feature':
 			genbank.search_hits = genbank.gb.FindFeature(searchstring)
+		
+		#update the dna selection to the first search hit, if there is at least one.
+		if len(genbank.search_hits) > 0:
+			self.set_dna_selection(genbank.search_hits[0])
 
 		self.update_globalUI()
-		start, finish = self.get_dna_selection()
-		self.dnaview.stc.SetSelection(start, finish)
+
 
 	
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
-		genbank.gb.find_previous()
 		start, finish = self.get_dna_selection()
-		self.dnaview.stc.SetSelection(start, finish)
+		for i in range(len(genbank.search_hits)):
+			if start < genbank.search_hits[0][0]:
+				self.set_dna_selection(genbank.search_hits[-1])
+				break
+			elif start <= genbank.search_hits[i][0]:
+				self.set_dna_selection(genbank.search_hits[i-1])
+				break
+		self.update_globalUI()
+
 
 	def find_next(self, evt):
 		'''Select next search hit'''
-		genbank.gb.find_next()
 		start, finish = self.get_dna_selection()
-		self.dnaview.stc.SetSelection(start, finish)
+		for i in range(len(genbank.search_hits)):
+			if start < genbank.search_hits[i][0]:
+				self.set_dna_selection(genbank.search_hits[i])
+				break
+			elif i == len(genbank.search_hits)-1:
+				self.set_dna_selection(genbank.search_hits[0])
+				break
+		self.update_globalUI()
+
 
 	def mutate(self, evt):
 		'''Mutate DNA or protein'''
 		mutationtype = self.nucleotideoraminoacid.GetValue() #type of mutation
 		mutationframe = int(self.featurebox.GetSelection())-1 #where to mutate (feature or molecule)
 		mutationinput = self.searchinput.GetValue() #which mutation to perform
+		
+		mutationinput = re.sub(r'\s+', '', mutationinput) #remove all whitespace
 		if ',' in mutationinput: #input allows for many comma-seperated mutations
 			mutation_list = mutationinput.split(',')
 		else:
 			mutation_list = [mutationinput]
 
-		for mutation in mutation_list:
-			if mutationtype == 'Nucleotide':
-				genbank.gb.mutate('D', mutationframe, mutation)
-			elif mutationtype == 'Amino Acid':
-				genbank.gb.mutate('A', mutationframe, mutation)
+		if mutationtype == 'Nucleotide':
+			genbank.gb.mutate('D', mutationframe, mutation_list)
+		elif mutationtype == 'Amino Acid':
+			genbank.gb.mutate('A', mutationframe, mutation_list)
 		
 		self.update_globalUI()
 

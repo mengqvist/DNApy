@@ -361,12 +361,12 @@ class DNAedit(DNApyBaseClass):
 		sequence = genbank.gb.GetDNA()
 		if sequence == None:
 			sequence = '  '	
-		self.stc.SetText(sequence) #put the DNA in
-		if genbank.dna_selection[0] == genbank.dna_selection[1]+1: #a caret insertion (and no selection) will actually result in a selection where start is one larger than finish
-			self.stc.SetSelection(genbank.dna_selection[0]-1, genbank.dna_selection[1]) #update selection
-			self.stc.SetCurrentPos(genbank.dna_selection[0]-1)
+		self.stc.SetText(sequence) #put the DNA in the editor
+		start, finish = genbank.dna_selection
+		if finish == -1: #a caret insertion (and no selection). Will actually result in a selection where start is one larger than finish
+			self.stc.GotoPos(start-1) #set caret insertion
 		else:
-			self.stc.SetSelection(genbank.dna_selection[0]-1, genbank.dna_selection[1]) #update selection
+			self.stc.SetSelection(start-1, finish) #update selection
 
 
 ######################################################
@@ -499,8 +499,10 @@ class DNAedit(DNApyBaseClass):
 
 
 	def get_selection(self):
-		'''Gets the text editor selection and adjusts it to DNA locations'''
+		'''Gets the text editor selection and adjusts it to DNA locations.'''
 		start, finish = self.stc.GetSelection()
+		if start == finish: #not a selection
+			finish = -1
 #		print('start, finish', start, finish)
 		selection = (start+1, finish)
 #		print('selection', selection)
@@ -509,53 +511,73 @@ class DNAedit(DNApyBaseClass):
 	def uppercase(self):
 		'''Change selection to uppercase'''
 		start, finish = self.get_selection()
-		genbank.gb.Upper(start, finish)
-		self.update_ownUI()
-		self.stc.SetSelection(start-1, finish)
+		if finish == -1:
+			raise ValueError, 'Cannot modify an empty selection'
+		else:
+			genbank.gb.Upper(start, finish)
+			self.update_ownUI()
+			self.stc.SetSelection(start-1, finish)
 	
 	def lowercase(self):
 		'''Change selection to lowercase'''
 		start, finish = self.get_selection()
-		genbank.gb.Lower(start, finish)
-		self.update_ownUI() 
-		self.stc.SetSelection(start-1, finish)
+		if finish == -1:
+			raise ValueError, 'Cannot modify an empty selection'
+		else:
+			genbank.gb.Lower(start, finish)
+			self.update_ownUI() 
+			self.stc.SetSelection(start-1, finish)
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
 		start, finish = self.get_selection()
-		genbank.gb.RCselection(start, finish)
-		self.update_ownUI()
-		self.update_globalUI()
-		self.stc.SetSelection(start-1, finish)
+		if finish == -1:
+			raise ValueError, 'Cannot modify an empty selection'
+		else:
+			genbank.gb.RCselection(start, finish)
+			self.update_ownUI()
+			self.update_globalUI()
+			self.stc.SetSelection(start-1, finish)
 
 	def delete(self):
 		'''Deletes a selection and updates dna and features'''
 		start, finish = self.get_selection()
-		genbank.gb.Delete(start, finish)
-		self.update_ownUI()
-		self.update_globalUI()
-		self.stc.SetSelection(start-1, start-1)
+		if finish == -1:
+			raise ValueError, 'Cannot delete an empty selection'
+		else:
+			genbank.gb.Delete(start, finish)
+			self.update_ownUI()
+			self.update_globalUI()
+			self.stc.SetSelection(start-1, start-1)
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
-		genbank.gb.Cut(start, finish)
-		self.update_ownUI()
-		self.update_globalUI()
-		self.stc.SetSelection(start-1, start-1)
+		if finish == -1:
+			raise ValueError, 'Cannot cut an empty selection'
+		else:
+			genbank.gb.Cut(start, finish)
+			self.update_ownUI()
+			self.update_globalUI()
+			self.stc.SetSelection(start-1, start-1)
 			
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
-		genbank.gb.CutRC(start, finish)
-		self.update_ownUI()
-		self.update_globalUI()
-		self.stc.SetSelection(start-1, start-1)
+		if finish == -1:
+			raise ValueError, 'Cannot cut an empty selection'
+		else:
+			genbank.gb.CutRC(start, finish)
+			self.update_ownUI()
+			self.update_globalUI()
+			self.stc.SetSelection(start-1, start-1)
 
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
 		start, finish = self.get_selection()
-		if start != finish: #If a selection, remove sequence
+		if finish == -1:
+			pass
+		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
 		genbank.gb.Paste(start)
 		self.update_ownUI() 
@@ -565,7 +587,9 @@ class DNAedit(DNApyBaseClass):
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
 		start, finish = self.get_selection()
-		if start != finish: #If a selection, remove sequence
+		if finish == -1:
+			pass
+		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
 		genbank.gb.PasteRC(start)
 		self.update_ownUI()
@@ -575,12 +599,18 @@ class DNAedit(DNApyBaseClass):
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
 		start, finish = self.get_selection()
-		genbank.gb.Copy(start, finish)
+		if finish == -1:
+			raise ValueError, 'Cannot copy an empty selection'
+		else:
+			genbank.gb.Copy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
 		start, finish = self.get_selection()
-		genbank.gb.CopyRC(start, finish)
+		if finish == -1:
+			raise ValueError, 'Cannot copy an empty selection'
+		else:
+			genbank.gb.CopyRC(start, finish)
 
 
 #######################################################
@@ -630,16 +660,22 @@ class DNAedit(DNApyBaseClass):
 	def translate_selection(self):
 		'''Translate selected DNA'''
 		start, finish = self.get_selection()
-		DNA = genbank.gb.GetDNA(start, finish)
-		protein = dna.Translate(DNA)
-		self.translate_output(protein, DNA, 'leading strand')
+		if finish == -1:
+			raise ValueError, 'Cannot translate an empty selection'
+		else:
+			DNA = genbank.gb.GetDNA(start, finish)
+			protein = dna.Translate(DNA)
+			self.translate_output(protein, DNA, 'leading strand')
 		
 	def translate_selection_reverse_complement(self):
 		'''Translate reverse-complement of selected DNA'''
 		start, finish = self.get_selection()
-		DNA = genbank.gb.GetDNA(start, finish)
-		protein = dna.Translate(dna.RC(DNA))
-		self.translate_output(protein, DNA, 'complement strand')
+		if finish == -1:
+			raise ValueError, 'Cannot translate an empty selection'
+		else:
+			DNA = genbank.gb.GetDNA(start, finish)
+			protein = dna.Translate(dna.RC(DNA))
+			self.translate_output(protein, DNA, 'complement strand')
 
 #update this one...
 	def translate_feature(self):
@@ -664,22 +700,19 @@ class DNAedit(DNApyBaseClass):
 		self.update_ownUI() #refresh everything
 
 		
-#	def mouse_position(self, event):
-#		'''Get which features are at a given position'''		
-#		xposition, yposition = self.stc.ScreenToClient(wx.GetMousePosition())
-#		if xposition > 0 and yposition > 0:
+	def mouse_position(self, event):
+		'''Get which features are at a given position'''		
+		xposition, yposition = self.stc.ScreenToClient(wx.GetMousePosition())
+		if xposition > 1 and yposition > 1:
+			print('x,y', xposition, yposition)
+			mposition = self.stc.CharPositionFromPoint(xposition, yposition)
+			print(mposition)
 
-#			point = wx.Point(xposition, yposition)
-#			#event.GetPosition() #this can be used if it controlled by an event..
-#			mposition = self.stc.HitTest((1,1))
-
-#			print(mposition)
-#			print(type(mposition))
 #			#which feature corresponds to this pos?
-#			Feature = genbank.gb.get_featurename_for_pos(mposition)
-#			return mposition, Feature
-#		else:
-#			return None, None
+			Feature = genbank.gb.get_featurename_for_pos(mposition)
+			return mposition, Feature
+		else:
+			return None, None
 
 
 

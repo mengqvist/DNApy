@@ -32,7 +32,6 @@
 
 #TODO
 #fix labels so they don't overlap
-#fix labels so they don't run offscreen
 #fix long labels
 #fix long plasmid names
 #add 'dna ruler'
@@ -42,13 +41,13 @@ import wx.lib.graphics
 from wx.lib.pubsub import pub
 
 
-import math
 import genbank
 import copy
+import math
 
 import os, sys
 import string
-from base_class import DNApyBaseClass
+from base_class import DNApyBaseDrawingClass
 import featureedit_GUI
 
 files={}   #list with all configuration files
@@ -58,9 +57,24 @@ files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
 
-class Base(DNApyBaseClass):
+class PlasmidView(DNApyBaseDrawingClass):
 	def __init__(self, parent, id):
-		wx.Panel.__init__(self, parent)
+		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
+
+		genbank.dna_selection = (1,1)
+
+		self.centre_x = 0
+		self.centre_y = 0
+		self.highlighted_feature = False
+		
+	
+
+		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+		self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
+		self.Bind(wx.EVT_MOTION, self.OnMotion)
+		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
+
 
 		#determing which listening group from which to recieve messages about UI updates
 		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
@@ -78,6 +92,8 @@ class Base(DNApyBaseClass):
 		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
 		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
 
+
+############ Setting required methods ####################
 
 	def update_globalUI(self):
 		'''Method should be modified as to update other panels in response to changes in own panel.
@@ -114,86 +130,7 @@ class Base(DNApyBaseClass):
 		genbank.dna_selection = selection
 
 
-class BufferedWindow(Base):
-
-    """
-
-    A Buffered window class.
-
-    To use it, subclass it and define a Draw(DC) method that takes a DC
-    to draw to. In that method, put the code needed to draw the picture
-    you want. The window will automatically be double buffered, and the
-    screen will be automatically updated when a Paint event is received.
-
-    When the drawing needs to change, you app needs to call the
-    UpdateDrawing() method. Since the drawing is stored in a bitmap, you
-    can also save the drawing to file by calling the
-    SaveToFile(self, file_name, file_type) method.
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        # make sure the NO_FULL_REPAINT_ON_RESIZE style flag is set.
- 
-#        kwargs['style'] = kwargs.setdefault('style', wx.NO_FULL_REPAINT_ON_RESIZE) | wx.NO_FULL_REPAINT_ON_RESIZE
-        Base.__init__(self, *args, **kwargs)
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
-
-        # OnSize called to make sure the buffer is initialized.
-        # This might result in OnSize getting called twice on some
-        # platforms at initialization, but little harm done.
-        self.OnSize(None)
-        self.paint_count = 0
-
-
-    def Draw(self, dc):
-        ## just here as a place holder.
-        ## This method should be over-ridden when subclassed
-        raise NotImplementedError
-
-    def OnPaint(self, event):
-        # All that is needed here is to draw the buffer to screen
-        dc = wx.BufferedPaintDC(self, self._Buffer)
-
-    def OnSize(self,event):
-        # The Buffer init is done here, to make sure the buffer is always
-        # the same size as the Window
-        #Size  = self.GetClientSizeTuple()
-        Size  = self.ClientSize
-        self.size = Size
-
-        # Make new offscreen bitmap: this bitmap will always have the
-        # current drawing in it, so it can be used to save the image to
-        # a file, or whatever.
-        self._Buffer = wx.EmptyBitmap(*Size)
-        self.update_ownUI()
-
-    def SaveToFile(self, FileName, FileType=wx.BITMAP_TYPE_PNG):
-        ## This will save the contents of the buffer
-        ## to the specified file. See the wxWindows docs for 
-        ## wx.Bitmap::SaveFile for the details
-        self._Buffer.SaveFile(FileName, FileType)
-
-
-
-
-class PlasmidView(BufferedWindow):
-	def __init__(self, *args, **kwargs):	
-		genbank.dna_selection = (1,1)
-
-		self.centre_x = 0
-		self.centre_y = 0
-		self.highlighted_feature = False
-		BufferedWindow.__init__(self, *args, **kwargs)
-	
-
-		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-		self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
-		self.Bind(wx.EVT_MOTION, self.OnMotion)
-		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
+############### Done setting required methods #######################
 
 	def find_overlap(self, drawn_locations, new_range):
 		'''Takes two ranges and determines whether the new range has overlaps with the old one.
@@ -227,7 +164,6 @@ class PlasmidView(BufferedWindow):
 
 
 	def Draw(self, dc):
-		# make a path that contains a circle and some lines
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		self.window_length = min(self.centre_x, self.centre_y)
@@ -261,6 +197,9 @@ class PlasmidView(BufferedWindow):
 
 		#draw selection
 		self.Draw_selection(gcdc)
+
+		#draw search hits
+		self.Draw_search_hits(gcdc)
 	
 			
 #		self.hidden_dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
@@ -292,7 +231,10 @@ class PlasmidView(BufferedWindow):
 
 		start, finish = copy.copy(genbank.dna_selection)
 		start_angle = self.pos_to_angle(start-1)
-		finish_angle = self.pos_to_angle(finish)
+		if finish == -1: #if no selection
+			finish_angle = start_angle
+		else:
+			finish_angle = self.pos_to_angle(finish)
 
 #		print('plasmid start finsh', start, finish)
 #		print('plasmid angles', start_angle, finish_angle)
@@ -333,22 +275,11 @@ class PlasmidView(BufferedWindow):
 		featurelist = genbank.gb.get_all_feature_positions()
 		self.feature_catalog = {} #for matching features with the unique colors
 		self.feature_catalog['(255, 255, 255, 255)'] = False #the background is white, have to add that key
-		R = 0
-		G = 0
-		B = 0
+
+		unique_color = (0, 0, 0)
 		for i in range(0,len(featurelist)): 
-			if R == 255 and G == 255 and B == 255:
-				raise ValueError
-			elif  R == 255 and G == 255:
-				R = 0
-				G = 0
-				B += 1
-			elif R == 255:
-				R = 0
-				G += 1
-			else:
-				R += 1
-			unique_color = (R,G,B) #for drawing unique colors on the hidden dc
+			unique_color = self.GetNextRGB(unique_color) #get color for drawing unique colors on the hidden dc
+
 			self.feature_catalog[str(unique_color+(255,))] = i	
 
 			featuretype, complement, start, finish, name, index = featurelist[i]
@@ -356,7 +287,8 @@ class PlasmidView(BufferedWindow):
 
 			#check so that stuff is not drawn too close to center
 			#if it is too close, draw at top level
-			if outside_space+feature_thickness+(feature_thickness+spacer)*level > self.Radius:
+			#also, for very short features, draw them at top level
+			if outside_space+feature_thickness+(feature_thickness+spacer)*level > self.Radius or finish-start<=3:
 				level = 0
 
 			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
@@ -366,7 +298,6 @@ class PlasmidView(BufferedWindow):
 
 			start_angle = self.pos_to_angle(start)
 			finish_angle = self.pos_to_angle(finish)
-			pointlist = [] #for storing drawing points for polygon
 			xc=self.centre_x #centre of circle
 			yc=self.centre_y #centre of circle
 
@@ -383,108 +314,27 @@ class PlasmidView(BufferedWindow):
 				gcdc.SetBrush(wx.Brush(color))
 
 				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
-					#near side of box
-					i = 0
-					while i <= int(finish_angle-start_angle):
-						x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-						y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i += step
+					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow=False)
 
-					#far side of box
-					i = int(finish_angle-start_angle)
-					while i >= 0:
-						x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-						y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i -= step
-
-				else: #if not too short, draw arrow
-					#near side of arrow
-					i = 0
-					while i <= int(finish_angle-start_angle):
-						if i == 0: #the point of the arrow
-							x1 = xc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						elif i < arrowhead_length: #don't draw in-between the arrowhead point and the arrowhead body
-							pass
-#						elif i == arrowhead_length: #uncomment this if the arrowhead should have "wings on the side"
-#							x1 = xc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-#							y1 = yc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						else:
-							x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i += step
-
-					#far side of arrow
-					i = int(finish_angle-start_angle)
-					while i >= 0:
-						if i < arrowhead_length:
-							pass
-#						elif i == arrowhead_length:  #uncomment this if the arrowhead should have "wings on the side"
-#							x1 = xc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-#							y1 = yc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						else:
-							x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i -= step
-
+				else: #if not too short, make arrow
+					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow='fw')
 
 			elif complement == True:
+				pointlist = []
 				color = eval(featuretype)['rv'] #get the color of feature (as string)
 				assert type(color) == str
 				gcdc.SetBrush(wx.Brush(color))
 
 				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
-					#near side of box
-					i = 0
-					while i <= int(finish_angle-start_angle):
-						x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-						y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i += step
-
-					#far side of box
-					i = int(finish_angle-start_angle)
-					while i >= 0:
-						x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-						y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i -= step		
+					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow=False)
 	
-				else: #otherwise make arrow
-					#near side of arrow
-					i = 0
-					while i <= int(finish_angle-start_angle):
-						if i == int(finish_angle-start_angle):
-							x1 = xc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						elif i > int(finish_angle-start_angle)-arrowhead_length:
-							pass
-#						elif i == int(finish_angle-start_angle)-arrowhead_length: #uncomment this if the arrowhead should have "wings on the side"
-#							x1 = xc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-#							y1 = yc + (self.Radius-outside_space+feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						else:
-							x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i += step
-				
-					#far side of arrow
-					i = int(finish_angle-start_angle)
-					while i >= 0:
-						if i > int(finish_angle-start_angle)-arrowhead_length:
-							pass
-#						elif i == int(finish_angle-start_angle)-arrowhead_length:  #uncomment this if the arrowhead should have "wings on the side"
-#							x1 = xc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-#							y1 = yc + (self.Radius-outside_space-feature_thickness-feature_thickness/2-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						else:
-							x1 = xc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.cos((finish_angle-i-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-							y1 = yc + (self.Radius-outside_space-feature_thickness-((feature_thickness+spacer)*level)) * math.sin((finish_angle-i-90)*(math.pi/180))
-						pointlist.append((x1,y1))
-						i -= step
+				else: #if not too short, make arrow
+					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow='rv')
+
 
 			#first draw the hidden features which are used for hittests on click
 			self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
@@ -507,7 +357,7 @@ class PlasmidView(BufferedWindow):
 			gcdc.SetFont(font)
 			gcdc.SetTextForeground((0,0,0))
 			label_line_length = self.window_length/8
-			max_label_length = 120 #max length of label in pixels
+			max_label_length = font_size*10 #max length of label in pixels
 
 			xc=self.centre_x #centre of circle
 			yc=self.centre_y #centre of circle
@@ -529,10 +379,11 @@ class PlasmidView(BufferedWindow):
 					else: 
 						plasmid_angle += (1+gcdc.GetTextExtent(feature_name[i-1])[0]*180)/(math.pi*feature_radius) #add length of previous letter
 						text_angle = plasmid_angle + gcdc.GetTextExtent(feature_name[i])[0]/2
-					
-					x1 = xc + feature_radius * math.cos((plasmid_angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-					y1 = yc + feature_radius * math.sin((plasmid_angle-90)*(math.pi/180))
-					gcdc.DrawRotatedText(feature_name[i], x1, y1, -(text_angle))
+
+					radius = feature_radius
+					angle = plasmid_angle
+					x, y = self.AngleToPoints(xc, yc, radius, angle)					
+					gcdc.DrawRotatedText(feature_name[i], x, y, -(text_angle))
 			
 			else: #if feature is too short to put text inside,  put text on the outside
 				while name_length[0] > max_label_length: #shorten text if it is too long 
@@ -540,30 +391,75 @@ class PlasmidView(BufferedWindow):
 					name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
 		
 				#draw the lines to the label and the label itself		
+				radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
 				angle = start_angle+(finish_angle-start_angle)/2
-				x1 = xc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-				y1 = yc + (self.Radius-outside_space-((feature_thickness+spacer)*level)) * math.sin((angle-90)*(math.pi/180))
-				x2 = xc + (self.Radius+label_line_length) * math.cos((angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-				y2 = yc + (self.Radius+label_line_length) * math.sin((angle-90)*(math.pi/180))
+				x1, y1 = self.AngleToPoints(xc, yc, radius, angle)	
+
+				radius = self.Radius+label_line_length
+				angle = start_angle+(finish_angle-start_angle)/2
+				x2, y2 = self.AngleToPoints(xc, yc, radius, angle)
+
 				gcdc.DrawLine(x1,y1,x2,y2)
 				if angle <= 180:
 					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)
 					gcdc.DrawText(feature_name,x2+3,y2-gcdc.GetTextExtent(feature_name)[1])
+
+					#draw hidden box at text positon, used for hittests
+					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.DrawRectangle(x2, y2, gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
+
 				elif angle > 180:
 					gcdc.DrawLine(x2,y2,x2-name_length[0],y2)
 					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
 
-				#draw hidden box at text positon, used for hittests
-				self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-				self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
-				self.hidden_dc.DrawRectangle(x2, y2, gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
+					#draw hidden box at text positon, used for hittests
+					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.DrawRectangle(x2, y2, -gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
 
-					
+
+	def Draw_search_hits(self, gcdc):
+		'''Indicate where search hits were found'''
+		gcdc.SetPen(wx.Pen(colour=(204,255,0,255), width=3))
+		gcdc.SetBrush(wx.Brush(colour=(204,255,0,255)))
+
+		xc=self.centre_x #centre of circle
+		yc=self.centre_y #centre of circle
+		step = 0.25 #how tightly the points should be
+		
+		if len(genbank.search_hits) > 0:
+			for hit in genbank.search_hits:
+				pointlist = []
+				start, finish = hit
+				start_angle = self.pos_to_angle(start-1)
+				finish_angle = self.pos_to_angle(finish)
+
+				#near side of box
+				i = 0
+				while i <= int(finish_angle-start_angle):
+					radius = self.Radius-5
+					angle = finish_angle-i
+					x, y = self.AngleToPoints(xc, yc, radius, angle)
+					pointlist.append((x,y))
+					i += step
+
+				#far side of box
+				i = int(finish_angle-start_angle)
+				while i >= 0:
+					radius = self.Radius+5
+					angle = finish_angle-i
+					x, y = self.AngleToPoints(xc, yc, radius, angle)
+					pointlist.append((x,y))
+					i -= step				
+				gcdc.DrawPolygon(pointlist)
+
+############### Setting methods for interconverting angles to dna positions ##############
 
 	def angle_to_pos(self, angle):
-		'''Calculate DNA position from a start and end angle'''
+		'''Convert an angle of a circle to a DNA position'''
 		len_dna = float(len(genbank.gb.GetDNA()))
-		dna_pos = int((angle/float(360))*len_dna)
+		dna_pos = int(self.AngleToFraction(angle)*len_dna)
 		return dna_pos
 
 	def pos_to_angle(self, pos):
@@ -573,39 +469,15 @@ class PlasmidView(BufferedWindow):
 		if len_dna == 0:
 			angle = 0
 		else:
-			angle = 360*(pos/float(len_dna))
-		return angle
+			angle = self.FractionToAngle(pos/float(len_dna))
+		return angle		
 
-	def calc_angle(self, x, y):
-		'''Calculates the angle corresponding to mouse clicks (as a fraction float)'''
-		z = math.sqrt(math.pow((x-self.centre_x),2) + math.pow((y-self.centre_y),2)) #determine z
-#		cosangle = (x-centre_x)/z
-#		cos_radians = math.acos(cosangle)
-#		degrees = cos_radians*(180/math.pi)
-#		print('cos', degrees)
+########## Done with angle to dna methods ####################
 
-		sinangle = (y-self.centre_y)/z 	
-		sin_radians = math.asin(sinangle)
-		degrees = sin_radians*(180/math.pi)	
-		#now I have the angle of the triangle. Based on where it is placed I have to calculate the 'real' angle
 
-		#for these calculations it is important to remember that y increases as you go down...
-		x_difference = x-self.centre_x
-		y_difference = y-self.centre_y
-		if x_difference >= 0 and y_difference >= 0: #triangle is in bottom right of circle
-			angle = 90+degrees
-#			print('bottom right')
-		elif  x_difference <= 0 and y_difference <= 0: #triangle is in top left of circle
-			angle = 180+90-degrees
-#			print('top left')
-		elif x_difference >= 0 and y_difference <= 0: #triangle is in in top right of circle
-			angle = 90+degrees
-#			print('top right')
-		elif x_difference <= 0 and y_difference >= 0: #triangle is in bottom left of circle
-			angle = 180+90-degrees
-		else:
-			ValueError
-		return angle
+
+######### Mouse methods #####################
+
 
 	def HitTest(self):
 		'''Tests whether the mouse is over any feature or label'''
@@ -620,7 +492,7 @@ class PlasmidView(BufferedWindow):
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-		angle = self.calc_angle(x, y)
+		angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
 		self.left_down_angle = angle #save the angle at which left button was clicked for later use
 
 
@@ -630,14 +502,14 @@ class PlasmidView(BufferedWindow):
 		self.centre_y = self.size[1]/2 #centro of window in y
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
 
-		up_angle = self.calc_angle(x, y)
+		up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
 		down_angle = self.left_down_angle
 
 		if abs(down_angle-up_angle) <= 0.2: # want to do 'down == up' but I need some tolerance
 			self.highlighted_feature = self.HitTest()
-			if self.highlighted_feature is False: #if there is no feature, draw the line
+			if self.highlighted_feature is False: #if there is no feature, then there is not selection, just an insertion of the charet. Draw a line
 				start = self.angle_to_pos(down_angle) 
-				finish = self.angle_to_pos(up_angle)
+				finish = -1 
 			else:
 				featuretype, complement, start, finish, name, index = genbank.gb.get_all_feature_positions()[self.highlighted_feature] #get info for the feature that was 'hit'
 				start += 1 #need to adjust for some reason
@@ -658,7 +530,7 @@ class PlasmidView(BufferedWindow):
 		if event.Dragging() and event.LeftIsDown():
 			x, y = self.ScreenToClient(wx.GetMousePosition())	
 
-			up_angle = self.calc_angle(x, y)
+			up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
 			down_angle = self.left_down_angle
 
 			if down_angle <= up_angle:
@@ -679,12 +551,11 @@ class PlasmidView(BufferedWindow):
 				self.highlighted_feature = new_index
 				self.update_ownUI()
 
+
 	def OnLeftDouble(self, event):
-		'''When left button is duble clicked'''
+		'''When left button is duble clicked, launch the feature edit dialog.'''
 		new_index = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
-		if new_index is not False:
-			print('not false')
-		
+		if new_index is not False: #False is returned for the background
 			featurelist = genbank.gb.get_all_feature_positions()
 			featuretype, complement, start, finish, name, index = featurelist[new_index]
 			genbank.feature_selection = copy.copy(index)
@@ -693,11 +564,12 @@ class PlasmidView(BufferedWindow):
 			dlg.ShowModal()
 			dlg.Center()
 
+
 	def OnRightUp(self, event):
 		print('plasmid right')
 
 
-
+############ Done with mouse methods ####################
 
 
 ##### main loop

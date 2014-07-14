@@ -185,13 +185,87 @@ def GetCodons(AA):
 	codons = eval(AA)
 	return codons
 
+def UnAmb(string):
+	'''Converts an ambigous nucletotide sequence to a list of sequences containing only A, T, C and G (as appropriate)'''
+	assert type(string) is str, 'Error, the input has to be a string.'
+	string = string.upper()	
+
+	pos_list = []
+	for letter in string:
+		assert letter in 'NMRWSYKVHDBGATC', 'Error, "%s" is not a valid ambigous nucleotide.' 
+		if 'A' == letter:
+			pos_list.append(['A'])
+
+		elif 'C' == letter:
+			pos_list.append(['C'])
+
+		elif 'T' == letter:
+			pos_list.append(['T'])
+
+		elif 'G' == letter:
+			pos_list.append(['G'])
+
+		elif 'M' == letter:
+			pos_list.append(['A','C'])
+
+		elif 'Y' == letter:
+			pos_list.append(['C','T'])
+
+		elif 'K' == letter:
+			pos_list.append(['G','T'])
+
+		elif 'S' == letter:
+			pos_list.append(['C','G'])
+
+		elif 'W' == letter:
+			pos_list.append(['A','T'])
+
+		elif 'R' == letter:
+			pos_list.append(['A','G'])
+
+		elif 'H' == letter:
+			pos_list.append(['C','T','A'])
+
+		elif 'V' == letter:
+			pos_list.append(['C','A','G'])
+
+		elif 'D' == letter:
+			pos_list.append(['T','A','G'])
+
+		elif 'B' == letter:
+			pos_list.append(['C','T','G'])
+
+		elif 'N' == letter: 
+			pos_list.append(['C','T','A','G'])
+	
+	#make sure the input will not result in too many sequences
+	list_of_nums = [len(x) for x in pos_list]
+	total = reduce(lambda x, y: x*y, list_of_nums)
+	max_total = 10000
+	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the maximum of %s sequences.' % (string, total, max_total)
+
+	#now combine them
+	#first copy the output list the number of times that there are nucleotides in the current position
+	output = []
+	for pos in pos_list:
+		output_len = len(output)
+		if output_len == 0:
+			output.extend(pos)
+			output_len = len(output)
+		else:
+			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
+			for i in range(0, len(pos)): #for every nucleotide at that position
+				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long
+					output[j+i*output_len] += pos[i]
+	return output
+
+
 #add randomize DNA
 
 
 #add abireader function
 
 #add function for fetching DNA from uniprot, ncbi...
-
 
 
 
