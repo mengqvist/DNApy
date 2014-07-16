@@ -254,8 +254,8 @@ def UnAmb(string):
 			output_len = len(output)
 		else:
 			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
-			for i in range(0, len(pos)): #for every nucleotide at that position
-				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long
+			for i in range(0, len(pos)): #for every nucleotide to be added
+				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
 					output[j+i*output_len] += pos[i]
 	return output
 

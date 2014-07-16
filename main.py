@@ -252,10 +252,12 @@ class MyFrame(wx.Frame):
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
 		filepath = genbank.gb.GetFilepath()
-		print(filepath)	
-		for i in range(len(filepath)): #get directory for file
-			if filepath[i] == '/':
-				dire = filepath[0:i+1]
+		if filepath is not None:
+			for i in range(len(filepath)): #get directory for file
+				if filepath[i] == '/':
+					dire = filepath[0:i+1]
+		else:
+			dire = default_filepath
 		#get save dialog
 		dlg = wx.FileDialog( self, style=wx.SAVE | wx.OVERWRITE_PROMPT,defaultDir=dire,wildcard='TXT files (*)|*|Any file (*)|*')
 		dlg.ShowModal()
@@ -442,7 +444,11 @@ class MyFrame(wx.Frame):
 		self.dnaview.reverse_complement_selection()
 
 	def select_all(self, evt):
-		self.dnaview.select_all()
+		control = wx.Window.FindFocus() #which field is selected?
+		if control == self.searchinput: #the searchbox
+			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
+		elif control == self.dnaview.stc: #the main dna window	
+			self.dnaview.select_all()
 
 ##########################################
 
@@ -798,7 +804,6 @@ Put Table here
 		#update the dna selection to the first search hit, if there is at least one.
 		if len(genbank.search_hits) > 0:
 			self.set_dna_selection(genbank.search_hits[0])
-
 		self.update_globalUI()
 
 

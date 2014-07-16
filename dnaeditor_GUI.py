@@ -377,7 +377,7 @@ class DNAedit(DNApyBaseClass):
 	def OnLeftUp(self, event):
 		self.set_dna_selection('') #update the varable keeping track of DNA selection
 		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
-		event.Skip() #very important to make the event propagate and fulfill its original function
+		event.Skip() #very important to make the event propagate and fulfill its original function		
 
 	def OnMotion(self, event):
 		if event.Dragging() and event.LeftIsDown():
@@ -496,7 +496,14 @@ class DNAedit(DNApyBaseClass):
 
 
 ################ genbank methods ###############
-
+	def select_all(self):
+		'''Select the entire dna sequence'''
+		start = 0
+		finish = len(genbank.gb.GetDNA())
+		self.stc.SetSelection(start, finish)
+		self.set_dna_selection('')	
+		self.update_ownUI()
+		self.update_globalUI()
 
 	def get_selection(self):
 		'''Gets the text editor selection and adjusts it to DNA locations.'''

@@ -253,23 +253,30 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 			#far side of arrow
 			i = 0
 			while i <= int(finish_angle-start_angle):
-				if i == int(finish_angle-start_angle): #point of arrow	
-					arrowpoint = radius - thickness/2
-					angle = finish_angle-i
-					x, y = self.AngleToPoints(xc, yc, arrowpoint, angle)
+				if i >int(finish_angle-start_angle) - arrowhead_length:
+					pass
 				else:
 					angle = finish_angle-i
 					x, y = self.AngleToPoints(xc, yc, radius, angle)
-				pointlist.append((x,y))
+					pointlist.append((x,y))
 				i += step
+
+			#point of arrow
+			arrowpoint = radius - thickness/2
+			angle = finish_angle-int(finish_angle-start_angle)
+			x, y = self.AngleToPoints(xc, yc, arrowpoint, angle)
+			pointlist.append((x,y))
 		
 			#near side of arrow
 			i = int(finish_angle-start_angle)
 			radius = radius-thickness
 			while i >= 0:
-				angle = finish_angle-i
-				x, y = self.AngleToPoints(xc, yc, radius, angle)
-				pointlist.append((x,y))
+				if i > int(finish_angle-start_angle) - arrowhead_length:
+					pass
+				else:
+					angle = finish_angle-i
+					x, y = self.AngleToPoints(xc, yc, radius, angle)
+					pointlist.append((x,y))
 				i -= step
 
 		elif arrow=='fw':
@@ -280,19 +287,25 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 					arrowpoint = radius - thickness/2
 					angle = finish_angle-i
 					x, y = self.AngleToPoints(xc, yc, arrowpoint, angle)
+					pointlist.append((x,y))
+				elif i < arrowhead_length:
+					pass
 				else:
 					angle = finish_angle-i
 					x, y = self.AngleToPoints(xc, yc, radius, angle)						
-				pointlist.append((x,y))
+					pointlist.append((x,y))
 				i += step
 
 			#near side of arrow
 			i = int(finish_angle-start_angle)
 			radius = radius - thickness
 			while i >= 0:
-				angle = finish_angle-i
-				x, y = self.AngleToPoints(xc, yc, radius, angle)
-				pointlist.append((x,y))
+				if i < arrowhead_length:
+					pass
+				else:
+					angle = finish_angle-i
+					x, y = self.AngleToPoints(xc, yc, radius, angle)
+					pointlist.append((x,y))
 				i -= step
 		return pointlist
 	

@@ -31,8 +31,6 @@
 #
 
 #TODO
-#fix labels so they don't overlap
-#fix long labels
 #fix long plasmid names
 #add 'dna ruler'
 
@@ -150,7 +148,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 						overlap_found = True
 					elif new_range[0]<=drawn_locations[i][n][0]<=new_range[1] or new_range[0]<=drawn_locations[i][n][1]<=new_range[1]: #if they overlap
 						overlap_found = True
-
 				if overlap_found == False:
 					drawn_locations[i].append(new_range)
 					return drawn_locations, i
@@ -161,13 +158,14 @@ class PlasmidView(DNApyBaseDrawingClass):
 					break
 				i += 1
 
-
+		
 
 	def Draw(self, dc):
 		self.centre_x = self.size[0]/2 #centre of window in x
 		self.centre_y = self.size[1]/2 #centro of window in y
-		self.window_length = min(self.centre_x, self.centre_y)
-		self.Radius = self.window_length/1.5
+		self.min_centre = min(self.centre_x, self.centre_y)
+			
+		self.Radius = min(self.size[0], self.size[1])/3 - self.min_centre/8 #the last one is the label line length
 
 #		dc.SetDeviceOrigin(size_x/2, size_y/2)
 
@@ -210,13 +208,13 @@ class PlasmidView(DNApyBaseDrawingClass):
 		name = genbank.gb.fileName.split('.')[0]
 		basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
 
-		font = wx.Font(pointSize=self.window_length/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#666666'))
 		name_length = gcdc.GetTextExtent(name) #length of text in pixels
 		gcdc.DrawText(name, self.centre_x-name_length[0]/2, self.centre_y-name_length[1])
 
-		font = wx.Font(pointSize=self.window_length/20, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		font = wx.Font(pointSize=self.min_centre/20, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
 		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#666666'))
 		basepairs_length = gcdc.GetTextExtent(basepairs)
@@ -261,15 +259,126 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 	def Draw_features(self, gcdc):
 		'''Function dedicated to drawing feature arrows. The highlighted variable is used to pass an integer in case one wishes to highlight features.'''
-		self.window_length = min(self.centre_x, self.centre_y) #length of shortest part of window
-		feature_thickness = self.window_length/12 #thickness of feature arrows and is used for a bunch of derived measurements
+		#for features
+		self.min_centre = min(self.centre_x, self.centre_y) #length of shortest part of window
+		feature_thickness = self.min_centre/24 #thickness of feature arrows and is used for a bunch of derived measurements
 		outside_space = feature_thickness/4 #space between the outermost feature and the DNA circle
 		arrowhead_length = 5 #length of arrowhead
 		step = 0.25 #degree interval at which polygon point should be drawn
 		spacer = feature_thickness/4 #for in-between features
 
+		#for labels
+		label_type = 'circular'
+		font_size = int(self.Radius/18)
+		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+		gcdc.SetFont(font)
+		label_line_length = self.min_centre/8
+		max_label_length = self.Radius/2 #max length of label in pixels
+		xc=self.centre_x #centre of circle
+		yc=self.centre_y #centre of circle
 
-		drawn_locations = [] #for keeping track of how many times a certain region has been painted on
+		#calculate possible positions for labels. 
+		label_positions = {}	
+
+		#grouping labels
+		if label_type == 'group':
+			for i in range(0, 360, 2):
+				if 0 <= i <=15:
+					x = self.centre_x
+					y = 5 + (i-0)*font_size/2
+				elif 15 < i <= 40:
+					x = self.centre_x + max_label_length
+					y = self.Radius/3 + (i-15)*font_size/2
+				elif 40 < i <= 90:
+					x = self.centre_x + self.Radius + label_line_length
+					y = self.Radius/2 + (i-40)*font_size/2
+
+				elif 90 < i <= 140:
+					x = self.centre_x + self.Radius + label_line_length
+					y = self.centre_y + (i-90)*font_size/2
+				elif 140 < i <= 165:
+					x = self.centre_x + max_label_length
+					y = self.centre_y + self.Radius + (i-140)*font_size/2
+				elif 165 < i <=180:
+					x = self.centre_x
+					y = self.centre_y + self.Radius + label_line_length + (i-165)*font_size/2
+
+				elif 180 < i <= 195:
+					x = self.centre_x
+					y = self.centre_y + self.Radius + label_line_length + (i-180)*font_size/2
+				elif 195 < i <= 220:
+					x = self.centre_x - max_label_length
+					y = self.centre_y + self.Radius + (i-195)*font_size/2
+				elif 220 < i <=270:
+					x = self.centre_x - self.Radius - label_line_length
+					y = self.centre_y + (i-220)*font_size/2
+
+				elif 270 < i <=320:
+					x = self.centre_x - self.Radius - label_line_length
+					y = self.centre_y - (i-270)*font_size/2
+				elif 320 < i <= 345:
+					x = self.centre_x - max_label_length
+					y = self.Radius/3 + (i-320)*font_size/2
+				elif 345 < i <= 360:
+					x = self.centre_x
+					y = 5 + (i-345)*font_size/2
+
+				else:
+					raise ValueError
+				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
+
+		#radiating labels
+		elif label_type == 'radiating':
+			for i in range(0, 360, 2):
+				x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
+				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
+
+		#circular labels
+		elif label_type == 'circular':
+			for i in range(0, 92, 4):
+				j = 88-i #I need to go backwards since I use the y-coordinate at the centre of the circle as a starting point
+				if j == 88:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
+				else:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
+					if y > label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]:
+						y = label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]
+				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
+			for i in range(92, 180, 4):
+				if i == 92:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
+				else:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
+					if y < label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]:
+						y = label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]
+				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
+
+			for i in range(0, 92, 4): # for the actual range 180 to 270
+				j = 268-i #I need to go backwards since I use the y-coordinate at the centre of the circle as a starting point
+				if j == 268:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
+				else:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
+					if y < label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]:
+						y = label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]
+				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
+
+			for i in range(268, 360, 4):
+				if i == 268:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
+				else:
+					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
+					if y > label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]:
+						y = label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]
+				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used	
+
+		else:
+			raise ValueError
+
+
+		drawn_fw_locations = [] #for keeping track of how many times a certain region has been painted on
+		drawn_rv_locations = [] #for keeping track of how many times a certain region has been painted on
+
 
 		#features
 		featurelist = genbank.gb.get_all_feature_positions()
@@ -283,14 +392,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.feature_catalog[str(unique_color+(255,))] = i	
 
 			featuretype, complement, start, finish, name, index = featurelist[i]
-			drawn_locations, level = self.find_overlap(drawn_locations, (start, finish))
-
-			#check so that stuff is not drawn too close to center
-			#if it is too close, draw at top level
-			#also, for very short features, draw them at top level
-			if outside_space+feature_thickness+(feature_thickness+spacer)*level > self.Radius or finish-start<=3:
-				level = 0
-
+		
 			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
 			featuretype = featuretype.replace("5'", "a5") #for 5' features
 			featuretype = featuretype.replace("3'", "a3") #for 5' features
@@ -301,28 +403,41 @@ class PlasmidView(DNApyBaseDrawingClass):
 			xc=self.centre_x #centre of circle
 			yc=self.centre_y #centre of circle
 
-			#set color surrounding feature. Normally black, red if feature is highlighted
+			#set color surrounding feature. Normally black, red if feature is highlighted. Also change text color.
 			if i is self.highlighted_feature: #if the current feature corresponds to that which should be highlighted
 				gcdc.SetPen(wx.Pen(colour='#FF0000', width=2))
+				gcdc.SetTextForeground('#FF0000')
 			else:
 				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
+				gcdc.SetTextForeground('#000000')
 
 			#draw feature
 			if complement == False:
+				#find level to draw on
+				drawn_fw_locations, level = self.find_overlap(drawn_fw_locations, (start, finish))
+				if level>3 or finish-start<=3: #Only allow for tree levels. Also, for very short features, draw them at bottom level
+					level = 0
+				
+				#set colors
 				color = eval(featuretype)['fw'] #get the color of feature (as string)
 				assert type(color) == str
 				gcdc.SetBrush(wx.Brush(color))
 
 				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
-					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					radius = self.Radius+outside_space+feature_thickness+((feature_thickness+spacer)*level)
 					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow=False)
 
 				else: #if not too short, make arrow
-					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+					radius = self.Radius+outside_space+feature_thickness+((feature_thickness+spacer)*level)
 					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow='fw')
 
 			elif complement == True:
-				pointlist = []
+				#find level to draw on
+				drawn_rv_locations, level = self.find_overlap(drawn_rv_locations, (start, finish))
+				if level>3 or finish-start<=3: #Only allow for tree levels. Also, for very short features, draw them at bottom level
+					level = 0
+				
+				#set colors
 				color = eval(featuretype)['rv'] #get the color of feature (as string)
 				assert type(color) == str
 				gcdc.SetBrush(wx.Brush(color))
@@ -347,59 +462,54 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 			###############
-			# Draw labels #
+			# Draw label #
 			###############
 
 			#draw label for feature
 			#text parameters
-			font_size = int(feature_thickness*0.6)
-			font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-			gcdc.SetFont(font)
-			gcdc.SetTextForeground((0,0,0))
-			label_line_length = self.window_length/8
-			max_label_length = font_size*10 #max length of label in pixels
-
-			xc=self.centre_x #centre of circle
-			yc=self.centre_y #centre of circle
 			feature_name = name
 			name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
 			feature_radius = self.Radius-outside_space-((feature_thickness+spacer)*level) #the feature radius depends on where on the plasmid it is drawn
-			feature_length = feature_radius*((finish_angle-start_angle)*math.pi)/float(180) #length of feature in pixels  len=radius*((theta*pi)/180)
-		
-			if name_length[0] < feature_length*0.9: #if feature is long enough to put text inside, do it
-				mid_text = start_angle+(finish_angle-start_angle)/2	#middle of text should be here (angle)
-				for i in range(0,len(feature_name)):
-					if i == 0:
-						plasmid_angle = mid_text-((1+gcdc.GetTextExtent(feature_name)[0]/2)*180)/(math.pi*feature_radius) #determine beginning angle
-						text_angle = plasmid_angle + ((gcdc.GetTextExtent(feature_name[i])[0]/2)*180)/(math.pi*feature_radius) #determine beginning angle
 
-					elif feature_name[i-1] == ' ': #GetTextExtent does not work on spaces
-						plasmid_angle += ((font_size/3)*180)/(math.pi*feature_radius) #add length of space if one is present
-#						text_angle = plasmid_angle + 
-					else: 
-						plasmid_angle += (1+gcdc.GetTextExtent(feature_name[i-1])[0]*180)/(math.pi*feature_radius) #add length of previous letter
-						text_angle = plasmid_angle + gcdc.GetTextExtent(feature_name[i])[0]/2
+			while name_length[0] > max_label_length: #shorten text if it is too long 
+				feature_name = feature_name[:-3]+'..'
+				name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
+	
+			#draw the lines to the label and the label itself, if the feature is highlighted
+			radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
+			angle = start_angle+(finish_angle-start_angle)/2
+			x1, y1 = self.AngleToPoints(xc, yc, radius, angle)	
 
-					radius = feature_radius
-					angle = plasmid_angle
-					x, y = self.AngleToPoints(xc, yc, radius, angle)					
-					gcdc.DrawRotatedText(feature_name[i], x, y, -(text_angle))
+			#now get the second coordinate
+			if label_type == 'group' or label_type == 'radiating': #'group' and 'radiating' have labels every 2 degrees, circular every 4
+				angle_step = 2
+			elif label_type == 'circular':
+				angle_step = 4				
+			else:
+				raise ValueError
+				
+
+			angle = start_angle+(finish_angle-start_angle)/2 #naivly assume that the coordinate at label angle is ok and try that
+			angle = int(angle/angle_step)*angle_step #I have to round to a numbers divisible by 3 (this gives 120 possible labels)
+
 			
-			else: #if feature is too short to put text inside,  put text on the outside
-				while name_length[0] > max_label_length: #shorten text if it is too long 
-					feature_name = feature_name[:-3]+'..'
-					name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
-		
-				#draw the lines to the label and the label itself		
-				radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
-				angle = start_angle+(finish_angle-start_angle)/2
-				x1, y1 = self.AngleToPoints(xc, yc, radius, angle)	
+			x2, y2, used = label_positions[str(angle)]
 
-				radius = self.Radius+label_line_length
-				angle = start_angle+(finish_angle-start_angle)/2
-				x2, y2 = self.AngleToPoints(xc, yc, radius, angle)
+			counter = 0
+			while used == True: #if it turns out that it is used already, then  try next
+				counter += angle_step
+				if counter > 360:
+					raise ValueError, 'There are more labels than there are available positions to draw them'
+					break
+				angle += angle_step
+				if angle == 360:
+					angle = angle_step
+				x2, y2, used = label_positions[str(angle)]
+			label_positions[str(angle)] = (x2, y2, True) #update so that the position is now used
 
-				gcdc.DrawLine(x1,y1,x2,y2)
+
+			if label_type == 'group' or label_type == 'circular':
+				gcdc.DrawLine(x1,y1,x2,y2) #draw line to feature
 				if angle <= 180:
 					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)
 					gcdc.DrawText(feature_name,x2+3,y2-gcdc.GetTextExtent(feature_name)[1])
@@ -418,6 +528,55 @@ class PlasmidView(DNApyBaseDrawingClass):
 					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
 					self.hidden_dc.DrawRectangle(x2, y2, -gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
 
+			elif label_type == 'radiating':
+				if i is self.highlighted_feature: #only draw line if feature is highlighted
+					gcdc.DrawLine(x1,y1,x2,y2)
+				if angle <= 180:
+					text_extent = gcdc.GetTextExtent(feature_name)
+					text_radius = self.Radius + label_line_length
+
+					#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
+					tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
+					radians = math.atan(tanangle) #negate the Tin part and get radians
+					degrees = radians*(180/math.pi)	#convert radians to degrees
+					text_position_angle = angle-degrees			
+
+					tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
+					gcdc.DrawRotatedText(feature_name, tx, ty, -angle+90)
+
+					#draw hidden box at text positon, used for hittests
+					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
+					x2, y2 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle+degrees)
+					x3, y3 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle-degrees)
+					x4, y4 = self.AngleToPoints(xc, yc, text_radius, angle-degrees)
+					self.hidden_dc.DrawPolygon([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])					
+
+				elif angle > 180:
+					text_extent = gcdc.GetTextExtent(feature_name)
+					text_radius = self.Radius + label_line_length + text_extent[0]
+
+					#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
+					tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
+					radians = math.atan(tanangle) #negate the Tin part and get radians
+					degrees = radians*(180/math.pi)	#convert radians to degrees
+					text_position_angle = angle+degrees			
+
+					tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
+					gcdc.DrawRotatedText(feature_name, tx, ty, -angle-90)
+
+					#draw hidden box at text positon, used for hittests
+					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
+					x2, y2 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle+degrees)
+					x3, y3 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle-degrees)
+					x4, y4 = self.AngleToPoints(xc, yc, text_radius, angle-degrees)
+					self.hidden_dc.DrawPolygon([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])
+					
+				else:
+					raise ValueError
 
 	def Draw_search_hits(self, gcdc):
 		'''Indicate where search hits were found'''

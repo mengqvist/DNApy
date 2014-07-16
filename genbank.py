@@ -717,8 +717,9 @@ class gbobject(object):
 		assert type(ip) == int, 'The insertion point must be an integer.'
 
 		if DNA == None:
-			if self.clipboard['dna'] != pyperclip.paste(): #if internal and system clipboard is not same, then system clipboard takes presidence
-				self.clipboard['dna'] = pyperclip.paste()
+			system_clip = re.sub(r'\s+', '', pyperclip.paste()) #remove whitespace from item in system clipboard
+			if self.clipboard['dna'] != system_clip: #if internal and system clipboard is not same, then system clipboard takes presidence
+				self.clipboard['dna'] = system_clip
 				self.clipboard['features'] = []
 			DNA = copy.copy(self.clipboard['dna'])
 			self.changegbsequence(ip, ip, 'i', DNA) #change dna sequence	
@@ -1319,11 +1320,11 @@ indeces >-1 are feature indeces'''
 				#now make the mutation and add corresponding feature if the 'silent' variable is False
 				if complement is False or mutationframe == -1:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', codon)
-					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s(%s)' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
 					print('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon))
 				elif complement is True:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(codon))
-					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s(%s)' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
 					print('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon))
 				else:
 					raise ValueError
@@ -1410,7 +1411,7 @@ indeces >-1 are feature indeces'''
 			name = self.gbfile['features'][i]['qualifiers'][0].split('=')[1]
 			for entry in self.gbfile['features'][i]['location']:
 				start, finish = self.get_location(entry)
-				start = int(start)-1
+				start = int(start)
 				finish = int(finish)
 				positionlist.append([Key, Complement, start, finish, name, i])
 		return positionlist

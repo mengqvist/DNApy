@@ -33,6 +33,7 @@
 import wx
 import wx.stc
 import mixed_base_codons as mbc
+import dna
 
 
 #TODO 
@@ -480,7 +481,7 @@ class MixedBaseCodon(wx.Panel):
 				self.Pro.SetBackgroundColour(possible_color)
 
 			#make list of all codons in degenerate triplet
-			codonlist = mbc.combinelists(mbc.checkdegenerate(codon[0]), mbc.checkdegenerate(codon[1]), mbc.checkdegenerate(codon[2]))
+			codonlist = dna.UnAmb(codon)
 		
 			#count how many times each AA is coded for by these codons
 			self.AA_count = mbc.count_codon_list(codonlist)
