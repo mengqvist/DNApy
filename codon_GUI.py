@@ -50,8 +50,8 @@ class CodonView(DNApyBaseDrawingClass):
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 
 
-		self.centre_x = 0
-		self.centre_y = 0
+		self.xc = 0
+		self.yc = 0
 		self.highlighted = False #variable for keeping track of whether an amino acid is highlighted
 
 
@@ -106,15 +106,16 @@ class CodonView(DNApyBaseDrawingClass):
 
 
 	def Draw(self, dc):
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
-		self.window_length = min(self.centre_x, self.centre_y)
-		self.Radius = self.window_length/1.2
-		xc = self.window_length
-		yc = self.window_length
+		self.xc = self.size[0]/3 #centre of codon circle in x
+		self.yc = self.size[1]/2 #centre of codon circle in y
+		self.Radius = self.yc/1.2
+
 		target_color = '#CCFF66'
 		possible_color = '#FFFF66'
 		offtarget_color = '#FF9966'
+		nucleotide_color = '#8B835F'
+		coding_nucleotide_color = '#4B4424' #for coloring the nucleotides encoded by the ambigous codon
+		line_color = '#8B835F' #for lines
 		
 
 		first_nucleotide_thickness = self.Radius/3
@@ -152,15 +153,15 @@ class CodonView(DNApyBaseDrawingClass):
 		for i in range(len(nucleotides)):
 			start_angle = 0 + 90*i
 			finish_angle = 90+90*i
-			pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, thickness, step=5)
+			pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=5)
 			gcdc.DrawPolygon(pointlist)
-			x1, y1 = self.AngleToPoints(xc, yc, radius/2, finish_angle-(finish_angle-start_angle)/2)
+			x1, y1 = self.AngleToPoints(self.xc, self.yc, radius/2, finish_angle-(finish_angle-start_angle)/2)
 
 			#if nucleotide is part of degenerate codon it should have a different color
-			gcdc.SetTextForeground(('#000000'))
+			gcdc.SetTextForeground((nucleotide_color))
 			if self.codon is not False:
 				if nucleotides[i].replace('U','T') in dna.UnAmb(self.codon[0]):
-					gcdc.SetTextForeground(('#993366'))
+					gcdc.SetTextForeground((coding_nucleotide_color))
 				
 			gcdc.DrawText(nucleotides[i], x1-radius/4, y1-radius/2.8)
 
@@ -175,18 +176,18 @@ class CodonView(DNApyBaseDrawingClass):
 		for i in range(len(nucleotides)):
 			start_angle = 0 + 22.5*i
 			finish_angle = 22.5+22.5*i
-			pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, thickness, step=0.5)
+			pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.5)
 			gcdc.DrawPolygon(pointlist)
-			x1, y1 = self.AngleToPoints(xc, yc, radius/1.2, finish_angle-(finish_angle-start_angle)/2)
+			x1, y1 = self.AngleToPoints(self.xc, self.yc, radius/1.2, finish_angle-(finish_angle-start_angle)/2)
 
 			#if nucleotide is part of degenerate codon it should have a different color
-			gcdc.SetTextForeground(('#000000'))
+			gcdc.SetTextForeground((nucleotide_color))
 			if self.codon is not False:
 #				print('first')
 #				print('nuc', nucleotides[i].replace('U','T'))
 #				print('cod', dna.UnAmb(self.codon[0:2]))
 				if nucleotides[i].replace('U','T') in dna.UnAmb(self.codon[0:2]):
-					gcdc.SetTextForeground(('#993366'))
+					gcdc.SetTextForeground((coding_nucleotide_color))
 			gcdc.DrawText(nucleotides[i][1], x1-radius/14, y1-radius/10)
 
 
@@ -203,15 +204,15 @@ class CodonView(DNApyBaseDrawingClass):
 		for i in range(len(nucleotides)):
 			start_angle = 0 + 5.625*i
 			finish_angle = 5.625+5.625*i
-			pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, thickness, step=0.1)
+			pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.1)
 			gcdc.DrawPolygon(pointlist)
-			x1, y1 = self.AngleToPoints(xc, yc, radius/1.1, finish_angle-(finish_angle-start_angle)/2)
+			x1, y1 = self.AngleToPoints(self.xc, self.yc, radius/1.1, finish_angle-(finish_angle-start_angle)/2)
 
 			#if nucleotide is part of degenerate codon it should have a different color
-			gcdc.SetTextForeground(('#000000'))
+			gcdc.SetTextForeground((nucleotide_color))
 			if self.codon is not False:
 				if nucleotides[i].replace('U','T') in dna.UnAmb(self.codon):
-					gcdc.SetTextForeground(('#993366'))
+					gcdc.SetTextForeground((coding_nucleotide_color))
 			gcdc.DrawText(nucleotides[i][2], x1-radius/30, y1-radius/24)
 
 		#draw amino acids
@@ -240,7 +241,7 @@ class CodonView(DNApyBaseDrawingClass):
 				gcdc.SetBrush(wx.Brush("#fff2d1"))
 			start_angle = finish_angle
 			finish_angle = start_angle+5.625*AA_width[AA[i]]
-			pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, thickness, step=0.1)
+			pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.1)
 			gcdc.DrawPolygon(pointlist)
 
 			#draw hidden color which is used for hittests
@@ -253,16 +254,16 @@ class CodonView(DNApyBaseDrawingClass):
 
 			#draw lines
 			angle = start_angle
-			gcdc.SetPen(wx.Pen(colour='#666666', width=1))
+			gcdc.SetPen(wx.Pen(colour=line_color, width=1))
 			if angle in [0,90,180,270]:
 				radius = 0
 			elif angle % 22.5 == 0:
 				radius = first_nucleotide_thickness
 			elif angle % 5.625 ==0:
 				radius = first_nucleotide_thickness+second_nucleotide_thickness
-			x1, y1 = self.AngleToPoints(xc, yc, radius, angle)
+			x1, y1 = self.AngleToPoints(self.xc, self.yc, radius, angle)
 			radius = radius = first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness+amino_acid_thickness
-			x2, y2 = self.AngleToPoints(xc, yc, radius, angle)
+			x2, y2 = self.AngleToPoints(self.xc, self.yc, radius, angle)
 			gcdc.DrawLine(x1, y1, x2, y2)
 
 			#draw text
@@ -277,7 +278,7 @@ class CodonView(DNApyBaseDrawingClass):
 				degrees = radians*(180/math.pi)	#convert radians to degrees
 				text_position_angle = text_angle-degrees			
 
-				tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
+				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
 				gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle+90)
 			else:
 				text_extent = gcdc.GetTextExtent(AA_full[AA[i]])
@@ -289,7 +290,7 @@ class CodonView(DNApyBaseDrawingClass):
 				degrees = radians*(180/math.pi)	#convert radians to degrees
 				text_position_angle = text_angle+degrees			
 
-				tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
+				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
 				gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle-90)
 
 
@@ -303,26 +304,26 @@ class CodonView(DNApyBaseDrawingClass):
 			start_angle = finish_angle
 			finish_angle = start_angle+5.625*AA_width[AA[i]]
 			if AA[i].replace('2', '') == self.highlighted: #if highlighted AA is the current one
-				pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, thickness, step=0.1)
+				pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.1)
 				gcdc.DrawPolygon(pointlist)
 
 
 		#write what the ambigous codon is 
-		point_size = int(self.Radius/10)
+		point_size = int(self.Radius/8)
 		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.ITALIC, weight=wx.FONTWEIGHT_NORMAL)
 		gcdc.SetFont(font)
-		gcdc.SetTextForeground(('#666666'))
-		x = xc-self.Radius
-		y = (yc+self.Radius)*1.1
-		text = 'Ambigous codon:'
+		gcdc.SetTextForeground((line_color))
+		x = self.size[0]*0.62
+		y = self.size[1]*0.1
+		text = 'Codon:'
 		gcdc.DrawText(text, x, y)
 
-		point_size = int(self.Radius/10)
+		x = self.size[0]*0.75
+		point_size = int(self.Radius/6)
 		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
-		gcdc.SetTextForeground(('#000000'))
-		x = x+gcdc.GetTextExtent(text)[0]
-		y = y
+		gcdc.SetTextForeground((coding_nucleotide_color))
+		
 		if self.codon is False:
 			text = ''
 		else:
@@ -331,16 +332,18 @@ class CodonView(DNApyBaseDrawingClass):
 
 		#and the bases they code for
 		if self.codon is not False:
-			first_x = x
-			second_x = first_x + gcdc.GetTextExtent(text[0])[0]
-			third_x = second_x + gcdc.GetTextExtent(text[1])[0]
+			#get text position based on the ambigous codon
+			first_x = x + gcdc.GetTextExtent(text[0:1])[0] - gcdc.GetTextExtent(text[0])[0]/2
+			second_x = x + gcdc.GetTextExtent(text[0:2])[0] - gcdc.GetTextExtent(text[1])[0]/2
+			third_x = x + gcdc.GetTextExtent(text[0:3])[0] - gcdc.GetTextExtent(text[2])[0]/2
 			start_y = y + gcdc.GetTextExtent(text[0])[1]
 
+			#set new text size
 			point_size = int(self.Radius/18)
-			font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+			font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTSTYLE_ITALIC, weight=wx.FONTWEIGHT_NORMAL)
 			gcdc.SetFont(font)
-			gcdc.SetTextForeground(('#888888'))
-		
+			gcdc.SetTextForeground((coding_nucleotide_color))
+
 			first = dna.UnAmb(self.codon[0])
 			second = dna.UnAmb(self.codon[1])
 			third = dna.UnAmb(self.codon[2])
@@ -348,56 +351,140 @@ class CodonView(DNApyBaseDrawingClass):
 			first_y = start_y
 			for i in range(0, len(first)):
 				text = first[i]
-				gcdc.DrawText(text, first_x, first_y)
+				#adjust for the size of that text
+				pos_x = first_x - gcdc.GetTextExtent(text)[0]/2
+				gcdc.DrawText(text, pos_x, first_y)
 				first_y += point_size
 
 			second_y = start_y
 			for i in range(0, len(second)):
 				text = second[i]
-				gcdc.DrawText(text, second_x, second_y)
+				#adjust for the size of that text
+				pos_x = second_x - gcdc.GetTextExtent(text)[0]/2
+				gcdc.DrawText(text, pos_x, second_y)
 				second_y += point_size
 
 			third_y = start_y
 			for i in range(0, len(third)):
 				text = third[i]
-				gcdc.DrawText(text, third_x, third_y)
+				#adjust for the size of that text
+				pos_x = third_x - gcdc.GetTextExtent(text)[0]/2
+				gcdc.DrawText(text, pos_x, third_y)
 				third_y += point_size
 
 		#draw key	
 		width = self.Radius/16
 		height = self.Radius/16
 		
-		point_size = int(self.Radius/16)
+		point_size = int(self.Radius/20)
 		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
 		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#666666'))
 
 		#target key
 		text = 'Target AA'
-		x = self.centre_x-self.Radius
-		y = self.Radius*0.1
+		x = 10
+		y = 10
 		gcdc.SetBrush(wx.Brush(target_color))
 		gcdc.SetPen(wx.Pen(colour='#666666', width=0))
 		gcdc.DrawRectangle(x, y, width, height)
-		gcdc.DrawText(text, x+width*1.2, y-height*0.2)
+		gcdc.DrawText(text, x+width*1.2, y)
 
 		#possible key
 		text = 'Possible AA'
-		x = self.centre_x-self.Radius
-		y = self.Radius*0.1+point_size*1.5
+		x = 10
+		y += point_size*1.5
 		gcdc.SetBrush(wx.Brush(possible_color))
 		gcdc.SetPen(wx.Pen(colour='#E6E65C', width=1))
 		gcdc.DrawRectangle(x, y, width, height)
-		gcdc.DrawText(text, x+width*1.2, y-height*0.2)
+		gcdc.DrawText(text, x+width*1.2, y)
 
 		#possible key
 		text = 'Off-target AA'
-		x = self.centre_x-self.Radius
-		y = self.Radius*0.1+point_size*3
+		x = 10
+		y += point_size*1.5
 		gcdc.SetBrush(wx.Brush(offtarget_color))
 		gcdc.SetPen(wx.Pen(colour='#666666', width=0))
 		gcdc.DrawRectangle(x, y, width, height)
-		gcdc.DrawText(text, x+width*1.2, y-height*0.2)
+		gcdc.DrawText(text, x+width*1.2, y)
+
+
+		## draw graph ##
+		AA_order = ('A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', 'stop')
+		AA_full = {'F':'Phenylalanine', 'L':'Leucine', 'S':'Serine', 'Y':'Tyrosine', 'stop':'Stop', 'C':'Cysteine', 'stop2':'Stop', 'W':'Tryptophan', 'L2':'Leucine', 'P':'Proline', 'H':'Histidine', 'Q':'Glutamine', 'R':'Arginine', 'I':'Isoleucine', 'M':'Methionine', 'T':'Threonine', 'N':'Asparagine', 'K':'Lysine', 'S2':'Serine', 'R2':'Arginine', 'V':'Valine', 'A':'Alanine', 'D':'Aspartic acid', 'E':'Glutamic acid', 'G':'Glycine'}
+
+		originx = self.size[0]*0.75 #centre of plot in x
+		originy = self.size[1]*0.45 #centre of plot in y
+		sizex = self.size[0]*0.2
+		sizey = self.size[1]*0.5
+
+		xspacing = sizex/7
+		yspacing = float(sizey)/float(21)
+		tick_size = sizex/30
+		
+
+		#draw background rectangle
+		gcdc.SetBrush(wx.Brush("#fff2d1"))
+		gcdc.SetPen(wx.Pen(colour=line_color, width=0))
+		gcdc.DrawRectangle(originx, originy, sizex, sizey)
+
+		#frame
+		gcdc.SetPen(wx.Pen(line_color))
+		gcdc.DrawLine(originx, originy, originx+sizex, originy) #top line... #DrawLine(self, x1, y1, x2, y2)
+		gcdc.DrawLine(originx+sizex, originy, originx+sizex, originy+sizey) #right line
+		gcdc.DrawLine(originx+sizex, originy+sizey, originx, originy+sizey) #bottom line
+		gcdc.DrawLine(originx, originy+sizey, originx, originy) #left line
+
+
+		#title
+		point_size = int(sizex/12)
+		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		gcdc.SetFont(font)
+		gcdc.SetTextForeground((line_color))
+		title = 'Codon count for each AA'
+		gcdc.DrawText(title, originx, originy-gcdc.GetTextExtent(text)[1]*2)
+
+
+
+		#y labels (amino acids)		
+		point_size = int(self.Radius/18)
+		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		gcdc.SetFont(font)
+		gcdc.SetTextForeground((line_color))
+		for i in range(0, 21):	
+			amino_acid = AA_full[str(AA_order[i])]
+			gcdc.DrawText(amino_acid, originx-gcdc.GetTextExtent(amino_acid)[0]-tick_size, originy+(yspacing*i)-gcdc.GetTextExtent(amino_acid)[1]/2+yspacing/2)
+
+		#x labels (count)
+		for i in range(1, 7):	
+			gcdc.DrawText(str(i), originx+xspacing*i-gcdc.GetTextExtent('6')[0]/2, originy-gcdc.GetTextExtent('6')[1]-tick_size/2)	
+
+
+
+		#x ticks
+#		for i in range(1, 7):
+#			gcdc.DrawLine(originx+(xspacing*i), originy, originx+(xspacing*i), originy+tick_size)
+#			gcdc.DrawLine(originx+(xspacing*i), originy+sizey, originx+(xspacing*i), originy+sizey-tick_size)
+
+#		#y ticks
+#		for i in range(1, 22):
+#			gcdc.DrawLine(originx, originy+(yspacing*i), originx+tick_size, originy+(yspacing*i))
+#			gcdc.DrawLine(originx+sizex, originy+(yspacing*i), originx+sizex-tick_size, originy+(yspacing*i))
+
+		#draw bars
+		if self.codon is not False:
+			self.AA_count = mbc.count_codon_list(dna.UnAmb(self.codon))
+			for i in range(0, 21):	
+				AA = AA_order[i]
+				if AA in self.target: #if current AA is a selected one
+					gcdc.SetBrush(wx.Brush(target_color))
+				elif AA in self.offtarget: #if it is in the off-targets list
+					gcdc.SetBrush(wx.Brush(offtarget_color))
+				else:	
+					gcdc.SetBrush(wx.Brush('#666666'))
+
+				count = self.AA_count[AA]
+				gcdc.DrawRectangle(originx, originy+yspacing*i+yspacing*0.1, count*xspacing, yspacing*0.8) #(x, y, w, h)
 
 
 ##############################################################
@@ -412,16 +499,19 @@ class CodonView(DNApyBaseDrawingClass):
 
 	def OnLeftUp(self, event):
 		'''When left mouse button is lifted up, determine the DNA selection from angles generated at down an up events.'''
-		amino_acid = self.HitTest().replace('2','')
-		if amino_acid not in self.target:
-			self.target.append(amino_acid)
-		elif amino_acid in self.target:
-			self.target.remove(amino_acid)
-		elif amino_acid == 'reset':
-			self.codon = False
-			self.target = []
-			self.offtarget = []
-			self.possible = []
+		amino_acid = self.HitTest()
+		if amino_acid is not False:
+			amino_acid = amino_acid.replace('2','')
+
+			if amino_acid not in self.target:
+				self.target.append(amino_acid)
+			elif amino_acid in self.target:
+				self.target.remove(amino_acid)
+			elif amino_acid == 'reset':
+				self.codon = False
+				self.target = []
+				self.offtarget = []
+				self.possible = []
 			
 		if len(self.target)>0:
 			self.codon, self.target, self.offtarget, self.possible = mbc.run(self.target)
@@ -449,7 +539,7 @@ class CodonView(DNApyBaseDrawingClass):
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
-		frame = wx.Frame(None, -1, title="Codon View", size=(500,700), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+		frame = wx.Frame(None, -1, title="Codon View", size=(900,500))
 		panel =	CodonView(frame, -1)
 		frame.Centre()
 		frame.Show(True)

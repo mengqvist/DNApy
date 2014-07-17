@@ -341,7 +341,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
 				else:
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-					if y > label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]:
+					if y > label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
 						y = label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]
 				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
 			for i in range(92, 180, 4):
@@ -349,7 +349,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
 				else:
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-					if y < label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]:
+					if y < label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
 						y = label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]
 				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
 
@@ -359,7 +359,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
 				else:
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-					if y < label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]:
+					if y < label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
 						y = label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]
 				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
 
@@ -368,7 +368,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
 				else:
 					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-					if y > label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]:
+					if y > label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
 						y = label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]
 				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used	
 

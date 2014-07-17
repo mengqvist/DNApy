@@ -207,7 +207,7 @@ class MixedBaseCodon(wx.Panel):
 		self.Refresh()
 		self.Update()
 
-		AA_order = ('A', 'C', 'E', 'D', 'G', 'F', 'I', 'H', 'K', 'M', 'L', 'N', 'Q', 'P', 'S', 'R', 'T', 'W', 'V', 'Y', 'stop')
+		AA_order = ('A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', 'stop')
 		x = (self.AA_count[AA_order[0]], self.AA_count[AA_order[1]], self.AA_count[AA_order[2]], self.AA_count[AA_order[3]], self.AA_count[AA_order[4]], self.AA_count[AA_order[5]], self.AA_count[AA_order[6]], self.AA_count[AA_order[7]], self.AA_count[AA_order[8]], self.AA_count[AA_order[9]], self.AA_count[AA_order[10]], self.AA_count[AA_order[11]], self.AA_count[AA_order[12]], self.AA_count[AA_order[13]], self.AA_count[AA_order[14]], self.AA_count[AA_order[15]], self.AA_count[AA_order[16]], self.AA_count[AA_order[17]], self.AA_count[AA_order[18]], self.AA_count[AA_order[19]], self.AA_count[AA_order[20]])
 
 		originx = 50
