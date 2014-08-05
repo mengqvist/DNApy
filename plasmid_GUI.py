@@ -61,8 +61,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		genbank.dna_selection = (1,1)
 
-		self.centre_x = 0
-		self.centre_y = 0
 		self.highlighted_feature = False
 		
 	
@@ -385,11 +383,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.feature_catalog = {} #for matching features with the unique colors
 		self.feature_catalog['(255, 255, 255, 255)'] = False #the background is white, have to add that key
 
-		unique_color = (0, 0, 0)
+		self.unique_color = (0, 0, 0)
 		for i in range(0,len(featurelist)): 
-			unique_color = self.GetNextRGB(unique_color) #get color for drawing unique colors on the hidden dc
-
-			self.feature_catalog[str(unique_color+(255,))] = i	
+			self.feature_catalog[str(self.NextRGB()+(255,))] = i #add to catalog with new RGB color
 
 			featuretype, complement, start, finish, name, index = featurelist[i]
 		
@@ -452,8 +448,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 			#first draw the hidden features which are used for hittests on click
-			self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-			self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+			self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
+			self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 			self.hidden_dc.DrawPolygon(pointlist)
 
 			#now draw the real features
@@ -515,8 +511,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 					gcdc.DrawText(feature_name,x2+3,y2-gcdc.GetTextExtent(feature_name)[1])
 
 					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 					self.hidden_dc.DrawRectangle(x2, y2, gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
 
 				elif angle > 180:
@@ -524,8 +520,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
 
 					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 					self.hidden_dc.DrawRectangle(x2, y2, -gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
 
 			elif label_type == 'radiating':
@@ -545,8 +541,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 					gcdc.DrawRotatedText(feature_name, tx, ty, -angle+90)
 
 					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
 					x2, y2 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle+degrees)
 					x3, y3 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle-degrees)
@@ -567,8 +563,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 					gcdc.DrawRotatedText(feature_name, tx, ty, -angle-90)
 
 					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=unique_color))
+					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
+					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
 					x2, y2 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle+degrees)
 					x3, y3 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle-degrees)

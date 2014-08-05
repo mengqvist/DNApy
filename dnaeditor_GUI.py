@@ -56,7 +56,7 @@ from base_class import DNApyBaseClass
 
 #TODO
 #fix statusbar in general
-#fix selection so that the statusbar matches the real
+
 
 
 
@@ -168,8 +168,8 @@ class DNALexer(BaseLexer):
 			elif color == 'grey' and complement == True:
 				style = DNALexer.STC_STYLE_GREY_RV
 			else: 
-				print('nonononononon')
 				style = DNALexer.STC_STYLE_DEFAULT
+			start -= 1
 			stc.StartStyling(start, 0x1f)
 			length = finish-start
 			if length == 0:

@@ -99,6 +99,7 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 		self.OnSize(None)
 		self.paint_count = 0
 
+		self.unique_color = None
 
 	def Draw(self, dc):
 		## just here as a place holder.
@@ -108,6 +109,7 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 	def OnPaint(self, event):
 		# All that is needed here is to draw the buffer to screen
 		dc = wx.BufferedPaintDC(self, self._Buffer)
+		
 
 
 	def OnSize(self,event):
@@ -129,28 +131,33 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 		## wx.Bitmap::SaveFile for the details
 		self._Buffer.SaveFile(FileName, FileType)
 
-	def GetNextRGB(self, RGB = (0, 0, 0)):
+	def NextRGB(self):
 		'''Method for generating unique RGB colors. 
 		The input is a tuple of RGB colors and the method returns the next color.
 		When R reaches 255 one is added to G and R is reset.
 		When R and G both reach 255 one is added to B and R and G are reset.
 		This should generate over 1.6 million colors (255*255*255)
 		'''
-		R, G, B = RGB
-		assert 0<=R<=255 and 0<=G<=255 and 0<=B<=255, 'Error, R, G and B must be integer values between 0 and 255.'
 
-		if R == 255 and G == 255 and B == 255:
-			raise ValueError, 'R, G and B all have the value 255, no further colors are available.'
-		elif  R == 255 and G == 255:
-			R = 0
-			G = 0
-			B += 1
-		elif R == 255:
-			R = 0
-			G += 1
+		if self.unique_color == None:
+			self.unique_color = (0,0,0)
 		else:
-			R += 1
-		return (R, G, B)
+			R, G, B = self.unique_color
+			assert 0<=R<=255 and 0<=G<=255 and 0<=B<=255, 'Error, R, G and B must be integer values between 0 and 255.'
+
+			if R == 255 and G == 255 and B == 255:
+				raise ValueError, 'R, G and B all have the value 255, no further colors are available.'
+			elif  R == 255 and G == 255:
+				R = 0
+				G = 0
+				B += 1
+			elif R == 255:
+				R = 0
+				G += 1
+			else:
+				R += 1
+			self.unique_color = (R, G, B)
+		return self.unique_color
 
 
 

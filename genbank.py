@@ -136,6 +136,8 @@ class gbobject(object):
 		self.clipboard = {}
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
+		self.featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
+
 
 		self.search_hits = []	# variable for storing a list of search hits
 
@@ -279,8 +281,16 @@ class gbobject(object):
 
 			#now parse the line
 			dictionary = self.treat_input_line(current_line)
+
+
 			dictionary_keys = dictionary.keys()
 			if 'key' in dictionary_keys:
+				#handle exceptions for the feature type
+				if dictionary['key'] == 'primer':
+					dictionary['key'] = 'primer_bind'
+				elif dictionary['key'] not in self.featuretypes:
+					raise ValueError, '%s is not a valid feature key' % dictionary['key']
+
 				if feature != {}:
 					self.gbfile['features'].append(copy.deepcopy(feature))
 					feature = {}
@@ -800,10 +810,9 @@ class gbobject(object):
 
 	def add_feature(self, key, qualifiers, location, complement, join, order):
 		"""Method adds a new feature to the genbank file"""
-		featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
 		feature = {}
 
-		if key in featuretypes: 
+		if key in self.featuretypes: 
 			feature['key'] = key
 		else: 
 			print('Key error')
