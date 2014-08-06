@@ -10,7 +10,7 @@ This program uses ImageMagick to display the SVG files. ImageMagick also
 does a remarkable job of converting SVG files into other formats.
 
 Isendrak Skatasmid (http://code.activestate.com/recipes/578123-draw-svg-images-in-python-python-recipe-enhanced-v/) created an enhanced Version of Rick Muller's Code from http://code.activestate.com/recipes/325823-draw-svg-images-in-python/
-This was in turn enhanced by Martin Engqvist to contain code for generating arcs and double arcs.
+This was in turn enhanced by Martin Engqvist to contain code for styling text, rotating text, drawing arcs and drawing double arcs.
 """
 
 #import os
@@ -30,10 +30,9 @@ class Scene:
 
     def strarray(self):
         var = ["<?xml version=\"1.0\"?>\n",
-               "<svg height=\"%r\" width=\"%r\" >\n" % (self.height,self.width),
-               " <g>\n"]
+               "<svg height=\"%r\" width=\"%r\" >\n" % (self.height,self.width)]
         for item in self.items: var += item.strarray()            
-        var += [" </g>\n</svg>\n"]
+        var += ["</svg>\n"]
         return var
 
     def write_svg(self,filename=None):
@@ -59,13 +58,8 @@ class Line:
         return
 
     def strarray(self):
-        return ["""  <line 
-    x1=\"%r\" 
-    y1=\"%r\" 
-    x2=\"%r\" 
-    y2=\"%r\" 
-    style=\"stroke:%s;stroke-width:%r\"/>\n""" %\
-                (self.start[0],self.start[1],self.end[0],self.end[1],colorstr(self.color),self.width)]
+        return ["  <line x1=\"%r\" y1=\"%r\" x2=\"%r\" y2=\"%r\"\n" % (self.start[0],self.start[1],self.end[0],self.end[1]),
+    			"    style=\"stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.color),self.width)]
 
 class Circle:
     def __init__(self,center,radius,fill_color,line_color,line_width):
@@ -77,10 +71,7 @@ class Circle:
         return
 
     def strarray(self):
-        return ["""  <circle 
-    cx=\"%r\" 
-    cy=\"%r\" 
-    r=\"%r\"\n""" %\
+        return ["""  <circle cx=\"%r\" cy=\"%r\" r=\"%r\"\n""" %\
                 (self.center[0],self.center[1],self.radius),
                 "    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color),colorstr(self.line_color),self.line_width)]
 
@@ -93,11 +84,7 @@ class Ellipse:
         self.line_color = line_color
         self.line_width = line_width
     def strarray(self):
-        return ["""  <ellipse 
-    cx=\"%r\" 
-    cy=\"%r\" 
-    rx=\"%r\" 
-    ry=\"%r\"\n""" %\
+        return ["""  <ellipse cx=\"%r\" cy=\"%r\" rx=\"%r\" ry=\"%r\"\n""" %\
                 (self.center[0],self.center[1],self.radius_x,self.radius_y),
                 "    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color),colorstr(self.line_color),self.line_width)]
 
@@ -111,8 +98,7 @@ class Polygon:
         polygon=""
         for point in self.points:
             polygon+="%r,%r " % (point[0],point[1])
-        return ["  <polygon\n",
-    			"    points=\"%s\"\n" % str(polygon),
+        return ["  <polygon points=\"%s\"\n" % str(polygon),
 				"    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color),colorstr(self.line_color),self.line_width)]
 
 class Rectangle:
@@ -126,13 +112,9 @@ class Rectangle:
         return
 
     def strarray(self):
-        return ["""  <rect 
-    x=\"%r\" 
-    y=\"%r\" 
-    height=\"%r\"\n""" %\
-                (self.origin[0],self.origin[1],self.height),
-                "    width=\"%r\" style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" %\
-                (self.width,colorstr(self.fill_color),colorstr(self.line_color),self.line_width)]
+        return ["  <rect x=\"%r\" y=\"%r\" height=\"%r\" width=\"%r\"\n" % (self.origin[0],self.origin[1],self.height,self.width),
+                "    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" %\
+                (colorstr(self.fill_color),colorstr(self.line_color),self.line_width)]
 
 class Arc:
 	def __init__(self, origin, radius, start_ang, end_ang, fill_color, line_color, line_width):
@@ -215,7 +197,7 @@ class Arc:
 		return path			
 
 	def strarray(self):
-		arc_path = '    d="' #for storing the points when drawing the arc
+		arc_path = 'd="' #for storing the points when drawing the arc
 		
 		angle = self.end_ang
 		x, y = PolarToCartesian(self.origin[0], self.origin[1], self.radius, angle)
@@ -229,12 +211,8 @@ class Arc:
 			arc_path += '"\n'
 		
 
-		return ["""  <path 
-    cx=\"%r\" 
-    cy=\"%r\"\n""" %\
-			(self.origin[0], self.origin[1]),
-			arc_path,
-			"    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color), colorstr(self.line_color), self.line_width)]
+		return ["  <path %s" % arc_path,
+				"    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color), colorstr(self.line_color), self.line_width)]
 
 
 
@@ -253,7 +231,7 @@ class DoubleArc(Arc):
 
 
 	def strarray(self):
-		arc_path = '    d="' #for storing the points when drawing the arc
+		arc_path = 'd="' #for storing the points when drawing the arc
 		angle = self.start_ang
 
 		if self.start_ang == self.end_ang or self.start_ang == self.end_ang-360: #complete circle
@@ -291,33 +269,44 @@ class DoubleArc(Arc):
 			arc_path += outer_arc  #add outer arc
 			arc_path += 'z"\n' #close it
 			
-		return ["""  <path 
-    cx=\"%r\" 
-    cy=\"%r\"\n""" %\
-			(self.origin[0], self.origin[1]),
-			arc_path,
-			"    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color), colorstr(self.line_color), self.line_width)]
+		return ["  <path %s" % arc_path,
+				"    style=\"fill:%s;stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.fill_color), colorstr(self.line_color), self.line_width)]
 
 		
 
-
 class Text:
-    def __init__(self,origin,text,size,color):
-        self.origin = origin
-        self.text = text
-        self.size = size
-        self.color = color
-        return
+	'''Draws rotated text with the top (12 on a clock) being 0 degrees'''
+	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left", bshift="0"):
+		self.text = text
+		self.origin = origin
+		self.angle = angle
+		self.size = size
+		self.color = color
+		self.style = style
+		self.variant = variant
+		self.weight = weight
+		self.stretch = stretch
+		self.height = height
+		self.lspacing = lspacing
+		self.wspacing = wspacing 
+		self.opacity = opacity 
+		self.stroke = stroke
+		self.family = family
+		self.anchor = anchor
+		self.bshift = bshift
+		return
 
-    def strarray(self):
-        return ["""  <text 
-    x=\"%r\" 
-    y=\"%r\" 
-    font-size=\"%r\" 
-    fill=\"%s\">\n""" %\
-                (self.origin[0],self.origin[1],self.size,colorstr(self.color)),
-                "   %s\n" % self.text,
-                "  </text>\n"]
+	def strarray(self):
+		return ["  <text x=\"%r\" y=\"%r\" text-anchor=\"%s\" baseline-shift=\"%s%%\" transform=\"rotate(%r %s,%s)\"\n" %\
+				(self.origin[0], self.origin[1], self.anchor, self.bshift, self.angle, self.origin[0], self.origin[1]),
+				"    style=\"font-size:%spx;font-style:%s;font-variant:%s;font-weight:%s;font-stretch:%s;line-height:%s%%;letter-spacing:%spx;word-spacing:%spx;fill:%s;fill-opacity:%s;stroke:%s;font-family:%s\">\n" %\
+				(self.size, self.style, self.variant, self.weight, self.stretch, self.height, self.lspacing, self.wspacing, colorstr(self.color), self.opacity, self.stroke, self.family),
+				"    %s\n" % self.text,
+				"  </text>\n"]
+
+
+
+transform="matrix(0.70010948,-0.71403552,0.71403552,0.70010948,0,0)"
 
 def colorstr(rgb):
 	'''Convert RGB colors to hex''' 
@@ -344,13 +333,17 @@ def test():
 	scene.add(Polygon([(5,5),(5,10),(15,10),(20,20)], (0,255,255),(0,0,0),1))
 	scene.add(Line((200,200),(200,300),(0,0,0),1))
 	scene.add(Circle((200,200),30,(0,0,255),(0,0,0),1))
-	scene.add(Text((50,50),"Testing SVG",24,(0,0,0)))
+	scene.add(Text(text="Testing SVG", origin=(50,50), angle=0, size=24, color=(0,0,0)))
+	scene.add(Text(text="Testing SVG", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="end")) #anchor text to end
+	scene.add(Text(text="Testing SVG", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="middle", bshift="50")) #anchor text to middle and shift the baseline
 	scene.add(Ellipse((300,300), 40, 25, (255,0,255),(0,255,0),1))
 	scene.add(Arc(origin=(10,10), radius=50, start_ang=0, end_ang=90, fill_color=(0,0,0), line_color=(255,0,0), line_width=3))
 	scene.add(Arc(origin=(100,100), radius=15, start_ang=1, end_ang=89, fill_color=(0,0,0), line_color=(255,0,0), line_width=3))
 	scene.add(DoubleArc(origin=(100,200), radius=0, width=14, start_ang=0, end_ang=90, fill_color=(0,0,0), line_color=(255,0,0), line_width=0))
 	scene.add(DoubleArc(origin=(100,300), radius=15, width=14, start_ang=190, end_ang=200, fill_color=(0,0,0), line_color=(255,0,0), line_width=0))
 	scene.add(DoubleArc(origin=(200,100), radius=15, width=5, start_ang=0, end_ang=360, fill_color=(0,0,0), line_color=(255,0,0), line_width=0))
+	for r in range(0, 360, 45):
+		scene.add(Text(text="Testing rotated", origin=(350,350), angle=r, size=15, color=(abs(r)/2,255-abs(r)/2,0), anchor="end"))	
 	scene.write_svg()
 #	scene.display()
 	return
