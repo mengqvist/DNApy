@@ -63,7 +63,7 @@ def Draw(table=1):
 		finish_angle = 90+90*i
 
 		#draw the segment (background) for the current base
-		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=first_segment_color, line_color="#000000", line_width=0))
+		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=first_segment_color, line_color=first_segment_color, line_width=0.5))
 
 		#draw the base
 		x1, y1 = wsvg.PolarToCartesian(xc, yc, (radius+thickness)/2, finish_angle-(finish_angle-start_angle)/2)
@@ -81,7 +81,7 @@ def Draw(table=1):
 		nucleotide = nucleotides[i][1]
 
 		#draw the segment (background) for the current nucleotide
-		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=second_segment_color, line_color="#000000", line_width=0))
+		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=second_segment_color, line_color=second_segment_color, line_width=0.5))
 
 		#draw the nucleotide
 		x1, y1 = wsvg.PolarToCartesian(xc, yc, radius+thickness/2, finish_angle-(finish_angle-start_angle)/2)
@@ -103,7 +103,7 @@ def Draw(table=1):
 		nucleotide = nucleotides[i][2]
 
 		#draw the segment (background) for the current nucleotide
-		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=second_segment_color, line_color="#000000", line_width=0))
+		scene.add(wsvg.DoubleArc(origin=(xc, yc), radius=radius, width=thickness, start_ang=start_angle, end_ang=finish_angle, fill_color=third_segment_color, line_color=third_segment_color, line_width=0.5))
 
 		#draw the nucleotide
 		x1, y1 = wsvg.PolarToCartesian(xc, yc, radius+thickness/2, finish_angle-(finish_angle-start_angle)/2)
