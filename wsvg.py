@@ -13,14 +13,16 @@ Isendrak Skatasmid (http://code.activestate.com/recipes/578123-draw-svg-images-i
 This was in turn enhanced by Martin Engqvist to contain code for styling text, rotating text, drawing arcs and drawing double arcs.
 """
 
-#import os
+import os
 import math
-#display_prog = "display"
+import re
+display_prog = "display"
 
 class Scene:
     def __init__(self, name="svg", size=(400,400)):
         self.name = name
         self.items = []
+        self.size = size
         self.height = size[0]
         self.width = size[1]
         return
@@ -45,9 +47,9 @@ class Scene:
         file.close()
         return
 
-#    def display(self,prog=display_prog):
-#        os.system("%s %s" % (prog,self.svgname))
-#        return        
+    def display(self,prog=display_prog):
+        os.system("%s %s" % (prog,self.svgname))
+        return        
 
 class Line:
     def __init__(self,start,end,color,width):
@@ -62,7 +64,7 @@ class Line:
     			"    style=\"stroke:%s;stroke-width:%r\"/>\n" % (colorstr(self.color),self.width)]
 
 class Circle:
-    def __init__(self,center,radius,fill_color,line_color,line_width):
+    def __init__(self, center, radius, fill_color, line_color, line_width):
         self.center = center
         self.radius = radius
         self.fill_color = fill_color
@@ -276,7 +278,7 @@ class DoubleArc(Arc):
 
 class Text:
 	'''Draws rotated text with the top (12 on a clock) being 0 degrees'''
-	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left", bshift="0"):
+	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left"):
 		self.text = text
 		self.origin = origin
 		self.angle = angle
@@ -293,28 +295,48 @@ class Text:
 		self.stroke = stroke
 		self.family = family
 		self.anchor = anchor
-		self.bshift = bshift
 		return
 
 	def strarray(self):
-		return ["  <text x=\"%r\" y=\"%r\" text-anchor=\"%s\" baseline-shift=\"%s%%\" transform=\"rotate(%r %s,%s)\"\n" %\
-				(self.origin[0], self.origin[1], self.anchor, self.bshift, self.angle, self.origin[0], self.origin[1]),
+		return ["  <text x=\"%r\" y=\"%r\" text-anchor=\"%s\" transform=\"rotate(%r %s,%s)\"\n" %\
+				(self.origin[0], self.origin[1], self.anchor, self.angle, self.origin[0], self.origin[1]),
 				"    style=\"font-size:%spx;font-style:%s;font-variant:%s;font-weight:%s;font-stretch:%s;line-height:%s%%;letter-spacing:%spx;word-spacing:%spx;fill:%s;fill-opacity:%s;stroke:%s;font-family:%s\">\n" %\
 				(self.size, self.style, self.variant, self.weight, self.stretch, self.height, self.lspacing, self.wspacing, colorstr(self.color), self.opacity, self.stroke, self.family),
 				"    %s\n" % self.text,
 				"  </text>\n"]
 
 
+def checkHEX(string):
+	'''check if a string is a valid hex number'''
+	#check whether input is already in hex
+	string = str(string)
 
-transform="matrix(0.70010948,-0.71403552,0.71403552,0.70010948,0,0)"
+	regular_expression = re.compile(r'''^							#match beginning of string
+										[#]{1} 						#exactly one hash
+										[0-9a-fA-F]{6}				#exactly six of the hex symbols  0 to 9, a to f (big or small)
+										$							#match end of string
+										''', re.VERBOSE)	
+	
+	if regular_expression.match(string) == None: #if no match make the rgb to hex
+		return False
+	else:
+		return True
+
 
 def colorstr(rgb):
 	'''Convert RGB colors to hex''' 
-	R, G, B = rgb
-	assert 0<=R<=255
-	assert 0<=G<=255
-	assert 0<=B<=255
-	return "#%02x%02x%02x" % (R,G,B)
+	if checkHEX(rgb) is False:
+		R, G, B = rgb
+		assert 0<=R<=255
+		assert 0<=G<=255
+		assert 0<=B<=255
+		return "#%02x%02x%02x" % (R,G,B)
+	elif checkHEX(rgb) is True:
+		return rgb
+
+
+
+	
 
 def PolarToCartesian(centre_x, centre_y, radius, angle):	
 	'''Takes the centre of a circle, an angle (in degrees) and a radius and calculates the correspoinding XY coordinate on the circle'''
@@ -333,9 +355,9 @@ def test():
 	scene.add(Polygon([(5,5),(5,10),(15,10),(20,20)], (0,255,255),(0,0,0),1))
 	scene.add(Line((200,200),(200,300),(0,0,0),1))
 	scene.add(Circle((200,200),30,(0,0,255),(0,0,0),1))
-	scene.add(Text(text="Testing SVG", origin=(50,50), angle=0, size=24, color=(0,0,0)))
-	scene.add(Text(text="Testing SVG", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="end")) #anchor text to end
-	scene.add(Text(text="Testing SVG", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="middle", bshift="50")) #anchor text to middle and shift the baseline
+	scene.add(Text(text="Normal", origin=(50,50), angle=0, size=24, color=(0,0,0)))
+	scene.add(Text(text="End anchor", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="end")) #anchor text to end
+	scene.add(Text(text="Mid anchor and 50% lower", origin=(50,70), angle=0, size=24, color=(0,0,0), anchor="middle")) #anchor text to middle and shift the baseline
 	scene.add(Ellipse((300,300), 40, 25, (255,0,255),(0,255,0),1))
 	scene.add(Arc(origin=(10,10), radius=50, start_ang=0, end_ang=90, fill_color=(0,0,0), line_color=(255,0,0), line_width=3))
 	scene.add(Arc(origin=(100,100), radius=15, start_ang=1, end_ang=89, fill_color=(0,0,0), line_color=(255,0,0), line_width=3))
@@ -345,7 +367,7 @@ def test():
 	for r in range(0, 360, 45):
 		scene.add(Text(text="Testing rotated", origin=(350,350), angle=r, size=15, color=(abs(r)/2,255-abs(r)/2,0), anchor="end"))	
 	scene.write_svg()
-#	scene.display()
+	scene.display()
 	return
 
 if __name__ == "__main__": 
