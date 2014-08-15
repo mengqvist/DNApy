@@ -34,7 +34,8 @@
 import wx
 import os, sys
 import math
-from wx.lib.pubsub import Publisher as pub
+#from wx.lib.pubsub import Publisher as pub
+from wx.lib.pubsub import pub
 
 
 class DNApyBaseClass(wx.Panel):

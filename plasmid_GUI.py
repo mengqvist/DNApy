@@ -35,7 +35,7 @@
 #add 'dna ruler'
 
 import wx
-import wx.lib.graphics
+#import wx.lib.graphics
 from wx.lib.pubsub import pub
 
 

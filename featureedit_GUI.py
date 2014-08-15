@@ -49,7 +49,6 @@ import copy
 
 #for asserts and tests
 import types
-import unittest
 from base_class import DNApyBaseClass
 
 

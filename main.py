@@ -54,6 +54,10 @@ import genbank_GUI
 import mixed_base_codons_GUI
 
 
+#if sys.platform == 'win32':
+#	from wx.lib.pubsub import pub
+
+
 #TODO
 #add pretty dna view
 #make rightklick menus
@@ -87,16 +91,16 @@ class MyFrame(wx.Frame):
 		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
 		self.listening_group = 'from_feature_list'	
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+		pub.subscribe(self.listen_to_updateUI, self.listening_group)
 
 		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
+		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
 
 		self.listening_group2 = 'from_feature_edit'		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
+		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
 		self.listening_group4 = 'from_plasmid_view'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
+		pub.subscribe(self.listen_to_updateUI, self.listening_group4)	
 
 
 
@@ -604,7 +608,7 @@ Put Table here
 			self.frame_1_toolbar.EnableTool(514, True)
 
 	def update_globalUI(self):
-		pub.Publisher.sendMessage('from_main', '')
+		pub.sendMessage('from_main', '')
 
 ######################################
 
