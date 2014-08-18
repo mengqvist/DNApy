@@ -31,9 +31,14 @@
 #
 
 import string
+import random
 
 def CleanDNA(DNA, ambiguous=False, silent=True):
-	'''Function for cleaning DNA of non-DNA characters'''
+	'''
+	Function for cleaning DNA of non-DNA characters.
+	The variable ambigous (bool) determines whether the full set of ambigous codons are used or not.
+	the variable silent determines whether an output is printed every time a non-DNA character is omitted.
+	'''
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	if ambiguous == False:
 		bases = 'GATC'
@@ -185,6 +190,40 @@ def GetCodons(AA):
 	codons = eval(AA)
 	return codons
 
+
+
+
+def combine(input_list, max_total=50000):
+	'''
+	Takes a list of lists (nucleotides or amino acids) and makes every combination of these while retaining the internal order.
+	For example [['A'], ['T','A','G'], ['C', 'A']] will result in six sequences: ['ATC', 'AAC', 'AGC', 'ATA', 'AAA', 'AGA']
+	max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
+	The output is a generator with a list of the resulting sequences.
+	'''
+
+	#make sure the input will not result in too many sequences
+	list_of_nums = [len(x) for x in input_list]
+	total = reduce(lambda x, y: x*y, list_of_nums)
+	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the set maximum of %s sequences.' % (string, total, max_total)
+
+	#now combine them
+	#first copy the output list the number of times that there are nucleotides in the current position
+	output = []
+	for pos in input_list:
+		output_len = len(output)
+		if output_len == 0:
+			output.extend(pos)
+			output_len = len(output)
+		else:
+			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
+			for i in range(0, len(pos)): #for every nucleotide to be added
+				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
+					output[j+i*output_len] += pos[i]
+
+	yield output #return a generator
+
+
+
 def UnAmb(string):
 	'''Converts an ambigous nucletotide sequence to a list of sequences containing only A, T, C and G (as appropriate)'''
 	assert type(string) is str, 'Error, the input has to be a string.'
@@ -237,41 +276,35 @@ def UnAmb(string):
 
 		elif 'N' == letter: 
 			pos_list.append(['C','T','A','G'])
-	
-	#make sure the input will not result in too many sequences
-	list_of_nums = [len(x) for x in pos_list]
-	total = reduce(lambda x, y: x*y, list_of_nums)
-	max_total = 10000
-	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the maximum of %s sequences.' % (string, total, max_total)
 
-	#now combine them
-	#first copy the output list the number of times that there are nucleotides in the current position
-	output = []
-	for pos in pos_list:
-		output_len = len(output)
-		if output_len == 0:
-			output.extend(pos)
-			output_len = len(output)
-		else:
-			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
-			for i in range(0, len(pos)): #for every nucleotide to be added
-				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
-					output[j+i*output_len] += pos[i]
+	return combine(pos_list)
+
+
+def randomizeSeq(seq):
+	'''
+	Randomize a given DNA or protein sequence.
+	'''
+	assert type(seq) == str or type(seq) == unicode, 'Error, input sequence must be a string or unicode'
+	seq = list(seq)
+	output_list = []
+	while seq:
+		char = random.choice(seq)
+		seq.remove(char)
+		output_list.append(char)
+	output = ''.join(output_list)
 	return output
 
-
-#add randomize DNA
-
-
-#add abireader function
 
 #add function for fetching DNA from uniprot, ncbi...
 
 
 
 def pair_ident(Seq1, Seq2, single_gaps):
-	'''Takes two aligned sequences and returns their percent identity.
-Assumes that Seq1 and Seq2 are sequence strings'''
+	'''
+	Takes two aligned sequences and returns their percent identity.
+	Assumes that Seq1 and Seq2 are sequence strings.
+	single_gaps determines whether single gaps should be included or not.
+	'''
 
 	l=0.0 # counts alignment length, excluding identical gaps, but including single gaps
 	n=0.0 # count number of single gaps
@@ -302,10 +335,12 @@ Assumes that Seq1 and Seq2 are sequence strings'''
 
 #### Analyze alignments ####
 def single_ident(align_file, single_gaps):
-	'''Get identities for all protines compared to one reference sequence in aligned FASTA file.
-Assumes that align_file is a fasta-formatted alignment.
-Assumes that reference sequence is the first one.
-Returns a touple of the results.'''
+	'''
+	Get identities for all protines compared to one reference sequence in aligned FASTA file.
+	Assumes that align_file is a fasta-formatted alignment.
+	Assumes that reference sequence is the first one.
+	Returns a touple of the results.
+	'''
 
 	from Bio import AlignIO
 	results = ()
@@ -319,9 +354,11 @@ Returns a touple of the results.'''
 	return results
 
 def all_ident(align_file, single_gaps):
-	'''Get identities for all combinations of proteins in aligned FASTA file.
-Assumes that align_file is a fasta-formatted alignment.
-Returns a touple of the results.'''
+	'''
+	Get identities for all combinations of proteins in aligned FASTA file.
+	Assumes that align_file is a fasta-formatted alignment.
+	Returns a touple of the results.
+	'''
 
 	from Bio import AlignIO
 	results = ()
