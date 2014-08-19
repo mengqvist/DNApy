@@ -30,13 +30,19 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
+import fasta
 import string
 import random
+from Bio import AlignIO #biopython package
+from Bio.Align.Applications import MuscleCommandline #biopython package
+from StringIO import StringIO
+
+############# Basic DNA functions #####################
 
 def CleanDNA(DNA, ambiguous=False, silent=True):
 	'''
 	Function for cleaning DNA of non-DNA characters.
-	The variable ambigous (bool) determines whether the full set of ambigous codons are used or not.
+	The variable ambiguous (bool) determines whether the full set of ambiguous codons are used or not.
 	the variable silent determines whether an output is printed every time a non-DNA character is omitted.
 	'''
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
@@ -191,7 +197,7 @@ def GetCodons(AA):
 	return codons
 
 
-
+############################################################
 
 def combine(input_list, max_total=50000):
 	'''
@@ -298,8 +304,9 @@ def randomizeSeq(seq):
 #add function for fetching DNA from uniprot, ncbi...
 
 
+############### Identity functions ##########################
 
-def pair_ident(Seq1, Seq2, single_gaps):
+def PairIdent(Seq1, Seq2, single_gaps=True):
 	'''
 	Takes two aligned sequences and returns their percent identity.
 	Assumes that Seq1 and Seq2 are sequence strings.
@@ -321,9 +328,9 @@ def pair_ident(Seq1, Seq2, single_gaps):
 				n += 1 #count number of single gaps
 			l += 1 #count total length with single gaps
 
-	if single_gaps == 'y': #include single gaps 
+	if single_gaps is True: #include single gaps 
 		percent = round(100*(i/l),1) #calculate identity
-	elif single_gaps == 'n': #exclude single gaps
+	elif single_gaps is False: #exclude single gaps
 		if n == l: #if gaps same as total length identity is 0
 			percent = 0.0
 		else:	
@@ -333,47 +340,102 @@ def pair_ident(Seq1, Seq2, single_gaps):
 
 
 
-#### Analyze alignments ####
-def single_ident(align_file, single_gaps):
+def SingleIdent(align_file, single_gaps=True):
 	'''
-	Get identities for all protines compared to one reference sequence in aligned FASTA file.
+	Get identities for all proteins compared to one reference sequence in aligned FASTA file.
+	Input is the absolute path to a file.
 	Assumes that align_file is a fasta-formatted alignment.
 	Assumes that reference sequence is the first one.
-	Returns a touple of the results.
+	Returns a tuple of the results.
 	'''
 
-	from Bio import AlignIO
 	results = ()
-
 	input_handle = open(align_file, "rU")
 	alignment = AlignIO.read(input_handle, "fasta")
 	input_handle.close()
 	for record2 in range(1, len(alignment)):
-		percent = pair_ident(alignment[0].seq, alignment[record2].seq, single_gaps)
+		percent = PairIdent(alignment[0].seq, alignment[record2].seq, single_gaps)
 		results += (alignment[0].id + ' vs ' + alignment[record2].id+' '+str(percent),)
 	return results
 
-def all_ident(align_file, single_gaps):
+	
+def AllIdent(align_file, single_gaps=True):
 	'''
 	Get identities for all combinations of proteins in aligned FASTA file.
+	Input is the absolute path to a file.
 	Assumes that align_file is a fasta-formatted alignment.
-	Returns a touple of the results.
+	Returns a tuple of the results.
 	'''
 
-	from Bio import AlignIO
 	results = ()
-
 	input_handle = open(align_file, "rU")
 	alignment = AlignIO.read(input_handle, "fasta")
 	input_handle.close()
 	for record in range(len(alignment)):
 		for record2 in range(record+1, len(alignment)):
-			percent = pair_ident(alignment[record].seq, alignment[record2].seq, single_gaps)
+			percent = PairIdent(alignment[record].seq, alignment[record2].seq, single_gaps)
 			results += (alignment[record].id + ' vs ' + alignment[record2].id+' '+str(percent),)
 	return results
 
-########
+####################### End identity functions #################################
 
+
+####################### Alignment functions ####################################
+
+def alignString(string):
+
+
+	records_handle = StringIO(string) #turn string into a handle
+	tempdata = records_handle.getvalue()
+	
+	#for separate fasta entries
+	muscle_cline = MuscleCommandline()
+	stdout, stderr = muscle_cline(stdin=tempdata)
+	stdout = fasta.parseString(stdout)
+
+#	#for aligned fasta entries
+#	muscle_cline = MuscleCommandline(clw=True)
+#	stdout, stderr = muscle_cline(stdin=tempdata)
+#	print(stdout)
+	
+#	#the clustalw-type output can be further formated
+#	align = AlignIO.read(StringIO(stdout), "clustal")
+#	print(align)
+
+	return stdout
+	
+def alignList(tlist):
+	'''
+	Muscle alignment, takes a list of tuples as input and aligns all at once.
+	Example input: [('id1', 'CACC'), ('id2', 'CATC'), ('id3', 'TACC')]
+	The alignment data is returned as id, dna tuples in a generator.
+	'''
+	#prepare input as a 'virtual' FASTA file
+		
+	string = ''
+	for entry in tlist:
+		if entry[0][0] != '>':
+			string += '>%s\n%s\n' % entry
+		elif entry[0][0] == '>':
+			string += '%s\n%s\n' % entry
+		else:
+			print('Muscle name error')	
+	return alignString(string)
+
+	
+def alignFile(filepath):
+	'''
+	Function for aligning all the records in a file containing fasta sequences.
+	The input is the absolute filepath including the filename (as a string).
+	The alignment data is returned as id, dna tuples in a generator.
+	'''
+	string = open(filepath)
+	return alignString(string)
+
+
+
+
+########################################################
 
 def blast(blast_type, database, seq): #function for blasting 
 	'''Blasts a sequence against the NCBI database'''
@@ -400,7 +462,7 @@ def blast(blast_type, database, seq): #function for blasting
 	
 
 
-def smithwaterman(DNA1, DNA2):
+def smithWaterman(DNA1, DNA2):
 	"""Module aligns two DNA sequences and returns aligned seqA, alignment "bars (|)" and aligned seqB"""
 	##got script from Kevin Kwok and modified...
 	##http://kevinakwok.tumblr.com/post/18372160357/smith-waterman-algorithm

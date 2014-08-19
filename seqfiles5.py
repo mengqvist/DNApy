@@ -106,9 +106,8 @@ import os
 import fnmatch
 import dna as DNA
 
-#from Bio.Align.Applications import MuscleCommandline
+
 from StringIO import StringIO
-#from Bio import AlignIO
 import pprint
 import copy
 
@@ -141,6 +140,7 @@ class SeqObj:
 		self.dna = False	#complete DNA sequence
 		self.qual_val = False #contains the qualifier values for the sequence (if derived from an .ab1 or .scf file)
 		self.trace = False #sequencing trace
+		self.RC = False #keep track of whether the sequence has been reverse-complemented
 		
 		self.dna_clipped = False #clipped DNA sequence (removal of poor sequence (based on qual_val))
 		self.reference = False #reference to a SeqObj that holds the reference sequence
@@ -163,7 +163,7 @@ class SeqObj:
 		return self.name #string
 		
 	def setOrientation(self, orientation):
-		self.Orientation = orientation #string
+		self.orientation = orientation #string
 	def getOrientation(self):
 		return self.orientation #string
 		
@@ -181,7 +181,12 @@ class SeqObj:
 		self.trace = trace #list [G, A, T, C]
 	def getTrace(self):
 		return self.trace #list	[G, A, T, C]
-
+		
+	def setRC(self, bool):
+		self.RC = bool #true or false
+	def getRC(self):
+		return self.RC #true or false
+		
 	def setDNAClipped(self, dna):
 		self.dna_clipped = dna #string
 	def getDNAClipped(self):
@@ -239,12 +244,6 @@ class SeqObj:
 	
 		#read the input
 		if self.input_type in ['TXT', 'SEQ', None] and filename not in ['allseqs.txt']:
-			self.setName(filename)
-			f = open(self.filepath, 'r') 
-			dna = f.read() 
-			self.setDNA(dna.replace('\n', ''))
-			#add an assert that there are only dna bases here
-			f.close()
 			#establish orientation of DNA
 			if filename.split('.')[0][-2:].upper() == 'FW':
 				self.setOrientation('fw')
@@ -253,14 +252,18 @@ class SeqObj:
 			else:
 				raise TypeError, 'The last two characters of the filename (before the .) must specify whether the sequence is fw or rv. Pleace rename file %s accordingly' % filename
 
+			self.setName(filename)
+			f = open(self.filepath, 'r') 
+			input = f.read() 
+			f.close()
+			if self.getOrientation() == 'fw':
+				self.setDNA(input.replace('\n', ''))
+			elif self.getOrientation() == 'rv':
+				self.setDNA(DNA.RC(input.replace('\n', '')))
+				self.setRC(True)
+
 			
 		elif self.input_type in ['AB1', 'ABI', 'ABIF']:
-			self.setName(filename)
-			ab1 = ABIreader.Trace(self.filepath, trimming=False) #optionally ', trimming=True'
-			self.setDNA(ab1.seq)
-			self.setQualVal(ab1.qual_val)
-			self.setTrace([ab1.data['raw1'], ab1.data['raw2'], ab1.data['raw3'], ab1.data['raw4']])
-			#abi=dict(baseorder=ab1.data['baseorder'], qual_val=ab1.qual_val, G=str(AB1Trace.data['raw1']), A=str(AB1Trace.data['raw2']), T=str(AB1Trace.data['raw3']), C=str(AB1Trace.data['raw4']))
 			#establish orientation of DNA
 			if filename.split('.')[0][-2:].upper() == 'FW':
 				self.setOrientation('fw')
@@ -268,6 +271,21 @@ class SeqObj:
 				self.setOrientation('rv')
 			else:
 				raise TypeError, 'The last two characters of the filename (before the .) must specify whether the sequence is fw or rv. Pleace rename file %s accordingly' % filename
+
+			self.setName(filename)
+			ab1 = ABIreader.Trace(self.filepath, trimming=True) #optionally ', trimming=True'
+			if self.getOrientation() == 'fw':
+				self.setDNA(ab1.seq)
+				self.setQualVal(ab1.qual_val) #need to RC this too
+				self.setTrace([ab1.data['raw1'], ab1.data['raw2'], ab1.data['raw3'], ab1.data['raw4']]) #need to RC this too
+				#abi=dict(baseorder=ab1.data['baseorder'], qual_val=ab1.qual_val, G=str(AB1Trace.data['raw1']), A=str(AB1Trace.data['raw2']), T=str(AB1Trace.data['raw3']), C=str(AB1Trace.data['raw4']))
+
+			elif self.getOrientation() == 'rv':
+				self.setDNA(DNA.RC(ab1.seq))
+				self.setQualVal(ab1.qual_val) #need to RC this too
+				self.setTrace([ab1.data['raw1'], ab1.data['raw2'], ab1.data['raw3'], ab1.data['raw4']]) #need to RC this too
+				#abi=dict(baseorder=ab1.data['baseorder'], qual_val=ab1.qual_val, G=str(AB1Trace.data['raw1']), A=str(AB1Trace.data['raw2']), T=str(AB1Trace.data['raw3']), C=str(AB1Trace.data['raw4']))
+				self.setRC(True)				
 
 #		elif self.input_type == 'ZTR':
 #			print('Support for .ztr files has not yet been implemented')
@@ -277,7 +295,7 @@ class SeqObj:
 			
 		elif fnmatch.fnmatch(filename, '*.fasta'):
 			self.setName(filename)
-			id, dna = fasta.parse(self.filepath) #parse the fasta file. File should contain ONE entry
+			id, dna = fasta.parseFile(self.filepath) #parse the fasta file. File should contain ONE entry
 			self.setDNA(dna)
 			#establish orientation of DNA
 			if filename.split('.')[0][-2:].upper() == 'FW':
@@ -349,7 +367,7 @@ class SeqAnalysis:
 
 				
 	def addFolder(self, path):
-		'''Opens many .Seq or .ab1 file and return id and sequence into a list of dictionaries'''
+		'''Opens many .Seq or .ab1 file and returns id and sequence into a list of dictionaries'''
 		#Here I move all the sequence data from all .Seq or .ab1 files in one folder into a list of dictionaries
 		file_list = sorted(os.listdir(path))
 		for filename in file_list: 
@@ -378,14 +396,14 @@ class SeqAnalysis:
 		seq1aln = alignment.seq1aligned.upper()
 		seq2aln = alignment.seq2aligned.upper()
 		assert len(seq1aln) == len(seq2aln), 'Error, the sequences are not of the same length'
-		
 				
 		overlap = False
 		start = False
-		end = False
+		end = len(seq1aln)
 		length = False
+		first = False
 	
-		#get start, end and length of overlap. N is tolerated and double -- are tolerated.
+		#get start, end and length of overlap. Any number of N is tolerated and a double -- is tolerated.
 		for i in range(len(seq1aln)):
 			if overlap is False and seq1aln[i] in 'ATCGN' and seq2aln[i] in 'ATCGN': #first nucleotide of overlap
 				start = copy.copy(i)
@@ -394,59 +412,133 @@ class SeqAnalysis:
 			elif overlap is True and (seq1aln[i] == '-' or seq2aln[i] == '-'):
 				if seq1aln[i+1:i+3] == '--' or seq2aln[i+1:i+3] == '--': #allow for two missing bases, but not more
 					end = copy.copy(i)
-					length = end-start
 					break
-					
+		a = open('test.txt', 'a') #open it for writing	
+		a.write(seq1aln)
+		a.write(seq2aln)
+		a.close()
+		#Find which sequence is the first (the leftmost)
+		#possible topologies:
+
+		#AAAAAAAAAAAAAATTTTT-----------
+		#--------------AAAAACCCCCCCCCCC
+		if (seq1aln[0] in 'ATCGN' and seq2aln[0] == '-') and (seq1aln[end+1] == '-' and seq2aln[end+1] in 'ATCGN'):
+			first = 1 #seq1 first
+			
+		#--------------AAAAACCCCCCCCCCC
+		#AAAAAAAAAAAAAATTTTT-----------
+		elif (seq1aln[0] == '-' and seq2aln[0] in 'ATCGN') and (seq1aln[end+1] in 'ATCGN' and seq2aln[end+1] == '-'):
+			first = 2 #seq2 first
+		
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC		
+		#------AAAAAAAAAAAAAATTTTT-----------
+		elif (seq1aln[0] in 'ATCGN' and seq2aln[0] == '-') and (seq1aln[end+1] in 'ATCGN' and seq2aln[end+1] == '-'):
+			overlap = False #mark this as not an overlap
+
+		#------AAAAAAAAAAAAAATTTTT-----------
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC			
+		elif (seq1aln[0] == '-' and seq2aln[0] in 'ATCGN') and (seq1aln[end+1] == '-' and seq2aln[end+1] in 'ATCGN'):
+			overlap = False #mark this as not an overlap
+
+		#CCCCCCAAAAAAAAAAAAAATTTTTCC---------
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC		
+		elif (seq1aln[0] in 'ATCGN' and seq2aln[0] in 'ATCGN') and (seq1aln[end+1] == '-' and seq2aln[end+1] in 'ATCGN'):
+			first = 1 #seq1 first
+
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC				
+		#CCCCCCAAAAAAAAAAAAAATTTTTCC---------
+		elif (seq1aln[0] in 'ATCGN' and seq2aln[0] in 'ATCGN') and (seq1aln[end+1] in 'ATCGN' and seq2aln[end+1] == '-'):
+			first = 2 #seq2 first
+			
+		#-----CAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		elif (seq1aln[0] == '-' and seq2aln[0] in 'ATCGN') and (seq1aln[end+1] in 'ATCGN' and seq2aln[end+1] in 'ATCGN'):
+			first = 2 #seq2 first
+
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		#-----CAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		elif (seq1aln[0] in 'ATCGN' and seq2aln[0] == '-') and (seq1aln[end+1] in 'ATCGN' and seq2aln[end+1] in 'ATCGN'):
+			first = 1 #seq1 first
+			
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		#CCCCCCAAAAAAAAAAAAAATTTTTCCCCCCCCCCC
+		elif (seq1aln[0] in 'ATCGN' and seq2aln[0] in 'ATCGN') and (seq1aln[len(seq1aln)] in 'ATCGN' and seq2aln[len(seq2aln)] in 'ATCGN'):
+			first = 1 #it does not matter which one is first, but let's pick seq1		
+
+
+		
 		if overlap is False:
-			return 0
+			return False, False, False, False
 		else:
-			return length #make this to look like the difflib
+			return seq1aln, seq2aln, seq1aln[start:end], first #return aligned seq1 (str), seq2 (str), the overlap (str), and an integer (1 or 2 ) that indicates which sequence is first in the alignment.
+
 
 			
+	def findFirst(self, alnscores):
+		'''
+		Find the leftmost sequence of alignment pairs.
+		'''
+		#find the leftmost sequence
+		keys = alnscores.keys() #seqs with overlaps to the right
+		leftmost = []
+		for i in keys:
+			present = False
+			for j in keys:
+				if i in alnscores[j]: #they cannot be present as the 'right' sequence of any other sequence
+					present = True
+					break
+			if present is False and i not in leftmost:
+				leftmost.append(i)
+		print('leftmost', leftmost)
+		return leftmost # a list
+
+
 	def sortSeqs(self):
 		'''
-		Align each sequence with each other sequence. Sort them in the order in which they should physically occur.
+		Align each sequence with each other sequence. 
+		Save the alignment scores in a matrix where the index (in the list) for each SeqObj is used as the identifier.
 		'''
-		for group in seqdata:
-			alnmatrix = []
-			for seqobj1 in group['samples']:
-				for seqobj2 in group['samples']:
-					if seqobj1 == seqobj2:
-						pass
-					else:
-						temp = NW.PairwiseAlignment(seqobj1.getDNA(), seqobj2.getDNA()) #align the two
-						#somehow score the alignment
 
-
-		# sortlist = [0]
-
-		# for i in range(1,len(entry)):
-			# counter = 0
+		alnscores = {} #store the alignment overlaps
+		alnseqs = {} #store the alignment sequences
+		for group in self.seqdata:
+			for i in range(len(group['samples'])-1):
+				for j in range(i+1, len(group['samples'])):
+					seqobj1 = group['samples'][i]
+					seqobj2 = group['samples'][j]
+					alnseq1, alnseq2, overlap, first = self.getOverlap(seqobj1.getDNA(), seqobj2.getDNA()) #get the overlap and which sequence is first
+	#					print('%s and %s' % (seqobj1.getName(), seqobj2.getName()), overlap)
+					if overlap is not False and first == 1:
+						if i in alnscores:
+							alnscores[i].update({j:len(overlap)})
+							alnseqs[i].update({j:(alnseq1, alnseq2)})
+						else:
+							alnscores[i] = {j:len(overlap)}
+							alnseqs[i] = {j:(alnseq1, alnseq2)}
+					elif overlap is not False and first == 2:
+						if j in alnscores:
+							alnscores[j].update({i:len(overlap)})
+							alnseqs[j].update({i:(alnseq2, alnseq1)})
+						else:
+							alnscores[j] = {i:len(overlap)}
+							alnseqs[j] = {i:(alnseq2, alnseq1)}
+			print(alnscores)
 			
+			#get the leftmost (the first) sequence
+			leftmost = self.findFirst(alnscores)[0] 
+			
+			#determine the order of sequences
+			sequence = [leftmost]
+			keys = alnscores.keys() 
+			while sequence[-1] in keys:
+				sequence.append(max(alnscores[sequence[-1]], key=alnscores[sequence[-1]].get)) #get the max value for the dictionary under the key
+			print('sequence', sequence)
+			
+	def printAlnScores(self):
+		pass
+	
 
-			# for i in range(len(temp)):
-				# if temp[i] == '-':
-					# counter += 1
-				# elif temp[i] == 'x':
-					# counter = 'x'	
-				# elif temp[i] != '-':
-					# break
-			# sortlist.append(counter)
 		
-		# i = len(sortlist)
-		# n = 0
-		# while n < i:
-			# if sortlist[n] == 'x':
-				# del entry[n]
-				# del sortlist[n]
-				# i -= 1
-				# n -= 1
-			# else:
-				# n += 1
-		# sortedseqs = [x for (y,x) in sorted(zip(sortlist, entry))]
-		# return sortedseqs
-
-				
 	def setConsensus(self):
 		'''
 		Build a consensus sequence from sorted sequence reads.
@@ -525,64 +617,8 @@ def findoverlap(Seq1, Seq2, min_overlap=20):
 		return seq1_loc, seq2_loc, match_len #return overlap DNA, overlap start on first seq, overlap start on second seq
 		
 
-
-
-
-def join(Seq1, Seq2):
-	"""joins two sequences that have an overlap.
-		Seq1 is assumed to come before Seq2.
-		Both are assumed to be in the same orientation."""
-	vars = findoverlap(Seq1, Seq2) #vars contains the start of overlap on seq1, start of overlap on seq2, and length of overlap
-	#print(vars)
-	if vars == False:
-		print('No overlap')
-		return False
-	elif type(var[0]) == int and type(var[1]) == int and type(var[2]) == int:
-		print('Overlap')
-		JointSeq = Seq1[0:vars[0]] + Seq2[vars[1]:len(Seq2)] 
-		return JointSeq
-	else:
-		print('error while joining')
-
-
-		
-		
-###function that aligns everything in fasta file
-def M_align(dictlist):
-	'''Muscle alignment, takes a list of dictionaries as input and aligns all at once'''
-	#prepare input as a 'virtual' FASTA file
-		
-	records = ''
-	for entry in dictlist:
-		if entry['name'][0] != '>':
-			records += '>%s\n%s\n' % (entry['name'], entry['dna'])
-		elif entry['name'][0] == '>':
-			records += '%s\n%s\n' % (entry['name'], entry['dna'])
-		else:
-			print('Muscle name error')
-
-	records_handle = StringIO(records) #turn string into a handle
-	tempdata = records_handle.getvalue()
 	
-	#for seperate fasta entries
-	muscle_cline = MuscleCommandline()
-	stdout, stderr = muscle_cline(stdin=tempdata)
-	stdout = parse_fasta(stdout)
-
-#	#for aligned fasta entries
-#	muscle_cline = MuscleCommandline(clw=True)
-#	stdout, stderr = muscle_cline(stdin=tempdata)
-#	print(stdout)
-	
-#	#the clustalw-type output can be further formated
-#	align = AlignIO.read(StringIO(stdout), "clustal")
-#	print(align)
-
-	return stdout
-
-	
-	
-def M_align_iterative(index):
+def M_align_iterative(seqdata):
 	'''This function aligns many sequences to a reference, one sequence at a time, then makes sure that all gaps match'''
 	#prepare input as a 'virtual' FASTA file
 	#first entry should be the reference
@@ -673,26 +709,25 @@ def M_align_iterative(index):
 	#I should probably add someting to go through and check that I don't have '-' for all sequences at some position
 
 
-def parse_fasta(string):
-	'''Convert fasta sting to a list of dictionaries'''
-	sequence = ''
-	name = ''
-	output = []
-	list = string.split('\n')
-	for line in list:
-		if line == '':
-			pass
-		elif line == '\n':
-			pass
-		elif line[0] == '>':
-			if sequence != '':
-				output.append(dict(name=str(name), dna=sequence))
-			sequence = ''
-			name = line
-		else:
-			sequence += line
-	output.append(dict(name=str(name), dna=sequence))
-	return output		
+def join(Seq1, Seq2):
+	"""joins two sequences that have an overlap.
+		Seq1 is assumed to come before Seq2.
+		Both are assumed to be in the same orientation."""
+	vars = findoverlap(Seq1, Seq2) #vars contains the start of overlap on seq1, start of overlap on seq2, and length of overlap
+	#print(vars)
+	if vars == False:
+		print('No overlap')
+		return False
+	elif type(var[0]) == int and type(var[1]) == int and type(var[2]) == int:
+		print('Overlap')
+		JointSeq = Seq1[0:vars[0]] + Seq2[vars[1]:len(Seq2)] 
+		return JointSeq
+	else:
+		print('error while joining')
+
+
+		
+	
 
 #align function
 def align(Seq1, Seq2): #aligns two sequences that have an overlap
