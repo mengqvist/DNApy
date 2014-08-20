@@ -70,7 +70,7 @@ def C(DNA):
 	"""Returns the complement of a DNA string"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n', 
-'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
+					'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
 	bases = list(DNA) 
 	bases = [complement[base] for base in bases] 
 	return ''.join(bases)
@@ -82,32 +82,16 @@ def RC(DNA):
 	return R(C(DNA))
 
 
-def Translate(DNA):
-	"""Returns protein sequence from DNA string input"""
+def Translate(DNA, table=1):
+	"""
+	Returns protein sequence from DNA string input.
+	The table variable specifies which codon table should be used.
+	table defaults to the standard codon table 1
+	"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
-	F = ['TTT', 'TTC'];
-	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
-	S = ['TCT', 'TCC', 'TCA', 'TCG', 'AGC', 'AGT'];
-	Y = ['TAT', 'TAC'];
-	stop = ['TAA', 'TAG', 'TGA'];
-	C = ['TGT', 'TGC'];
-	W = ['TGG'];
-	P = ['CCT', 'CCA', 'CCG', 'CCC'];
-	H = ['CAT', 'CAC'];
-	E = ['GAA', 'GAG'];
-	R = ['CGT', 'CGA', 'CGG', 'CGC', 'AGG', 'AGA'];
-	I = ['ATT', 'ATC', 'ATA'];
-	M = ['ATG'];
-	T = ['ACG', 'ACC', 'ACA', 'ACT'];
-	N = ['AAT', 'AAC'];
-	K = ['AAA', 'AAG'];
-	V = ['GTT', 'GTA', 'GTG', 'GTC'];
-	A = ['GCG', 'GCC', 'GCA', 'GCT'];
-	D = ['GAT', 'GAC'];
-	Q = ['CAG', 'CAA'];
-	G = ['GGA', 'GGT', 'GGC', 'GGG']
+	codons = CodonTable(table).getCodons()
 
-	protein = ''
+	protein = []
 	DNA = DNA.upper()
 	DNA = DNA.replace('\n', '') #get rid of row breaks
 	DNA = DNA.replace('U', 'T')
@@ -116,85 +100,87 @@ def Translate(DNA):
 		if i%3==0:
 			if i+3>len(DNA):
 				pass
-			elif any(DNA[i:(i+3)] in s for s in F):
-				protein = protein + 'F'
-			elif any(DNA[i:(i+3)] in s for s in L):
-				protein = protein + 'L'
-			elif any(DNA[i:(i+3)] in s for s in S):
-				protein = protein + 'S'
-			elif any(DNA[i:(i+3)] in s for s in Y):
-				protein = protein + 'Y'
-			elif any(DNA[i:(i+3)] in s for s in stop):
-				protein = protein + '*'
-			elif any(DNA[i:(i+3)] in s for s in C):
-				protein = protein + 'C'
-			elif any(DNA[i:(i+3)] in s for s in W):
-				protein = protein + 'W'
-			elif any(DNA[i:(i+3)] in s for s in P):
-				protein = protein + 'P'
-			elif any(DNA[i:(i+3)] in s for s in H):
-				protein = protein + 'H'
-			elif any(DNA[i:(i+3)] in s for s in E):
-				protein = protein + 'E'
-			elif any(DNA[i:(i+3)] in s for s in R):
-				protein = protein + 'R'
-			elif any(DNA[i:(i+3)] in s for s in I):
-				protein = protein + 'I'
-			elif any(DNA[i:(i+3)] in s for s in M):
-				protein = protein + 'M'
-			elif any(DNA[i:(i+3)] in s for s in T):
-				protein = protein + 'T'
-			elif any(DNA[i:(i+3)] in s for s in N):
-				protein = protein + 'N'
-			elif any(DNA[i:(i+3)] in s for s in K):
-				protein = protein + 'K'
-			elif any(DNA[i:(i+3)] in s for s in V):
-				protein = protein + 'V'
-			elif any(DNA[i:(i+3)] in s for s in A):
-				protein = protein + 'A'
-			elif any(DNA[i:(i+3)] in s for s in D):
-				protein = protein + 'D'
-			elif any(DNA[i:(i+3)] in s for s in Q):
-				protein = protein + 'Q'
-			elif any(DNA[i:(i+3)] in s for s in G):
-				protein = protein + 'G'
+			elif any(DNA[i:(i+3)] in s for s in codons['F']):
+				protein.append('F')
+			elif any(DNA[i:(i+3)] in s for s in codons['L']):
+				protein.append('L')
+			elif any(DNA[i:(i+3)] in s for s in codons['S']):
+				protein.append('S')
+			elif any(DNA[i:(i+3)] in s for s in codons['Y']):
+				protein.append('Y')
+			elif any(DNA[i:(i+3)] in s for s in codons['stop']):
+				protein.append('*')
+			elif any(DNA[i:(i+3)] in s for s in codons['C']):
+				protein.append('C')
+			elif any(DNA[i:(i+3)] in s for s in codons['W']):
+				protein.append('W')
+			elif any(DNA[i:(i+3)] in s for s in codons['P']):
+				protein.append('P')
+			elif any(DNA[i:(i+3)] in s for s in codons['H']):
+				protein.append('H')
+			elif any(DNA[i:(i+3)] in s for s in codons['E']):
+				protein.append('E')
+			elif any(DNA[i:(i+3)] in s for s in codons['R']):
+				protein.append('R')
+			elif any(DNA[i:(i+3)] in s for s in codons['I']):
+				protein.append('I')
+			elif any(DNA[i:(i+3)] in s for s in codons['M']):
+				protein.append('M')
+			elif any(DNA[i:(i+3)] in s for s in codons['T']):
+				protein.append('T')
+			elif any(DNA[i:(i+3)] in s for s in codons['N']):
+				protein.append('N')
+			elif any(DNA[i:(i+3)] in s for s in codons['K']):
+				protein.append('K')
+			elif any(DNA[i:(i+3)] in s for s in codons['V']):
+				protein.append('V')
+			elif any(DNA[i:(i+3)] in s for s in codons['A']):
+				protein.append('A')
+			elif any(DNA[i:(i+3)] in s for s in codons['D']):
+				protein.append('D')
+			elif any(DNA[i:(i+3)] in s for s in codons['Q']):
+				protein.append('Q')
+			elif any(DNA[i:(i+3)] in s for s in codons['G']):
+				protein.append('G')
 			else:
-				protein = protein + '?'
-	return protein	
+				raise Error, '"%s" is not a valid codon' % DNA[i:(i+3)]
+	return ''.join(protein)	
 
 
-def TranslateRC(DNA):
+def TranslateRC(DNA, table=1):
 	'''Translate the reverse complement of DNA'''
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	DNA = RC(DNA)
-	return Translate(DNA)
+	return Translate(DNA, table)
 
-def GetCodons(AA):
-	'''Get the codons for a specified AA. Returns a list of strings.'''
-	assert AA.upper() in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
-	F = ['TTT', 'TTC'];
-	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
-	S = ['TCT', 'TCC', 'TCA', 'TCG', 'AGC', 'AGT'];
-	Y = ['TAT', 'TAC'];
-	stop = ['TAA', 'TAG', 'TGA'];
-	C = ['TGT', 'TGC'];
-	W = ['TGG'];
-	P = ['CCT', 'CCA', 'CCG', 'CCC'];
-	H = ['CAT', 'CAC'];
-	E = ['GAA', 'GAG'];
-	R = ['CGT', 'CGA', 'CGG', 'CGC', 'AGG', 'AGA'];
-	I = ['ATT', 'ATC', 'ATA'];
-	M = ['ATG'];
-	T = ['ACG', 'ACC', 'ACA', 'ACT'];
-	N = ['AAT', 'AAC'];
-	K = ['AAA', 'AAG'];
-	V = ['GTT', 'GTA', 'GTG', 'GTC'];
-	A = ['GCG', 'GCC', 'GCA', 'GCT'];
-	D = ['GAT', 'GAC'];
-	Q = ['CAG', 'CAA'];
-	G = ['GGA', 'GGT', 'GGC', 'GGG']
-	codons = eval(AA)
-	return codons
+
+	
+def GetCodons(AA, table=1):
+	'''
+	Get the codons for a specified AA. Returns a list of strings.
+	The variable table specifies which codon table should be used.
+	table defaults to the standard codon table 1
+	'''
+	assert len(AA) == 1, 'Error, function takes a single amino acid as input'
+	AA = AA.upper()
+	assert AA in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
+	codons = CodonTable(table).getCodons()
+	aacodons = codons[AA]
+	return aacodons	
+	
+def ReverseTranslate(protein, table=1):
+	'''
+	Translate protein to DNA.
+	The input is a protein sequence as a string.
+	The output is a list of codons (with ambigous bases) that describe that protein.
+	For some amino acids there will be two possible ambigous codons.
+	Run the combine() function to convert the list to all possible dna sequences.
+	'''
+	assert type(protein) == str or type(protein) == unicode, 'Error, input sequence must be a string or unicode'
+	dnalist = []
+	for aa in protein:
+		dnalist.append(GetCodons(aa, table))
+	return dnalist
 
 
 ############################################################
@@ -225,11 +211,66 @@ def combine(input_list, max_total=50000):
 			for i in range(0, len(pos)): #for every nucleotide to be added
 				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
 					output[j+i*output_len] += pos[i]
+	return output #return the list
 
-	yield output #return a generator
+ def Amb(largelist):
+	'''
+	This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
+	Output is a DNA string with the ambigous nucleotides.
+	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]
+	'''
+	output = []
 
+	largelist = [x.upper() for x in largelist] #make the uppercase
+	for list in largelist:
+		if not False in [x in 'A' for x in list]: #test whether each item in the list is present in a string
+			output.append('A')
 
+		elif not False in [x in 'G' for x in list]:
+			output.append('G')
+			
+		elif not False in [x in 'C' for x in list]: 
+			output.append('C')
 
+		elif not False in [x in 'T' for x in list]:
+			output.append('T')
+
+		elif not False in [x in 'CT' for x in list]: 
+			output.append('Y')
+
+		elif not False in [x in 'GT' for x in list]: 
+			output.append('K')
+
+		elif not False in [x in 'AC' for x in list]:
+			output.append('M')
+
+		elif not False in [x in 'CG' for x in list]: 
+			output.append('S')
+
+		elif not False in [x in 'AT' for x in list]: 
+			output.append('W')
+
+		elif not False in [x in 'AG' for x in list]: 
+			output.append('R')
+
+		elif not False in [x in 'CTA' for x in list]: 
+			output.append('H')
+
+		elif not False in [x in 'CAG' for x in list]: 
+			output.append('V')
+
+		elif not False in [x in 'TAG' for x in list]: 
+			output.append('D')		
+			
+		elif not False in [x in 'CTG' for x in list]: 
+			output.append('B')
+
+		elif not False in [x in 'CTAG' for x in list]: 
+			output.append('N')
+	
+	return ''.join(output)
+
+	
 def UnAmb(string):
 	'''Converts an ambigous nucletotide sequence to a list of sequences containing only A, T, C and G (as appropriate)'''
 	assert type(string) is str, 'Error, the input has to be a string.'
@@ -283,7 +324,7 @@ def UnAmb(string):
 		elif 'N' == letter: 
 			pos_list.append(['C','T','A','G'])
 
-	return combine(pos_list)
+	return combine(pos_list) #call combine function and return the result as a list of strings
 
 
 def randomizeSeq(seq):
@@ -604,3 +645,268 @@ def smithWaterman(DNA1, DNA2):
 				return (finalA,middle,finalB)
 				break
 
+				
+				
+class CodonTable:
+	'''
+	A DNA codon object.
+	Used to retrieve codon tables and codons for specified codon tables.	
+	Pass a valid integer value when instantiating to choose which codon table to use.
+	'''
+	def __init__(self, number):
+		self.code = False
+		self.table = False
+		self.codons = False
+		self.setTable(number) #get the specified codon table (returned as list of strings)
+		self.setCodons() #convert the codon table information to codons
+		
+	
+	def setTable(self, number):
+		'''
+		Find information for specified genetic code and use for downstream methods.
+		Method is not intended for direct use.
+		'''
+		if number == 1:
+			#Genetic Code [1]
+			code = "Standard Code (transl_table=1)"
+			AAs  = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "---M---------------M---------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 2:
+			#Genetic Code [2]
+			code = "Vertebrate Mitochondrial Code (transl_table=2)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG"
+			Starts = "--------------------------------MMMM---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 3:
+			#Genetic Code [3]
+			code = "Yeast Mitochondrial Code (transl_table=3)"
+			AAs  = "FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "----------------------------------MM----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 4:
+			#Genetic Code [4]
+			code = "Mold, Protozoan, Coelenterate Mitochondrial Code & Mycoplasma/Spiroplasma  Code (transl_table=4)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "--MM---------------M------------MMMM---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 5:
+			#Genetic Code [5] 
+			code = "Invertebrate Mitochondrial Code (transl_table=5)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG"
+			Starts = "---M----------------------------MMMM---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 6:
+			#Genetic Code [6]
+			code = "Ciliate, Dasycladacean and Hexamita Nuclear Code (transl_table=6)"
+			AAs  = "FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 9:
+			#Genetic Code [9]  
+			code = "Echinoderm and Flatworm Mitochondrial Code (transl_table=9)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 10:
+			#Genetic Code [10]   
+			code = "Euplotid Nuclear Code (transl_table=10)"
+			AAs  = "FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 11:
+			#Genetic Code [11]
+			code = "Bacterial, Archaeal and Plant Plastid Code (transl_table=11)"
+			AAs  = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "---M---------------M------------MMMM---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 12:
+			#Genetic Code [12]
+			code = "Alternative Yeast Nuclear Code (transl_table=12)"
+			AAs  = "FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-------------------M---------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+																		   
+		elif number == 13:
+			#Genetic Code [13]
+			code = "Ascidian Mitochondrial Code (transl_table=13)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG"
+			Starts = "---M------------------------------MM---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 14:
+			#Genetic Code [14]
+			code = "Alternative Flatworm Mitochondrial Code (transl_table=14)"
+			AAs  = "FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 15:
+			#Genetic Code [15]
+			code = "Blepharisma Nuclear Code (transl_table=15)"
+			AAs  = "FFLLSSSSYY*QCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 16:
+			#Genetic Code [16]
+			code = "Chlorophycean Mitochondrial Code (transl_table=16)"
+			AAs  = "FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 21:
+			#Genetic Code [21]
+			code = "Trematode Mitochondrial Code (transl_table=21)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 22:
+			#Genetic Code [22]
+			code = "Scenedesmus obliquus mitochondrial"
+			AAs  = "FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "-----------------------------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 23:
+			#Genetic Code [23]
+			code = "Thraustochytrium Mitochondrial Code (transl_table=23)"
+			AAs  = "FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+			Starts = "--------------------------------M--M---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 24:			
+			#Genetic Code [24]
+			code = "Pterobranchia mitochondrial code (transl_table=24)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG"
+			Starts = "---M---------------M---------------M---------------M------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+
+		elif number == 25:			
+			#Genetic Code [25]
+			code = "Candidate Division SR1 and Gracilibacteria Code (transl_table=25)"
+			AAs  = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG"
+			Starts = "---M---------------M---------------M----------------------------"
+			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
+			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
+			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
+		else:
+			raise Error, '%s is not a valid genetic code number' % number
+		self.code = code
+		self.table = [code, AAs, Starts, Base1, Base2, Base3]
+		
+	def setCodons(self):
+		'''
+		Use a predetermined codon table to generate a dictionary of amino acids with their codons.
+		Method is not intended for direct use.
+		'''
+		code, AAs, Starts, Base1, Base2, Base3 = self.getTable()
+		codons = {'start':[], 'F':[], 'L':[], 'S':[], 'Y':[], 'C':[], 'W':[], 'P':[], 'H':[], 'E':[], 'R':[], 'I':[], 'M':[], 'T':[], 'N':[], 'K':[], 'V':[], 'A':[], 'D':[], 'Q':[], 'G':[], 'stop':[]}
+		for aa, s, b1, b2, b3 in zip(AAs, Starts, Base1, Base2, Base3):
+			codon = b1+b2+b3
+			
+			if aa == '*': #if aa is stop
+				codons['stop'].append(codon)
+			elif aa in 'FLSYCWPHERIMTNKVADQG':
+				codons[aa].append(codon)
+			else:
+				raise Error, '"%s" is not a valid amino acid' % aa
+				
+			if s != '-': #if the codon is start
+				codons['start'].append(codon)
+				
+		self.codons = codons
+
+	######## API intended for use #########
+
+	def getCode(self):
+		'''
+		Return which genetic code is represented.
+		The output is a string which specifies the code'
+		Method is not intended for direct use.
+		'''
+		return self.code
+
+	def getTable(self):
+		'''
+		Return the codon table data for the specified genetic code.
+		The output is a list of strings.
+		'''
+		return self.table
+
+	def getCodons(self):
+		'''
+		Returns a dictionary of amino acids with their codons for the specified codon table.
+		'''
+		return self.codons #returns a dictionary
+
+	def printTable(self):
+		'''
+		Print specified codon table.
+		'''
+		code, AAs, Starts, Base1, Base2, Base3 = self.table
+		print('Code   = %s' % code)
+		print('AAs    = %s' % AAs)
+		print('Starts = %s' % Starts)
+		print('Base1  = %s' % Base1)
+		print('Base2  = %s' % Base2)
+		print('Base3  = %s' % Base3)
+
+	def printCodons(self):	
+		'''
+		Print codons specified by codon table.
+		'''
+		codons = self.getCodons()
+		print('start = %s' %codons['start'])
+		print('stop  = %s' %codons['stop'])
+		for aa in 'FLSYCWPHERIMTNKVADQG':
+			print('%s     = %s' % (aa, codons[aa]))
+		
+		
+		

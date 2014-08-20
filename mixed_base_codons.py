@@ -40,58 +40,34 @@ import dna
 DesiredAA = [] #list that holds the desired amino acids
 
 
-def AAtocodons(AAlist, option):
+def AAtocodons(AAlist):
 	"""Fetches codons for a given AA. Optionally pass 'y' if a restricted codon table without rare codons should be used"""
 	codonlist = []
-	if option == 'y' or option == 'Y':
-		F = ['TTT', 'TTC'];
-		L = ['TTA', 'TTG'];
-		L2 = ['CTT', 'CTC', 'CTG'];
-		S = ['TCT', 'TCC', 'TCA', 'TCG'];
-		S2 = ['AGC', 'AGT']
-		Y = ['TAT', 'TAC'];
-		stop = ['TAA', 'TAG', 'TGA'];
-		C = ['TGT', 'TGC'];
-		W = ['TGG'];
-		P = ['CCT', 'CCA', 'CCG'];
-		H = ['CAT', 'CAC'];
-		E = ['GAA', 'GAG'];
-		R = ['CGT', 'CGC'];
-		I = ['ATT', 'ATC'];
-		M = ['ATG'];
-		T = ['ACG', 'ACC', 'ACA', 'ACT'];
-		N = ['AAT', 'AAC'];
-		K = ['AAA', 'AAG'];
-		V = ['GTT', 'GTA', 'GTG', 'GTC'];
-		A = ['GCG', 'GCC', 'GCA', 'GCT'];
-		D = ['GAT', 'GAC'];
-		Q = ['CAG', 'CAA'];
-		G = ['GGT', 'GGC', 'GGG']	
-	else:
-		F = ['TTT', 'TTC'];
-		L = ['TTA', 'TTG'];
-		L2 = ['CTT', 'CTC', 'CTA', 'CTG'];
-		S = ['TCT', 'TCC', 'TCA', 'TCG'];
-		S2 = ['AGC', 'AGT'];
-		Y = ['TAT', 'TAC'];
-		stop = ['TAA', 'TAG', 'TGA'];
-		C = ['TGT', 'TGC'];
-		W = ['TGG'];
-		P = ['CCT', 'CCA', 'CCG', 'CCC'];
-		H = ['CAT', 'CAC'];
-		E = ['GAA', 'GAG'];
-		R = ['CGT', 'CGA', 'CGG', 'CGC'];
-		R2 = ['AGG', 'AGA'];		
-		I = ['ATT', 'ATC', 'ATA'];
-		M = ['ATG'];
-		T = ['ACG', 'ACC', 'ACA', 'ACT'];
-		N = ['AAT', 'AAC'];
-		K = ['AAA', 'AAG'];
-		V = ['GTT', 'GTA', 'GTG', 'GTC'];
-		A = ['GCG', 'GCC', 'GCA', 'GCT'];
-		D = ['GAT', 'GAC'];
-		Q = ['CAG', 'CAA'];
-		G = ['GGA', 'GGT', 'GGC', 'GGG']	
+
+	F = ['TTT', 'TTC'];
+	L = ['TTA', 'TTG'];
+	L2 = ['CTT', 'CTC', 'CTA', 'CTG'];
+	S = ['TCT', 'TCC', 'TCA', 'TCG'];
+	S2 = ['AGC', 'AGT'];
+	Y = ['TAT', 'TAC'];
+	stop = ['TAA', 'TAG', 'TGA'];
+	C = ['TGT', 'TGC'];
+	W = ['TGG'];
+	P = ['CCT', 'CCA', 'CCG', 'CCC'];
+	H = ['CAT', 'CAC'];
+	E = ['GAA', 'GAG'];
+	R = ['CGT', 'CGA', 'CGG', 'CGC'];
+	R2 = ['AGG', 'AGA'];		
+	I = ['ATT', 'ATC', 'ATA'];
+	M = ['ATG'];
+	T = ['ACG', 'ACC', 'ACA', 'ACT'];
+	N = ['AAT', 'AAC'];
+	K = ['AAA', 'AAG'];
+	V = ['GTT', 'GTA', 'GTG', 'GTC'];
+	A = ['GCG', 'GCC', 'GCA', 'GCT'];
+	D = ['GAT', 'GAC'];
+	Q = ['CAG', 'CAA'];
+	G = ['GGA', 'GGT', 'GGC', 'GGG']	
 	
 	for i in range(0, len(AAlist)):
 		codonlist.append(eval(AAlist[i]))  #eval is key for converting the string AA's to codons
@@ -99,6 +75,7 @@ def AAtocodons(AAlist, option):
 
 
 def sumupcodons(DesiredCodons):
+	#print('sumcodons', DesiredCodons)
 	allcodon1 = [];
 	allcodon2 = [];
 	allcodon3 = [];
@@ -129,133 +106,191 @@ def sumupcodons(DesiredCodons):
 	#print('1', allcodon1)
 	#print('2', allcodon2)
 	#print('3', allcodon3)
+	#print('result', (allcodon1, allcodon2, allcodon3))
 	return (allcodon1, allcodon2, allcodon3)
 
 
-def degenerate(list): 
-	"""This function finds the degenerate symbol for a certain base"""
-	for x in list:	#x is the list of codons for a certain AA, it cycles through all chosen AA
+def degenerate(list):
+	"""
+	This function finds the degenerate nucleotide for a list of CATG nucleotides.
+	Input is a list of single nucleotides.
+	Output is a one character string with the ambigous nucleotide.
+	"""
+	list = [x.upper() for x in list] #make the uppercase
+	if not False in [x in 'A' for x in list]: #test whether each item in the list is present in a string
+		nucleotide = 'A'
 
-		if 'A' in x:
-			var = 'A'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'G' for x in list]:
+		nucleotide = 'G'
+		
+	elif not False in [x in 'C' for x in list]: 
+		nucleotide = 'C'
 
-	for x in list:
-		if 'G' in x:
-			var = 'G'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'T' for x in list]:
+		nucleotide = 'T'
 
-	for x in list:		
-		if 'C' in x:
-			var = 'C'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'CT' for x in list]: 
+		nucleotide = 'Y'
 
-	for x in list:
-		if 'T' in x:
-			var = 'T'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'GT' for x in list]: 
+		nucleotide = 'K'
 
-	for x in list:
-		if 'C' in x or 'T' in x:
-			var = 'Y'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'AC' for x in list]:
+		nucleotide = 'M'
 
-	for x in list:
-		if 'G' in x or 'T' in x:
-			var = 'K'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'CG' for x in list]: 
+		nucleotide = 'S'
 
-	for x in list:	
-		if 'A' in x or 'C' in x:
-			var = 'M'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'AT' for x in list]: 
+		nucleotide = 'W'
 
-	for x in list:	
-		if 'C' in x or 'G' in x:
-			var = 'S'	
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'AG' for x in list]: 
+		nucleotide = 'R'
 
-	for x in list:	
-		if 'A' in x or 'T' in x:
-			var = 'W'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'CTA' for x in list]: 
+		nucleotide = 'H'
 
-	for x in list:
-		if 'A' in x or 'G' in x:
-			var = 'R'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'CAG' for x in list]: 
+		nucleotide = 'V'
 
-	for x in list:
-		if 'C' in x or 'T' in x or 'A' in x:
-			var = 'H'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'TAG' for x in list]: 
+		nucleotide = 'D'		
+		
+	elif not False in [x in 'CTG' for x in list]: 
+		nucleotide = 'B'
 
-	for x in list:
-		if 'C' in x or 'A' in x or 'G' in x:
-			var = 'V'
-		else:
-			var = ''
-			break
-	if var != '': return var
+	elif not False in [x in 'CTAG' for x in list]: 
+		nucleotide = 'N'
+	
+	return nucleotide
 
-	for x in list:
-		if 'T' in x or 'A' in x or 'G' in x:
-			var = 'D'
-		else:
-			var = ''
-			break
-	if var != '': return var
 
-	for x in list:
-		if 'C' in x or 'T' in x or 'G' in x:
-			var = 'B'
-		else:
-			var = ''
-			break
-	if var != '': return var
 
-	for x in list:
-		if 'C' in x or 'T' in x or 'A' in x or 'G' in x: 
-			var = 'N'
-		else: 
-			var = 'X'
-			break
-	if var != '': return var
+		
+# def degenerate(list): 
+	# """This function finds the degenerate symbol for a list of bases"""
+	# print(list)
+	# for x in list:	#x is the list of codons for a certain AA, it cycles through all chosen AA
+		# if 'A' in x:
+			# var = 'A'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
 
-	return var;
+	# for x in list:
+		# if 'G' in x:
+			# var = 'G'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:		
+		# if 'C' in x:
+			# var = 'C'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'T' in x:
+			# var = 'T'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'C' in x or 'T' in x:
+			# var = 'Y'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'G' in x or 'T' in x:
+			# var = 'K'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:	
+		# if 'A' in x or 'C' in x:
+			# var = 'M'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:	
+		# if 'C' in x or 'G' in x:
+			# var = 'S'	
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:	
+		# if 'A' in x or 'T' in x:
+			# var = 'W'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'A' in x or 'G' in x:
+			# var = 'R'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'C' in x or 'T' in x or 'A' in x:
+			# var = 'H'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'C' in x or 'A' in x or 'G' in x:
+			# var = 'V'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'T' in x or 'A' in x or 'G' in x:
+			# var = 'D'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'C' in x or 'T' in x or 'G' in x:
+			# var = 'B'
+		# else:
+			# var = ''
+			# break
+	# if var != '': return var
+
+	# for x in list:
+		# if 'C' in x or 'T' in x or 'A' in x or 'G' in x: 
+			# var = 'N'
+		# else: 
+			# var = 'X'
+			# break
+	# if var != '': return var
+
+	# return var;
 
 
 
@@ -456,7 +491,6 @@ def chosenvsresulting(DesiredAA, AAlist):
 
 
 def getinput():
-	input_var = raw_input('Would you like to exclude the rare codons CGA, CGG, AGA, AGG, CUA, AUA, GGA, and CCC (y/n)? ')
 	###This is where I decide which AA I want
 	DesiredAA = [];
 	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G'];
@@ -475,8 +509,8 @@ def getinput():
 	
 	
 
-def evaluate(chosenAA, codon_restriction):	
-	DesiredCodons = AAtocodons(chosenAA, codon_restriction) #get triplet codons for the desired AA
+def evaluate(chosenAA):	
+	DesiredCodons = AAtocodons(chosenAA) #get triplet codons for the desired AA
 	allcodons = sumupcodons(DesiredCodons) #takes the triplets and splits them up into their first, second and third positions
 
 	degenerate1 = degenerate(allcodons[0]) #Gets degenerate codon that represents all bases at position 1
@@ -513,7 +547,7 @@ def test_alternate(DesiredAA, AA, triplet, result):
 	
 	for entry in alternateAA: #test which combination gives least off-target hits
 		testset = entry
-		temptriplet, tempresult = evaluate(testset, 'n')
+		temptriplet, tempresult = evaluate(testset)
 		if len(tempresult[1]) < len(result[1]):
 			DesiredAA = testset
 			result = tempresult
@@ -563,9 +597,7 @@ def next_steps(targetAA, offtargetAA):
 def get_codon_for_chosen_AA(AA):	
 	#DesiredAA containst list of amino acids and also the option wheter codons should be excluded or not.
 	DesiredAA = AA
-	codon_restriction = 'n'	
-
-	triplet, result = evaluate(DesiredAA, codon_restriction)
+	triplet, result = evaluate(DesiredAA)
 	AA = ''
 	if ('S' in DesiredAA):
 		AA += 'S'
@@ -586,7 +618,6 @@ def get_codon_for_chosen_AA(AA):
 def find_multiple_codons(target_AA):	
 	'''For difficult desired AA, find a combination of codons that will give you no off-targets'''
 	target_AA.sort()
-	codon_restriction = 'n'
 	symbols = 'ATGCRYMKSWHBVDN'
 	two_codons = []
 	three_codons = []
@@ -613,7 +644,7 @@ def find_multiple_codons(target_AA):
 				#change!
 				AA_list = translate(dna.UnAmb(mixed_base_codon)) #wrong usage, have to take a base at the time!!!
 				codon, target, offtarget = get_codon_for_chosen_AA(AA_list)
-				triplet, result = evaluate(AA_list, codon_restriction)
+				triplet, result = evaluate(AA_list)
 				target = result[0].sort()
 				offtarget = result[1]
 				if len(offtarget) == 0 and target == target_AA: #if no offtarget aa are present and all target aa are present
@@ -625,7 +656,7 @@ def find_multiple_codons(target_AA):
 							pass
 						else:	
 							remaining_AA.append(aa)
-					triplet, result = evaluate(remaining_AA, codon_restriction)
+					triplet, result = evaluate(remaining_AA)
 					target = result[0].sort()
 					offtarget = result[1]
 					if len(offtarget) == 0 and target == remaining_AA: #if no offtarget aa are present and all target aa are present
