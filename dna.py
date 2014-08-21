@@ -155,16 +155,21 @@ def TranslateRC(DNA, table=1):
 
 
 	
-def GetCodons(AA, table=1):
+def GetCodons(AA, table=1, separate=False):
 	'''
 	Get the codons for a specified AA. Returns a list of strings.
 	The variable table specifies which codon table should be used.
 	table defaults to the standard codon table 1
+	The separate variable determines whether codons for one amino acid with dissimilar first two nucleotides should be seperated out.
+	For example if separate=False the codons for L are 	['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'].
+	If separate=True they are split up as L = ['TTA', 'TTG'] and L2 = ['CTT', 'CTC', 'CTA', 'CTG']
 	'''
-	assert len(AA) == 1, 'Error, function takes a single amino acid as input'
 	AA = AA.upper()
-	assert AA in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
-	codons = CodonTable(table).getCodons()
+	if separate is False:
+		assert len(AA) == 1, 'Error, function takes a single amino acid as input'
+		assert AA in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
+	
+	codons = CodonTable(table).getCodons(separate)
 	aacodons = codons[AA]
 	return aacodons	
 	
@@ -213,60 +218,70 @@ def combine(input_list, max_total=50000):
 					output[j+i*output_len] += pos[i]
 	return output #return the list
 
- def Amb(largelist):
+def Amb(list):
+	'''
+	This function finds the degenerate nucleotide for a list containing CATG nucleotides.
+	Output is a single ambigous DNA nucleotide as a string.
+	Example input is: ['A','T','C','G']. The output for that input is 'N'
+	'''
+	if all([x in 'A' for x in list]): #test whether each item in a string is present in the list
+		output = 'A'
+
+	elif all([x in 'G' for x in list]):
+		output = 'G'
+		
+	elif all([x in 'C' for x in list]): 
+		output = 'C'
+
+	elif all([x in 'T' for x in list]):
+		output = 'T'
+
+	elif all([x in 'CT' for x in list]): 
+		output = 'Y'
+
+	elif all([x in 'GT' for x in list]): 
+		output = 'K'
+
+	elif all([x in 'AC' for x in list]):
+		output = 'M'
+
+	elif all([x in 'CG' for x in list]): 
+		output = 'S'
+
+	elif all([x in 'AT' for x in list]): 
+		output = 'W'
+
+	elif all([x in 'AG' for x in list]): 
+		output = 'R'
+
+	elif all([x in 'CTA' for x in list]): 
+		output = 'H'
+
+	elif all([x in 'CAG' for x in list]): 
+		output = 'V'
+
+	elif all([x in 'TAG' for x in list]): 
+		output = 'D'		
+		
+	elif all([x in 'CTG' for x in list]): 
+		output = 'B'
+
+	elif all([x in 'CTAG' for x in list]): 
+		output = 'N'
+	return output
+	
+	
+def MultipleAmb(largelist):
 	'''
 	This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
 	Output is a DNA string with the ambigous nucleotides.
-	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]
+	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]. The output for that is 'NNK'
 	'''
 	output = []
 
 	largelist = [x.upper() for x in largelist] #make the uppercase
 	for list in largelist:
-		if not False in [x in 'A' for x in list]: #test whether each item in the list is present in a string
-			output.append('A')
-
-		elif not False in [x in 'G' for x in list]:
-			output.append('G')
-			
-		elif not False in [x in 'C' for x in list]: 
-			output.append('C')
-
-		elif not False in [x in 'T' for x in list]:
-			output.append('T')
-
-		elif not False in [x in 'CT' for x in list]: 
-			output.append('Y')
-
-		elif not False in [x in 'GT' for x in list]: 
-			output.append('K')
-
-		elif not False in [x in 'AC' for x in list]:
-			output.append('M')
-
-		elif not False in [x in 'CG' for x in list]: 
-			output.append('S')
-
-		elif not False in [x in 'AT' for x in list]: 
-			output.append('W')
-
-		elif not False in [x in 'AG' for x in list]: 
-			output.append('R')
-
-		elif not False in [x in 'CTA' for x in list]: 
-			output.append('H')
-
-		elif not False in [x in 'CAG' for x in list]: 
-			output.append('V')
-
-		elif not False in [x in 'TAG' for x in list]: 
-			output.append('D')		
-			
-		elif not False in [x in 'CTG' for x in list]: 
-			output.append('B')
-
-		elif not False in [x in 'CTAG' for x in list]: 
-			output.append('N')
+		output.append(Amb(list))
 	
 	return ''.join(output)
 
@@ -880,12 +895,36 @@ class CodonTable:
 		'''
 		return self.table
 
-	def getCodons(self):
+	def getCodons(self, separate=False):
 		'''
 		Returns a dictionary of amino acids with their codons for the specified codon table.
+		The separate variable determines whether codons for one amino acid with dissimilar first two nucleotides should be separated out.
+		For example if separate=False the codons for L are 	['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'].
+		If separate=True they are split up as L = ['TTA', 'TTG'] and L1 = ['CTT', 'CTC', 'CTA', 'CTG']
 		'''
-		return self.codons #returns a dictionary
+		assert type(separate) is bool, 'Error, "separate" must be True or False'
+		if separate is False: #returns a dictionary containing the codon table
+			return self.codons 
+		elif separate is True:
+			newdict = {}
+			for aa in 'FLSYCWPHERIMTNKVADQG':
+				f = lambda x: [codon[0:2] for codon in x] #function to get all first two nucleotides for an aa
+				firsttwolist = list(set(f(self.codons[aa]))) #list of all unique first two nucleotides for an aa. For example ['TT', 'CT'] for leucine
+#				print('aa', aa)
+#				print('ftl', firsttwolist)
+				if len(firsttwolist) > 1: #if there is more than one set of the first two nucleotides for this amino acid
+					for i in range(len(firsttwolist)):
+						if i == 0:
+							newaa = aa
+						else:
+							newaa = aa+str(i) #add a number after the amino acid
+						newdict[newaa] = [x for x in self.codons[aa] if x[0:2] in firsttwolist[i]] #add all the codons that match the first two
+				else:
+					newdict[aa] = self.codons[aa] #
+			return newdict				
 
+					
+				
 	def printTable(self):
 		'''
 		Print specified codon table.
