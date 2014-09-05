@@ -357,8 +357,6 @@ def randomizeSeq(seq):
 	return output
 
 
-#add function for fetching DNA from uniprot, ncbi...
-
 
 ############### Identity functions ##########################
 
@@ -493,7 +491,23 @@ def alignFile(filepath):
 
 ########################################################
 
-def blast(blast_type, database, seq): #function for blasting 
+def NCBIfetch(id, db = 'nucleotide', rettype = 'gb', retmode = 'text'):
+	'''
+	Retrieve records from NCBI.
+	Format of the string is http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=<database>&id=<uid_list>&rettype=<retrieval_type>&retmode=<retrieval_mode>
+
+	For any series of more than 100 requests, do this at weekends or outside USA peak times. This is up to you to obey.
+	Use the http://eutils.ncbi.nlm.nih.gov address, not the standard NCBI Web address. Biopython uses this web address.
+	Make no more than three requests every seconds (relaxed from at most one request every three seconds in early 2009).
+	Use the optional email parameter so the NCBI can contact you if there is a problem. You can either explicitly set this as a parameter with each call to Entrez (e.g. include email="A.N.Other@example.com" in the argument list).
+	'''
+	import urllib2
+	url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&id=%s&rettype=%s&retmode=%s' % (db, id, rettype, retmode)
+	xml_file = urllib2.urlopen(url).read() #this returns the result as a string. I'll need to parse it to get the info out.
+	return xml_file
+
+	
+def NCBIblast(blast_type, database, seq): #function for blasting 
 	'''Blasts a sequence against the NCBI database'''
 	#"tblastn", "nt", seq
 	#add asserts...
