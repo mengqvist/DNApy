@@ -43,7 +43,7 @@ import pyperclip
 import oligo_localizer
 import peptide_localizer
 import re
-
+import sys
 
 class feature(object):
 	"""A feature object class that defines the key, location and qualifiers of a feature and methods to interact with these.
@@ -144,182 +144,177 @@ class gbobject(object):
 		self.file_versions = (copy.deepcopy(self.gbfile),) #stores version of the file
 		self.file_version_index = 0 #stores at which index the current file is
 
-		#setup empty file
+		#space constants for where info starts
+		self.space_header = 12*' '
+		self.space_feature = 21*' '
+		self.space_DNA = 10*' '
+		
+		#set up header info
+		self.gbfile['header'] = {}
+		self.gbfile['header']['locus'] = []
+		self.gbfile['header']['definition'] = ''
+		self.gbfile['header']['accession'] = ''
+		self.gbfile['header']['version'] = []
+		self.gbfile['header']['dblink'] = []
+		self.gbfile['header']['keywords'] = []
+		self.gbfile['header']['source'] = []
+		self.gbfile['header']['references'] = []
+		self.gbfile['header']['comments'] = []
+
+		#set up feature info
 		self.gbfile['features'] = []
+		
+		#set up dna info
 		self.gbfile['dna'] = ''
-		self.gbfile['header'] = ''
+		
+		#set up file info
 		self.gbfile['filepath'] = filepath
 		self.fileName = 'New DNA' #name of the file/plasmid name
 
 		if filepath == None:
 			pass
 		else:
+			platform = sys.platform
+			if platform == 'win32':
+				filepath = filepath.replace('\\', '/')
 			self.readgb(filepath)
 
 ###############################
 
 
-	def treat_input_line(self, input_string):
-		'''Function for parsing a string containing genbank feature information into the correct data format.
-			The input string is expected to already have been "treated" for linebreaks (lines ending in comma).
-			Sting should therefore be an entire feature key line or entire feature qualifier line.'''
-		assert type(input_string) is str, "Error parsing genbank line. Input is not a string, it is %s:" % str(type(input_string))
-
-		#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
-		if input_string[0:5] == '     ' and (input_string[6] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-') == True:
-			key = input_string[5:20].rstrip('\t\n\x0b\x0c\r ')
-			location = input_string[21:].rstrip('\t\n\x0b\x0c\r ')
-			dictionary = {}
-			dictionary['key'] = key
-			dictionary['location'] = location
-			return dictionary
-		elif input_string[0:21] == '                     ' and input_string[21] == '/':
-			qualifier = input_string[21:].rstrip('\t\n\x0b\x0c\r ')
-			dictionary = {}
-			dictionary['qualifier'] = qualifier
-			return dictionary
-		else:
-			print('error', input_string)
-
-
 	def readgb(self, filepath):
 		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
 		assert type(filepath) == str or type(filepath) == unicode , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
-
+		
 		self.fileName = filepath.split('/')[-1] #update the fileName variable
+		file_read = False #indicate whether the file was read
+		
+		#open it and read line by line (very memory efficient)
+		with open(filepath) as infile:
+			#to keep track where in the document I currently am. 
+			#in the header section both sect_feature and sect_origin are false
+			#in the feature section sect_feature is True and the other False
+			#in the DNA section both are True
+			sect_feature = False
+			sect_origin = False
+			whole_line = '' #many things are broken over several lines, use this variable to collect them.
+			for line in infile:
+				if line[0:8] == 'FEATURES': #indicates start of feature section
+					self.parse_header_line(whole_line)
+					sect_feature = True
+					whole_line = ''
+
+				elif line[0:6] == 'ORIGIN': #indicates start of DNA section
+					self.parse_feature_line(whole_line)
+					sect_origin = True
+					self.gbfile['dna'] = [] #temporarily set this up as a list. This is only while parsing the DNA and it will be converted to a string after.
+					whole_line = ''
+
+				elif line[0:2] == '//' and sect_feature is True and sect_origin is True: #this indicates the end of the file
+					self.parse_dna_line(whole_line)
+					self.gbfile['dna'] = ''.join(self.gbfile['dna']) #while parsing the DNA was kept as a list, now make it a string
+					file_read = True
+					
+				elif sect_feature is False and sect_origin is False:
+					if line[0:1] == ' ': #this line is a continuation of a previous header section entry
+						whole_line += line
+					elif whole_line == '': #start of a new entry
+						whole_line = line
+					else: #the entry is over and needs to be parsed
+						self.parse_header_line(whole_line)
+						whole_line = line
+
+				elif sect_feature is True and sect_origin is False:
+					if line[0:21] == self.space_feature: #this line is a continuation of a previous feature entry
+						whole_line += line
+					elif whole_line == '': #start of a new entry
+						whole_line = line
+					else: #the entry is over and needs to be parsed
+						self.parse_feature_line(whole_line)
+						whole_line = line
+						
+				elif sect_feature is True and sect_origin is True:
+					self.parse_dna_line(line)
+
+		assert file_read is True, 'There was an unknown error reading the file.'
+		self.add_file_version()
 
 		
-		try:
-			a = open(filepath, 'r') #open it for reading
-			gbfile = a.read()
-			a.close()
+	def parse_header_line(self, line):
+		'''
+		Parses a header line into the correct data format.
+		The term 'line' is used loosly and can actually be comprised of several lines that together describe a header entry subpart.
+		'''
+		
+		print('header', line)
+		if 'LOCUS' in line[0:12]:
+			pass
+		elif 'DEFINITION' in line[0:12]:
+			pass
+		elif 'ACCESSION' in line[0:12]:
+			pass
+		elif 'VERSION' in line[0:12]:
+			pass
+		elif 'DBLINK' in  line[0:12]:
+			pass
+		elif 'KEYWORDS' in line[0:12]:
+			pass
+		elif 'SOURCE' in line[0:12]:
+			pass
+		elif 'REFERENCE' in line[0:12]:
+			pass
+		elif 'COMMENTS' in line[0:12]:
+			pass
 
-		except IOError:
-			print('Error opening file: %s' % str(filepath))
+			
+	def parse_feature_line(self, inputline):
+		'''
+		Takes a feature line consisting info for an entire feature and parses them into the DNApy data format.
+		This method only works if only one feature is to be parsed at a time.
+		'''
+		assert type(inputline) == str, 'Error, the input has to be a string.'
+		
+		#first I need to go through the input and see if there are any info that wraps over several lines
+		linelist = inputline.split('\n')
+		wholelinelist = [] #for storing the complete un-wrapped lines
+		whole_line = ''
+		for line in linelist:
+			if whole_line == '': #to catch the first line
+				whole_line = line		
+			elif line[0:21] == 21*' ' and line[21] != '/': #continuation of line which is broken on several lines
+				whole_line += line
+			elif line == '': #catch empty lines (that should not be there in any case) and move to next line
+				pass
+			elif line[0:21] == 21*' ' and line[21] == '/': #new qualifier line
+				wholelinelist.append(whole_line)
+				whole_line = line
+		wholelinelist.append(whole_line) #catch the last one
 
-		else:
 		
-			#split the file
-			headerandfeatures, DNA = gbfile.split('ORIGIN') #origin is the word in the file that seperates features from dna
-			header, features = headerandfeatures.split('FEATURES')
-			header = header[0:-1] #removes the \n at the end		
-		
-			#get the header.....
-			self.gbfile['header'] = header
-		
-		
-			#get the DNA and clean it from numbering and spaces
-			DNA = dna.CleanDNA(DNA, silent=True) 
-			self.gbfile['dna'] = DNA
-		
-			#get the features
-			featurelist = features.split('\n') #split into lines
-			if featurelist[-1] == '': 
-				del featurelist[-1] #last entry tends to be empty, if so, remove
-			self.parse_features(featurelist)
-			self.add_file_version()
-
-	def parse_features(self, featurelist):
-		'''Takes a list of lines from a genbank file and parses them into the DNApy data format'''
-		assert type(featurelist) == list, 'Error, the input has to be a list.'
+		#now parse the whole lines into the correct data structure
 		feature = {}
-
-		#keep track of loading progress
-#		length = len(featurelist)
-#		line_0 = 1 
-#		line_10 = int(length*0.1) #line number at which 10% of the document has been loaded
-#		line_20 = int(length*0.2) #line number at which 20% of the document has been loaded
-#		line_30 = int(length*0.3) #line number at which 30% of the document has been loaded
-#		line_40 = int(length*0.4) #line number at which 40% of the document has been loaded
-#		line_50 = int(length*0.5) #line number at which 50% of the document has been loaded
-#		line_60 = int(length*0.6) #line number at which 60% of the document has been loaded
-#		line_70 = int(length*0.7) #line number at which 70% of the document has been loaded
-#		line_80 = int(length*0.8) #line number at which 80% of the document has been loaded
-#		line_90 = int(length*0.9) #line number at which 90% of the document has been loaded
-#		line_100 = length-1 #line number at which 100% of the document has been loaded
-
-		i = 1
-		while i in range(0, len(featurelist)): # go through the lines
-			#while loop is to deal with qualifiers and locations broken over several lines
-			current_line = featurelist[i]
-
-			#keep track of loading progress
-#			if i == line_0:
-#				print('0%')
-#			elif i == line_10:
-#				print('10%')
-#			elif i == line_20:
-#				print('20%')
-#			elif i == line_30:
-#				print('30%')
-#			elif i == line_40:
-#				print('40%')
-#			elif i == line_50:
-#				print('50%')
-#			elif i == line_60:
-#				print('60%')
-#			elif i == line_70:
-#				print('70%')
-#			elif i == line_80:
-#				print('80%')
-#			elif i == line_90:
-#				print('90%')
-#			elif i == line_100:
-#				print('100%')
-
-			#for dealing with qualifiers that are broken over several lines
-			if i<len(featurelist)-1:
-				while (featurelist[i+1][0:21] == '                     ' and featurelist[i+1][21] != '/'):
-					current_line += featurelist[i+1][21:]
-					i += 1
-					if i == len(featurelist)-1:
-						break
-
-			if current_line == '': #catch empty lines (that should not be there in any case) and move to next line
-				i += 1
-				continue
-
-			#now parse the line
-			dictionary = self.treat_input_line(current_line)
-
-
-			dictionary_keys = dictionary.keys()
-			if 'key' in dictionary_keys:
-				#handle exceptions for the feature type
-				if dictionary['key'] == 'primer':
-					dictionary['key'] = 'primer_bind'
-				elif dictionary['key'] not in self.featuretypes:
-					raise ValueError, '%s is not a valid feature key' % dictionary['key']
-
-				if feature != {}:
-					self.gbfile['features'].append(copy.deepcopy(feature))
-					feature = {}
-					feature['key'] = copy.deepcopy(dictionary['key'])
-					location, complement, join, order = self.parse_location(dictionary['location'])
-					feature['location'] = copy.deepcopy(location)
-					feature['complement'] = copy.deepcopy(complement)
-					feature['join'] = copy.deepcopy(join)
-					feature['order'] = copy.deepcopy(order)
-					feature['qualifiers'] = []
-				elif feature == {}:	
-					feature['key'] = copy.deepcopy(dictionary['key'])
-					location, complement, join, order = self.parse_location(dictionary['location'])
-					feature['location'] = copy.deepcopy(location)
-					feature['complement'] = copy.deepcopy(complement)
-					feature['join'] = copy.deepcopy(join)
-					feature['order'] = copy.deepcopy(order)
-					feature['qualifiers'] = []
-				else:
-					raise ValueError
-			elif 'qualifier' in dictionary_keys:
-				feature['qualifiers'].append(copy.deepcopy(dictionary['qualifier']))
-				
-			i += 1
-		self.gbfile['features'].append(copy.deepcopy(feature)) #catch last line
+		feature['qualifiers'] = []
+		for line in wholelinelist:
+			assert type(line) is str, "Error parsing genbank line. Input line is not a string, it is %s:" % str(type(line))
 		
+			#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
+			if line[0:5] == 5*' ' and (line[6] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-') == True:
+				key = line[5:20].rstrip('\t\n\x0b\x0c\r ')
+				location = line[21:].rstrip('\t\n\x0b\x0c\r ')
+				feature['key'] = key
+				feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(location)
+
+			elif line[0:21] == '                     ' and line[21] == '/':
+				qualifier = line[21:].rstrip('\t\n\x0b\x0c\r ')
+				feature['qualifiers'].append(qualifier)
+
+			else:
+				print('error', line)		
+
+		self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
 		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
 
-				
+		
 
 	def parse_location(self, locationstring):
 		'''get whether complement or not, join or not, order or not'''
@@ -365,7 +360,11 @@ class gbobject(object):
 			
 		return location, complement, join, order
 
-
+	def parse_dna_line(self, line):
+		#clean DNA from numbering and spaces and append it to a list. This list will later be converted to a string.
+		self.gbfile['dna'].append(dna.CleanDNA(line, silent=True) )
+	
+	
 	def clean_clutter(self):
 		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
 		deletionlist = []
