@@ -34,8 +34,8 @@
 import wx
 import os, sys
 import math
-#from wx.lib.pubsub import Publisher as pub
-from wx.lib.pubsub import pub
+from wx.lib.pubsub import Publisher as pub
+#from wx.lib.pubsub import pub
 
 
 class DNApyBaseClass(wx.Panel):
@@ -44,7 +44,7 @@ class DNApyBaseClass(wx.Panel):
 		wx.Panel.__init__(self, parent)
 
 		self.listening_group = NotImplementedError #needs to be assigned a listening group name (a string) to recieve requests for own panel UI updates.
-		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+#		pub.subscribe(self.listen_to_updateUI, self.listening_group)
 
 
 #### own UI updates ####

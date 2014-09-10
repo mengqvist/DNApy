@@ -351,7 +351,8 @@ class CodonView(DNApyBaseDrawingClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.Publisher.sendMessage('from_plasmid_view', '')
+#		pub.Publisher.sendMessage('from_plasmid_view', '')
+		pass
 
 	
 	def update_ownUI(self):

@@ -31,7 +31,6 @@
 #
 
 #TODO
-#improve spead at which large genbank files are loaded
 #fix header parsing
 #match features with qualifiers (mandatory and optional)
 #add a function that checks that everything is ok
@@ -46,7 +45,8 @@ import re
 import sys
 
 class feature(object):
-	"""A feature object class that defines the key, location and qualifiers of a feature and methods to interact with these.
+	"""
+	A feature object class that defines the key, location and qualifiers of a feature and methods to interact with these.
 	Data structure is as follows:
 	{key:string #feature key
 		location:list #list of locations on DNA for feature
@@ -54,7 +54,8 @@ class feature(object):
 		complement:bool #is feature on complement strand or not
 		join:bool #should feature locations be joined or not
 		order:bool #are feature locations in a certain order or not
-		}""" 
+		}
+	""" 
 
 	def __init__(self, inittype, initlocation, initqualifiers, initcomplement, initjoin, initorder):
 		self.SetType(inittype) #the type or "key" of the feature
@@ -151,7 +152,7 @@ class gbobject(object):
 		
 		#set up header info
 		self.gbfile['header'] = {}
-		self.gbfile['header']['locus'] = []
+		self.gbfile['header']['locus'] = {}
 		self.gbfile['header']['definition'] = ''
 		self.gbfile['header']['accession'] = ''
 		self.gbfile['header']['version'] = []
@@ -248,9 +249,31 @@ class gbobject(object):
 		
 		print('header', line)
 		if 'LOCUS' in line[0:12]:
-			pass
+			line_list = line[12:].split(' ')
+			line_list = [x.rstrip('\t\n\x0b\x0c\r ') for x in line_list if x != '']
+			print(line_list)
+			self.gbfile['header']['locus']['id'] = line_list[0]
+			self.gbfile['header']['locus']['length'] = line_list[1]
+			self.gbfile['header']['locus']['type'] = line_list[3]
+			self.gbfile['header']['locus']['topology'] = line_list[4]
+
+			#somethimes the division number is missing, need to check for that
+			if len(line_list) == 7: #division number present, all is ok
+				self.gbfile['header']['locus']['division'] = line_list[5]
+				self.gbfile['header']['locus']['date'] = line_list[6]
+			elif len(line_list[5]) == 3: #the last entry is three long, so it must be the division entry
+				self.gbfile['header']['locus']['division'] = line_list[5]
+			elif re.match('^([0-9]){2}[-]([A-Z]){3}[-]([0-9]){4}$', line_list[5]) != None: #the last entry is the date
+				self.gbfile['header']['locus']['date'] = line_list[5]
+			else:
+				raise ValueError('Error parsing the LOCUS line, check the date and division entry.')
+ 
+
+
+			
 		elif 'DEFINITION' in line[0:12]:
-			pass
+			line_list = line[12:].split('\n')
+			self.gbfile['header']['definition'] = ''.join([x.replace(12*' ', ' ') for x in line_list]) #in case the info covers more than one line
 		elif 'ACCESSION' in line[0:12]:
 			pass
 		elif 'VERSION' in line[0:12]:
