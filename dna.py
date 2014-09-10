@@ -33,6 +33,7 @@
 import fasta
 import string
 import random
+import genbank
 from Bio import AlignIO #biopython package
 from Bio.Align.Applications import MuscleCommandline #biopython package
 from StringIO import StringIO
@@ -503,8 +504,18 @@ def NCBIfetch(id, db = 'nucleotide', rettype = 'gb', retmode = 'text'):
 	'''
 	import urllib2
 	url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&id=%s&rettype=%s&retmode=%s' % (db, id, rettype, retmode)
-	xml_file = urllib2.urlopen(url).read() #this returns the result as a string. I'll need to parse it to get the info out.
-	return xml_file
+	file = urllib2.urlopen(url).read() #this returns the result as a string. I'll need to parse it to get the info out.
+	return file
+
+def NCBIfetchGB(id):
+	'''
+	Same as NCBIfetch, but instead of returning a text string it returns a genbank object.
+	'''
+	file = NCBIfetch(id).split('\n') #get file and split it
+	file = [x+'\n' for x in file] #add back the linebreaks
+	x = genbank.gbobject()
+	x.readgb(file)
+	return x
 
 	
 def NCBIblast(blast_type, database, seq): #function for blasting 

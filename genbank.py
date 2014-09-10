@@ -31,7 +31,10 @@
 #
 
 #TODO
-#fix header parsing
+#fix reference parsing
+#fix how header is saved
+#add methods to modify header
+
 #match features with qualifiers (mandatory and optional)
 #add a function that checks that everything is ok
 #make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
@@ -178,64 +181,68 @@ class gbobject(object):
 			platform = sys.platform
 			if platform == 'win32':
 				filepath = filepath.replace('\\', '/')
-			self.readgb(filepath)
+			self.opengb(filepath)
 
 ###############################
 
-
-	def readgb(self, filepath):
-		"""Function takes self.filepath to .gb file and extracts the header, features and DNA sequence"""
+	def opengb(self, filepath):
+		'''
+		Function opens a genbank file.
+		'''
 		assert type(filepath) == str or type(filepath) == unicode , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
-		
 		self.fileName = filepath.split('/')[-1] #update the fileName variable
-		file_read = False #indicate whether the file was read
 		
 		#open it and read line by line (very memory efficient)
 		with open(filepath) as infile:
-			#to keep track where in the document I currently am. 
-			#in the header section both sect_feature and sect_origin are false
-			#in the feature section sect_feature is True and the other False
-			#in the DNA section both are True
-			sect_feature = False
-			sect_origin = False
-			whole_line = '' #many things are broken over several lines, use this variable to collect them.
-			for line in infile:
-				if line[0:8] == 'FEATURES': #indicates start of feature section
+			self.readgb(infile)
+
+			
+	def readgb(self, infile):
+		"""Function takes a genbank file and parses it into a managable data structure."""
+		file_read = False #indicate whether the file was completely read
+		#to keep track where in the document I currently am. 
+		#in the header section both sect_feature and sect_origin are false
+		#in the feature section sect_feature is True and the other False
+		#in the DNA section both are True
+		sect_feature = False
+		sect_origin = False
+		whole_line = '' #many things are broken over several lines, use this variable to collect them.
+		dna_list = [] #for collecting the dna
+		for line in infile:
+			if line[0:8] == 'FEATURES': #indicates start of feature section
+				self.parse_header_line(whole_line)
+				sect_feature = True
+				whole_line = ''
+
+			elif line[0:6] == 'ORIGIN': #indicates start of DNA section
+				self.parse_feature_line(whole_line)
+				sect_origin = True
+				whole_line = ''
+
+			elif line[0:2] == '//' and sect_feature is True and sect_origin is True: #this indicates the end of the file
+				self.parse_dna(dna_list)
+				file_read = True
+				
+			elif sect_feature is False and sect_origin is False:
+				if line[0:1] == ' ': #this line is a continuation of a previous header section entry
+					whole_line += line
+				elif whole_line == '': #start of a new entry
+					whole_line = line
+				else: #the entry is over and needs to be parsed
 					self.parse_header_line(whole_line)
-					sect_feature = True
-					whole_line = ''
+					whole_line = line
 
-				elif line[0:6] == 'ORIGIN': #indicates start of DNA section
+			elif sect_feature is True and sect_origin is False:
+				if line[0:21] == self.space_feature: #this line is a continuation of a previous feature entry
+					whole_line += line
+				elif whole_line == '': #start of a new entry
+					whole_line = line
+				else: #the entry is over and needs to be parsed
 					self.parse_feature_line(whole_line)
-					sect_origin = True
-					self.gbfile['dna'] = [] #temporarily set this up as a list. This is only while parsing the DNA and it will be converted to a string after.
-					whole_line = ''
-
-				elif line[0:2] == '//' and sect_feature is True and sect_origin is True: #this indicates the end of the file
-					self.parse_dna_line(whole_line)
-					self.gbfile['dna'] = ''.join(self.gbfile['dna']) #while parsing the DNA was kept as a list, now make it a string
-					file_read = True
+					whole_line = line
 					
-				elif sect_feature is False and sect_origin is False:
-					if line[0:1] == ' ': #this line is a continuation of a previous header section entry
-						whole_line += line
-					elif whole_line == '': #start of a new entry
-						whole_line = line
-					else: #the entry is over and needs to be parsed
-						self.parse_header_line(whole_line)
-						whole_line = line
-
-				elif sect_feature is True and sect_origin is False:
-					if line[0:21] == self.space_feature: #this line is a continuation of a previous feature entry
-						whole_line += line
-					elif whole_line == '': #start of a new entry
-						whole_line = line
-					else: #the entry is over and needs to be parsed
-						self.parse_feature_line(whole_line)
-						whole_line = line
-						
-				elif sect_feature is True and sect_origin is True:
-					self.parse_dna_line(line)
+			elif sect_feature is True and sect_origin is True:
+				dna_list.append(line)
 
 		assert file_read is True, 'There was an unknown error reading the file.'
 		self.add_file_version()
@@ -244,20 +251,18 @@ class gbobject(object):
 	def parse_header_line(self, line):
 		'''
 		Parses a header line into the correct data format.
-		The term 'line' is used loosly and can actually be comprised of several lines that together describe a header entry subpart.
+		The term 'line' is used loosely and can actually be comprised of several lines that together describe a header entry subpart.
 		'''
-		
-		print('header', line)
+
 		if 'LOCUS' in line[0:12]:
 			line_list = line[12:].split(' ')
 			line_list = [x.rstrip('\t\n\x0b\x0c\r ') for x in line_list if x != '']
-			print(line_list)
 			self.gbfile['header']['locus']['id'] = line_list[0]
 			self.gbfile['header']['locus']['length'] = line_list[1]
 			self.gbfile['header']['locus']['type'] = line_list[3]
 			self.gbfile['header']['locus']['topology'] = line_list[4]
 
-			#somethimes the division number is missing, need to check for that
+			#sometimes the division number is missing, need to check for that
 			if len(line_list) == 7: #division number present, all is ok
 				self.gbfile['header']['locus']['division'] = line_list[5]
 				self.gbfile['header']['locus']['date'] = line_list[6]
@@ -267,27 +272,46 @@ class gbobject(object):
 				self.gbfile['header']['locus']['date'] = line_list[5]
 			else:
 				raise ValueError('Error parsing the LOCUS line, check the date and division entry.')
- 
-
-
-			
+ 			
 		elif 'DEFINITION' in line[0:12]:
-			line_list = line[12:].split('\n')
-			self.gbfile['header']['definition'] = ''.join([x.replace(12*' ', ' ') for x in line_list]) #in case the info covers more than one line
+			line_list = line[12:].split('\n') #split by line
+			self.gbfile['header']['definition'] = ''.join([re.sub(' +', ' ', x) for x in line_list]) #remove spaces longer than one and empty entries
+			
 		elif 'ACCESSION' in line[0:12]:
-			pass
+			self.gbfile['header']['accession'] = line[12:].rstrip('\t\n\x0b\x0c\r ')
+			
 		elif 'VERSION' in line[0:12]:
-			pass
+			line_list = re.split('[\n ]', line[12:]) #split by line and space
+			self.gbfile['header']['version'] = [re.sub(' +', ' ', x) for x in line_list if x != ''] #remove spaces longer than one and empty entries
+		
 		elif 'DBLINK' in  line[0:12]:
-			pass
+			line_list = line[12:].split('\n') #split by line only
+			self.gbfile['header']['dblink'] = [x.rstrip('\t\n\x0b\x0c\r ') for x in line_list if x != '']
+			
 		elif 'KEYWORDS' in line[0:12]:
-			pass
+			line_list = re.split('[\n ]', line[12:]) #split by line and space
+			self.gbfile['header']['keywords'] = [re.sub(' +', ' ', x) for x in line_list if x != ''] #remove spaces longer than one and empty entries
+		
 		elif 'SOURCE' in line[0:12]:
-			pass
+			line_list = line[12:].split('\n') #split by line and ; delimiter
+			index = next(line_list.index(x) for x in line_list if 'ORGANISM' in x)  #find the index of 'ORGANISM'
+			
+			self.gbfile['header']['source'].append(' '.join([re.sub('[ .\n]+', ' ', x) for x in line_list[0:index]])) #the first entry (the source line)
+	
+			self.gbfile['header']['source'].append(line_list[index][12:]) #this is the 'organism' line
+			
+			taxon = ''.join(line_list[index+1:]).split(';') #join the rest of the entries and split on the ; delimiter
+			self.gbfile['header']['source'].extend([re.sub('[ .]+', '', x) for x in taxon]) #now remove spaces and punctuations and add the taxonomy to the global data structure
+		
 		elif 'REFERENCE' in line[0:12]:
 			pass
-		elif 'COMMENTS' in line[0:12]:
-			pass
+		
+		elif 'COMMENT' in line[0:12]:
+			line_list = line[12:].split('\n') #split by line
+			self.gbfile['header']['comments'].append(''.join([re.sub(' +', ' ', x) for x in line_list if x != '']))  #remove spaces longer than one and empty entries
+
+		else:
+			raise ValueError, 'Unparsed line: %s' % line
 
 			
 	def parse_feature_line(self, inputline):
@@ -335,7 +359,7 @@ class gbobject(object):
 				print('error', line)		
 
 		self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
-		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
+#		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
 
 		
 
@@ -383,10 +407,10 @@ class gbobject(object):
 			
 		return location, complement, join, order
 
-	def parse_dna_line(self, line):
+	def parse_dna(self, dna_list):
 		#clean DNA from numbering and spaces and append it to a list. This list will later be converted to a string.
-		self.gbfile['dna'].append(dna.CleanDNA(line, silent=True) )
-	
+		dna_list = [dna.CleanDNA(x, silent=True) for x in dna_list]
+		self.gbfile['dna'] = ''.join(dna_list) #make the DNA string
 	
 	def clean_clutter(self):
 		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
