@@ -305,13 +305,17 @@ class gbobject(object):
 		
 		elif 'REFERENCE' in line[0:12]:
 			pass
-		
+			
+		elif 'PRIMARY' in line[0:12]:
+			pass
+			#see gi_625194262
+			
 		elif 'COMMENT' in line[0:12]:
 			line_list = line[12:].split('\n') #split by line
 			self.gbfile['header']['comments'].append(''.join([re.sub(' +', ' ', x) for x in line_list if x != '']))  #remove spaces longer than one and empty entries
 
 		else:
-			raise ValueError, 'Unparsed line: %s' % line
+			raise ValueError, 'Unparsed line: "%s" in record %s' % (line, self.gbfile['header']['locus']['id'])
 
 			
 	def parse_feature_line(self, inputline):
@@ -345,10 +349,11 @@ class gbobject(object):
 			assert type(line) is str, "Error parsing genbank line. Input line is not a string, it is %s:" % str(type(line))
 		
 			#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
-			if line[0:5] == 5*' ' and (line[6] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-') == True:
+
+			if line[0:5] == 5*' ' and (line[5] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ35') == True:
 				key = line[5:20].rstrip('\t\n\x0b\x0c\r ')
 				location = line[21:].rstrip('\t\n\x0b\x0c\r ')
-				feature['key'] = key
+				feature["key"] = key
 				feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(location)
 
 			elif line[0:21] == '                     ' and line[21] == '/':
@@ -356,7 +361,8 @@ class gbobject(object):
 				feature['qualifiers'].append(qualifier)
 
 			else:
-				print('error', line)		
+				print('error', line)	
+
 
 		self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
 #		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
@@ -1667,17 +1673,6 @@ indeces >-1 are feature indeces'''
 			pass
 			#add function for calculating MW
 
-	def align_proteins(self, evt):
-		pass
-		
-	def align_proteins_fasta(self, evt):
-		pass
-	
-	def protein_identsim(self, evt):
-		pass
-
-	def mutate_positions(self, evt):
-		pass
 	
 	def codon_optimize():
 		pass

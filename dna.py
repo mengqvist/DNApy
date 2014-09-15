@@ -503,7 +503,7 @@ def NCBIfetch(id, db = 'nucleotide', rettype = 'gb', retmode = 'text'):
 	Use the optional email parameter so the NCBI can contact you if there is a problem. You can either explicitly set this as a parameter with each call to Entrez (e.g. include email="A.N.Other@example.com" in the argument list).
 	'''
 	import urllib2
-	url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&id=%s&rettype=%s&retmode=%s' % (db, id, rettype, retmode)
+	url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&id=%s&rettype=%s&retmode=%s&tool=DNApy&email=martin.engqvist@chalmers.se' % (db, id, rettype, retmode)
 	file = urllib2.urlopen(url).read() #this returns the result as a string. I'll need to parse it to get the info out.
 	return file
 

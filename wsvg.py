@@ -278,7 +278,7 @@ class DoubleArc(Arc):
 
 class Text:
 	'''Draws rotated text with the top (12 on a clock) being 0 degrees'''
-	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left"):
+	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left", align='start'):
 		self.text = text
 		self.origin = origin
 		self.angle = angle
@@ -295,11 +295,12 @@ class Text:
 		self.stroke = stroke
 		self.family = family
 		self.anchor = anchor
+		self.align = align
 		return
 
 	def strarray(self):
-		return ["  <text x=\"%r\" y=\"%r\" text-anchor=\"%s\" transform=\"rotate(%r %s,%s)\"\n" %\
-				(self.origin[0], self.origin[1], self.anchor, self.angle, self.origin[0], self.origin[1]),
+		return ["  <text x=\"%r\" y=\"%r\" text-anchor=\"%s\" text-align=\"%s\" transform=\"rotate(%r %s,%s)\"\n" %\
+				(self.origin[0], self.origin[1], self.anchor, self.align, self.angle, self.origin[0], self.origin[1]),
 				"    style=\"font-size:%spx;font-style:%s;font-variant:%s;font-weight:%s;font-stretch:%s;line-height:%s%%;letter-spacing:%spx;word-spacing:%spx;fill:%s;fill-opacity:%s;stroke:%s;font-family:%s\">\n" %\
 				(self.size, self.style, self.variant, self.weight, self.stretch, self.height, self.lspacing, self.wspacing, colorstr(self.color), self.opacity, self.stroke, self.family),
 				"    %s\n" % self.text,
@@ -327,9 +328,9 @@ def colorstr(rgb):
 	'''Convert RGB colors to hex''' 
 	if checkHEX(rgb) is False:
 		R, G, B = rgb
-		assert 0<=R<=255
-		assert 0<=G<=255
-		assert 0<=B<=255
+		assert 0<=R<=255, 'Error, R is %s but must be 0<=R<=255' % R
+		assert 0<=G<=255, 'Error, G is %s but must be 0<=G<=255' % G
+		assert 0<=B<=255, 'Error, B is %s but must be 0<=B<=255' % B
 		return "#%02x%02x%02x" % (R,G,B)
 	elif checkHEX(rgb) is True:
 		return rgb
