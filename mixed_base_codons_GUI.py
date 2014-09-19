@@ -3,7 +3,7 @@
 
 #This file is part of DNApy. DNApy is a DNA editor written purely in python. 
 #The program is intended to be an intuitive, fully featured, 
-#extendable, editor for molecular and synthetic biology.  
+#extendible, editor for molecular and synthetic biology.  
 #Enjoy!
 #
 #Copyright (C) 2014  Martin Engqvist | 

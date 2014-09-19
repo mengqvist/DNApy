@@ -37,50 +37,44 @@
 from copy import deepcopy
 import dna
 
+
+
+## Explanation of algorithm ##
+#a list of amino acids (as single letter code) is passed to the algorithm
+
+
+
 DesiredAA = [] #list that holds the desired amino acids
 
 
 
 def sumupcodons(DesiredCodons):
-	#print('sumcodons', DesiredCodons)
-	allcodon1 = [];
-	allcodon2 = [];
-	allcodon3 = [];
-	allcodon1test = [];
-	allcodon2test = [];
-	allcodon3test = [];
+	'''
+	Takes a list of regular codon lists and splits them up.
+	Example input is: [['GCT', 'GCC', 'GCA', 'GCG'], ['TGT', 'TGC'], ['TAT', 'TAC']]
+	The input is separated such that codons from one amino acid is in a separate list.
+	The objective is to keep the list structure but to make three separate list where each 
+	holds all the unique nucleotides for either the first, second or third base of the codons.
+	The correct output for the first position would be: [['G'], ['T'], ['T']]
+	'''
+
+	print('Desired', DesiredCodons)
+	codon1 = []
+	codon2 = []
+	codon3 = []
 	for entry in DesiredCodons:     #splits up the list in segments containing codons for each AA
-		
-		codon1 = [];
-		codon2 = [];
-		codon3 = [];
-
 		for codon in entry:      #splits up the codons of each AA into triplets
-			if codon[0:1] in codon1: 
-				pass
-			else:
-				codon1.append(codon[0:1]) #Takes first base in the triplet
+			codon1.append(codon[0]) #Takes first base in the triplet
+			codon2.append(codon[1]) #Takes the second base in triplet
+			codon3.append(codon[2]) #Takes third base in triplet
+	#only keep uniques
+	codon1 = list(set(codon1)) 
+	codon2 = list(set(codon2))
+	codon3 = list(set(codon3))
 	
-			if codon[1:2] in codon2: 
-				nothing = 1 #do nothing
-			else:
-				codon2.append(codon[1:2]) #Takes the second base in triplet
+	print('allcodon', (codon1, codon2, codon3))
 
-			if codon[2:3] in codon3: 
-				nothing = 1 #do nothing
-			else:
-				codon3.append(codon[2:3]) #Takes third base in triplet
-		
-		allcodon1.append(codon1) #Adds upp all the first bases
-		allcodon2.append(codon2) #Adds upp all the second bases
-		allcodon3.append(codon3) #Adds upp all the third bases
-	#print('1', allcodon1)
-	#print('2', allcodon2)
-	#print('3', allcodon3)
-	#print('result', (allcodon1, allcodon2, allcodon3))
-	print('allcodon', (allcodon1, allcodon2, allcodon3))
-	print('allcodontest', (allcodon1test, allcodon2test, allcodon3test))
-	return (allcodon1, allcodon2, allcodon3)
+	return (codon1, codon2, codon3)
 
 
 
@@ -325,19 +319,25 @@ def getinput():
 	
 	
 
-def evaluate(chosenAA):	
-	#get all possible triplet codons for the desired AA
-	possible_triplets = []
-	for aa in chosenAA:
-		possible_triplets.append(dna.GetCodons(aa, separate=True))
+def get_triplets(chosenAA):	
+	'''
+	Takes a list of chosen amino acids (in single letter code) and returns a list of all possible triplet codons.
+	'''
+	
+	regular_triplets = []
 
-	first, second, third = sumupcodons(possible_triplets) #takes the triplets and splits them up into their first, second and third positions
-	print('allcodons', (first, second, third))
-	degenerate1 = degenerate(first) #Gets degenerate codon that represents all bases at position 1
+	#get non-ambigous codons for the amino acids
+	for aa in chosenAA:
+		regular_triplets.append(dna.GetCodons(aa, separate=True))
+
+		
+	first, second, third = sumupcodons(regular_triplets) #takes the triplets and splits them up into their first, second and third positions
+
+	degenerate1 = dna.Amb(first) #Gets degenerate codon that represents all bases at position 1
 	print('degenerate1', degenerate1)
-	degenerate2 = degenerate(second) #Gets degenerate codon that represents all bases at position 2
+	degenerate2 = dna.Amb(second) #Gets degenerate codon that represents all bases at position 2
 	print('degenerate2', degenerate2)
-	degenerate3 = degenerate(third) #Gets degenerate codon that represents all bases at position 3
+	degenerate3 = dna.Amb(third) #Gets degenerate codon that represents all bases at position 3
 	print('degenerate3', degenerate3)
 
 	if degenerate1 == 'N' and degenerate2 == 'N' and degenerate3 == 'N': 
@@ -345,9 +345,13 @@ def evaluate(chosenAA):
 	else: 
 		triplet = degenerate1 + degenerate2 + degenerate3 # summing up
 	
-	##triplet holds the degenerate triplet codon
+	#self.setTriplet(triplet)
 
-
+	
+	
+	################ split here ################
+	
+	
 	###now I just need to convert this to a list of real codons and then check to which aa they match
 	Realcodons = dna.combine([dna.UnAmb(triplet[0]), dna.UnAmb(triplet[1]), dna.UnAmb(triplet[2])]) #condense the different codons for position 1, 2, and 3 to a list of triplets
 	
@@ -376,7 +380,7 @@ def test_alternate(DesiredAA, AA, triplet, result):
 	
 	for entry in alternateAA: #test which combination gives least off-target hits
 		testset = entry
-		temptriplet, tempresult = evaluate(testset)
+		temptriplet, tempresult = get_triplets(testset)
 		if len(tempresult[1]) < len(result[1]):
 			DesiredAA = testset
 			result = tempresult
@@ -424,24 +428,7 @@ def next_steps(targetAA, offtargetAA):
 #			new_possibleAA.append(AA)
 	return possibleAA
 
-def get_codon_for_chosen_AA(DesiredAA):	
-	#DesiredAA containst list of amino acids.
-	triplet, target, offtarget = evaluate(DesiredAA)
-	AA = ''
-	if ('S' in DesiredAA):
-		AA += 'S'
-	if ('R' in DesiredAA):
-		AA += 'R'
-	if ('L' in DesiredAA):
-		AA += 'L'
-	#triplet, target, offtarget = test_alternate(DesiredAA, AA, triplet, result) #fix this!!!!!!!!!!!!!!!!!!!!!
 
-
-#	print('Degenerate codon: ', triplet)
-#	print('For the chosen AA: ', result[0])
-#	print('And the off-target AA: ', result[1])
-	
-	return (triplet, target, offtarget) #codon, target, offtarget
 
 
 def find_multiple_codons(target_AA):	
@@ -473,7 +460,7 @@ def find_multiple_codons(target_AA):
 				#change!
 				AA_list = translate(dna.UnAmb(mixed_base_codon)) #wrong usage, have to take a base at the time!!!
 				codon, target, offtarget = get_codon_for_chosen_AA(AA_list)
-				triplet, result = evaluate(AA_list)
+				triplet, result = get_triplets(AA_list)
 				target = result[0].sort()
 				offtarget = result[1]
 				if len(offtarget) == 0 and target == target_AA: #if no offtarget aa are present and all target aa are present
@@ -485,7 +472,7 @@ def find_multiple_codons(target_AA):
 							pass
 						else:	
 							remaining_AA.append(aa)
-					triplet, result = evaluate(remaining_AA)
+					triplet, result = get_triplets(remaining_AA)
 					target = result[0].sort()
 					offtarget = result[1]
 					if len(offtarget) == 0 and target == remaining_AA: #if no offtarget aa are present and all target aa are present
@@ -516,23 +503,84 @@ def find_multiple_codons(target_AA):
 #				print('Not found')
 				
 
-def run(AA):
-	triplet, target, offtarget = get_codon_for_chosen_AA(AA)
-	#incorporate the codon table here...
+def get_codon_for_chosen_AA(DesiredAA):	
+	'''
+	
+	'''
+	#DesiredAA containst list of amino acids.
+	triplet, target, offtarget = get_triplets(DesiredAA)
+	AA = ''
+	if ('S' in DesiredAA):
+		AA += 'S'
+	if ('R' in DesiredAA):
+		AA += 'R'
+	if ('L' in DesiredAA):
+		AA += 'L'
+	#triplet, target, offtarget = test_alternate(DesiredAA, AA, triplet, result) #fix this!!!!!!!!!!!!!!!!!!!!!
 
-	#now find which aa are possible without adding  off-target hits
-	possibleAA = next_steps(target, offtarget)
 
-#	if len(offtarget) != 0: #if there are offtargets, find a combination of codons that will give you no off-targets
-#		multiple_codons = find_multiple_codons(target)
+#	print('Degenerate codon: ', triplet)
+#	print('For the chosen AA: ', result[0])
+#	print('And the off-target AA: ', result[1])
+	
+	return (triplet, target, offtarget) #codon, target, offtarget
+	
 
-	return (triplet, target, offtarget, possibleAA) #codon, target, offtarget, possibleAA
 
+class AmbigousCodon:
+	'''
+	Class that holds methods and values for computing the ambigous codon for a list of amino acids.
+	Required input is a list of desired amino acids in single letter code and 
+	an integer that determines the codon table to use.
+	'''
+	def __init__(self, AA_list, table):
+		self.setTable(table)
+		AA_list = [s.upper() for s in AA_list]
+		self.setTarget(AA_list)
 
+		#compute triplet and offtarget based on input
+		triplet, target, offtarget = get_codon_for_chosen_AA(AA)		
+		
+		#now find which aa are possible without adding  off-target hits
+		possibleAA = next_steps(target, offtarget)
+
+	#	if len(offtarget) != 0: #if there are offtargets, find a combination of codons that will give you no off-targets
+	#		multiple_codons = find_multiple_codons(target)
+		
+		return
+	
+	def setTarget(self, AA_list):
+		for s in AA_list:
+			assert s in 'FLSYCWPHERIMTNKVADQG'
+		self.target = AA_list
+	def getTarget(self):
+		return self.target
+	
+	def setOfftarget(self, AA_list):
+		self.offtarget = AA_list
+	def getOfftarget():
+		return self.offtarget
+	
+	def setPossible(self, AA_list):
+		self.possible = AA_list
+	def getPossible(self):
+		return self.possible
+	
+	def setTriplet(self, triplet_string):
+		self.triplet = triplet_string
+	def getTriplet(self):
+		return self.triplet
+		
+	def setTable(self, table):
+		self.tableobject = dna.CodonTable(table)
+	def getTable(self):
+		return self.tableobject
+
+		
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	AA, table = getinput()
-	codon, target, offtarget, additions = run(AA)
-	print("mixed base codon: %s" % codon)
-	print("target AA: %s" % target)
-	print("off-target AA: %s" % offtarget)
-	print("AA that can be add w/o off-targets: %s" % additions)
+	codon_object = AmbigousCodon(AA, table)
+	print("mixed base codon: %s" % codon_object.getTriplet())
+	print("target AA: %s" % codon_object.getTarget())
+	print("off-target AA: %s" % codon_object.getOfftarget())
+	print("AA that can be add w/o off-targets: %s" % codon_object.getPossible())
