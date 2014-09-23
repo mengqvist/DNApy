@@ -18,7 +18,8 @@ def parse(filepath):
 	"""
 	infile = list(open(filepath))
 	id, seq, num, qual_val = None, None, None, None
-	for i in range(0,4):
+	alignments = []
+	for i in range(len(infile)):
 		line = infile[i].strip()
 		if line: #line cannot be empty
 			if line.startswith("@") and i==0: #first line, holds ID
@@ -29,6 +30,9 @@ def parse(filepath):
 				num = line[1:]
 			elif id and seq and num and i == 3:
 				qual_val = line	
+			elif i > 3:
+				alignments.append(line)
+	alignments = '\n'.join(alignments)
 	#print(id, seq, num, qual_val)
-	return id, seq, num, qual_val
+	return id, seq, num, qual_val, alignments
 					

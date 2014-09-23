@@ -46,48 +46,61 @@ import dna
 
 DesiredAA = [] #list that holds the desired amino acids
 
-
-
 def sumupcodons(DesiredCodons):
 	'''
-	Takes a list of regular codon lists and splits them up.
-	Example input is: [['GCT', 'GCC', 'GCA', 'GCG'], ['TGT', 'TGC'], ['TAT', 'TAC']]
-	The input is separated such that codons from one amino acid is in a separate list.
+	Takes a list of regular codon lists and does two things; first it splits them up based on the first, second and third position of the triplet,
+	then it checks which nucleotide (ambiguous allowed) that matches at least one of the nucleotides from each amino acid.	
+	
+	Example input, where alanine, cysteine and tyrosine are desired is: [['GCT', 'GCC', 'GCA', 'GCG'], ['TGT', 'TGC'], ['TAT', 'TAC']]
 	The objective is to keep the list structure but to make three separate list where each 
 	holds all the unique nucleotides for either the first, second or third base of the codons.
-	The correct output for the first position would be: [['G'], ['T'], ['T']]
+	The correct output for the first position would be: [['G'], ['T'], ['T']],
+	for the second [['C'], ['G'], ['A']],
+	and for the third [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
+	These lists can then be passed on to another function for finding a nucleotide that matches at least one of the nucleotides from each amino acid.	
 	'''
-
-	print('Desired', DesiredCodons)
-	codon1 = []
-	codon2 = []
-	codon3 = []
-	for entry in DesiredCodons:     #splits up the list in segments containing codons for each AA
-		for codon in entry:      #splits up the codons of each AA into triplets
-			codon1.append(codon[0]) #Takes first base in the triplet
-			codon2.append(codon[1]) #Takes the second base in triplet
-			codon3.append(codon[2]) #Takes third base in triplet
-	#only keep uniques
-	codon1 = list(set(codon1)) 
-	codon2 = list(set(codon2))
-	codon3 = list(set(codon3))
-	
-	print('allcodon', (codon1, codon2, codon3))
-
-	return (codon1, codon2, codon3)
-
-
+	#print('sumcodons', DesiredCodons)
+	allcodon1 = []
+	allcodon2 = []
+	allcodon3 = []
+	for entry in DesiredCodons:
+		codon1 = []
+		codon2 = []
+		codon3 = []
+		for codon in entry: #splits up the codons of each AA into triplets
+			if codon[0] not in codon1:
+				codon1.extend(codon[0]) #Takes first base in the triplet
+			if codon[1] not in codon2:
+				codon2.extend(codon[1]) #Takes the second base in triplet
+			if codon[2] not in codon3:
+				codon3.extend(codon[2]) #Takes third base in triplet
+		allcodon1.append(codon1) #Adds upp all the first bases
+		allcodon2.append(codon2) #Adds upp all the second bases
+		allcodon3.append(codon3) #Adds upp all the third bases
+	return (allcodon1, allcodon2, allcodon3)
 
 
 
 		
-def degenerate(list): 
+def commonNuc(nuc_list): 
 	"""
-	This function finds the degenerate symbol for a list of bases.
-	As a matter of fact, it finds the smallest common degenerate nucleotide. 
-	"""
+	This function takes a list of lists and finds the degenerate symbol that represents at least one nucleotide from each of the lists.
 
+	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
+	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable return values.
+	In this case the nucleotide (T or C) first tested by the algorithm is returned as the output.
+	Typically these are tested in the order 'A' 'G' 'C' 'T'.
+
+	Another example input is: [['G'], ['T'], ['T']].
+	In this case G or T is present in all lists, therefore the only acceptable output is 'K' (ambiguous nucleotide for G and T). 
+	"""
+	nuc_list = [s.upper() for s in nuc_list]
+	
 	print('list to degerate', list)
+	
+	for nuc in 'AGCTYKMSWRHVDBN'
+	[]
+	
 	for x in list:	#x is the list of codons for a certain AA, it cycles through all chosen AA
 		if 'A' in x:
 			var = 'A'
@@ -212,7 +225,9 @@ def degenerate(list):
 
 
 def count_codon_list(codonlist):
-	"""Takes a list of codons and counts how many of each AA are coded for. Returns a dictionary."""
+	"""
+	Takes a list of codons and counts how many of each AA are coded for. Returns a dictionary.
+	"""
 	#needs fixing
 	F = ['TTT', 'TTC'];
 	L = ['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'];
@@ -287,7 +302,9 @@ def count_codon_list(codonlist):
 
 
 def chosenvsresulting(DesiredAA, AAlist): 
-	"""Function for checking a list vs another to find which are present in both and which are not"""
+	"""
+	Function for checking a list vs another to find which are present in both and which are not.
+	"""
 	TargetAA = []
 	OffTargetAA = []
 	for entry in AAlist:
@@ -330,7 +347,7 @@ def get_triplets(chosenAA):
 	for aa in chosenAA:
 		regular_triplets.append(dna.GetCodons(aa, separate=True))
 
-		
+	######## this is where I need to use the codon table #############
 	first, second, third = sumupcodons(regular_triplets) #takes the triplets and splits them up into their first, second and third positions
 
 	degenerate1 = dna.Amb(first) #Gets degenerate codon that represents all bases at position 1

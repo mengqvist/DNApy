@@ -225,6 +225,7 @@ def Amb(list):
 	Output is a single ambiguous DNA nucleotide as a string.
 	Example input is: ['A','T','C','G']. The output for that input is 'N'
 	'''
+	list = [s.upper() for s in list]
 	if all([x in 'A' for x in list]): #test whether each item in a string is present in the list
 		output = 'A'
 
@@ -269,6 +270,8 @@ def Amb(list):
 
 	elif all([x in 'CTAG' for x in list]): 
 		output = 'N'
+	else:
+		raise ValueError, 'Error, input must be a list of standard GATC nucleotides.'
 	return output
 	
 	
