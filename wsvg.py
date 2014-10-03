@@ -16,7 +16,9 @@ This was in turn enhanced by Martin Engqvist to contain code for styling text, r
 import os
 import math
 import re
-display_prog = "display"
+import colcol
+
+#display_prog = "display"
 
 class Scene:
     def __init__(self, name="svg", size=(400,400)):
@@ -47,12 +49,12 @@ class Scene:
         file.close()
         return
 
-    def display(self,prog=display_prog):
-        os.system("%s %s" % (prog,self.svgname))
-        return        
+ #   def display(self,prog=display_prog):
+  #      os.system("%s %s" % (prog,self.svgname))
+   #     return        
 
 class Line:
-    def __init__(self,start,end,color,width):
+    def __init__(self, start, end, color, width):
         self.start = start
         self.end = end
         self.color = color
@@ -307,33 +309,15 @@ class Text:
 				"  </text>\n"]
 
 
-def checkHEX(string):
-	'''check if a string is a valid hex number'''
-	#check whether input is already in hex
-	string = str(string)
-
-	regular_expression = re.compile(r'''^							#match beginning of string
-										[#]{1} 						#exactly one hash
-										[0-9a-fA-F]{6}				#exactly six of the hex symbols  0 to 9, a to f (big or small)
-										$							#match end of string
-										''', re.VERBOSE)	
-	
-	if regular_expression.match(string) == None: #if no match make the rgb to hex
-		return False
+def colorstr(input):
+	'''Convert RGB colors to hex, if needed''' 
+	if colcol.is_hex(input): #if it is hex, return it
+		return input
+	elif colcol.is_rgb(input): #if it not hex, but is RGB, convert it
+		return colcol.rgb_to_hex(input)
 	else:
-		return True
+		raise ValueError
 
-
-def colorstr(rgb):
-	'''Convert RGB colors to hex''' 
-	if checkHEX(rgb) is False:
-		R, G, B = rgb
-		assert 0<=R<=255, 'Error, R is %s but must be 0<=R<=255' % R
-		assert 0<=G<=255, 'Error, G is %s but must be 0<=G<=255' % G
-		assert 0<=B<=255, 'Error, B is %s but must be 0<=B<=255' % B
-		return "#%02x%02x%02x" % (R,G,B)
-	elif checkHEX(rgb) is True:
-		return rgb
 
 
 
@@ -368,7 +352,7 @@ def test():
 	for r in range(0, 360, 45):
 		scene.add(Text(text="Testing rotated", origin=(350,350), angle=r, size=15, color=(abs(r)/2,255-abs(r)/2,0), anchor="end"))	
 	scene.write_svg()
-	scene.display()
+#	scene.display()
 	return
 
 if __name__ == "__main__": 
