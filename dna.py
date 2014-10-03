@@ -171,8 +171,7 @@ def GetCodons(AA, table=1, separate=False):
 		assert AA in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
 	
 	codons = CodonTable(table).getCodons(separate)
-	aacodons = codons[AA]
-	return aacodons	
+	return codons[AA]	
 	
 def ReverseTranslate(protein, table=1):
 	'''
