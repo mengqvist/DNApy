@@ -33,7 +33,7 @@
 from output import create
 import genbank
 from base_class import DNApyBaseClass
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 class MyPanel(create):
 	'''Class to add update behavior to the output panel'''
@@ -43,14 +43,14 @@ class MyPanel(create):
 
 
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'from_dna_edit' 		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+#		self.listening_group = 'from_dna_edit' 		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
-		self.listening_group2 = 'from_feature_edit'	
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)
+#		self.listening_group2 = 'from_feature_edit'	
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)
 
-		self.listening_group3 = 'from_feature_list'		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)
+#		self.listening_group3 = 'from_feature_list'		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)
 
 
 

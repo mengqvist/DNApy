@@ -36,7 +36,7 @@
 
 import wx
 #import wx.lib.graphics
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 
 import genbank
@@ -56,6 +56,8 @@ settings=files['default_dir']+"settings"   ##path to the file of the global sett
 execfile(settings) #gets all the pre-assigned settings
 
 class PlasmidView(DNApyBaseDrawingClass):
+	highlighted_feature = False
+	genbank.search_hits = []
 	def __init__(self, parent, id):
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 
@@ -73,20 +75,20 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+#		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
-		self.listening_group2 = 'from_feature_edit'		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
+#		self.listening_group2 = 'from_feature_edit'		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-		self.listening_group3 = 'from_dna_edit'		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
+#		self.listening_group3 = 'from_dna_edit'		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
 
-		self.listening_group4 = 'from_main'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
+#		self.listening_group4 = 'from_main'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 
-		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
+#		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
 
 
 ############ Setting required methods ####################
@@ -98,8 +100,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.Publisher.sendMessage('from_plasmid_view', '')
-
+#		pub.Publisher.sendMessage('from_plasmid_view', '')
+		pass
 	
 	def update_ownUI(self):
 		"""
@@ -206,8 +208,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 		name = genbank.gb.fileName.split('.')[0]
 		basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
 
-		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		gcdc.SetFont(font)
+#		font = wx.SystemSettings.GetFont(1)
+#		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#666666'))
 		name_length = gcdc.GetTextExtent(name) #length of text in pixels
 		gcdc.DrawText(name, self.centre_x-name_length[0]/2, self.centre_y-name_length[1])
@@ -268,8 +271,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		#for labels
 		label_type = 'circular'
 		font_size = int(self.Radius/18)
-		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		gcdc.SetFont(font)
+#		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		gcdc.SetFont(font)
 		label_line_length = self.min_centre/8
 		max_label_length = self.Radius/2 #max length of label in pixels
 		xc=self.centre_x #centre of circle
@@ -400,6 +403,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			yc=self.centre_y #centre of circle
 
 			#set color surrounding feature. Normally black, red if feature is highlighted. Also change text color.
+
 			if i is self.highlighted_feature: #if the current feature corresponds to that which should be highlighted
 				gcdc.SetPen(wx.Pen(colour='#FF0000', width=2))
 				gcdc.SetTextForeground('#FF0000')
@@ -677,7 +681,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		self.set_dna_selection((start, finish))
 		self.update_ownUI()
-		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
+#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 
 
 	def OnMotion(self, event):
@@ -697,7 +701,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 			self.set_dna_selection((start, finish))
 			self.update_ownUI()
-			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
+#			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 		else:
 			new_index = self.HitTest()
 			if new_index is self.highlighted_feature: #if the index did not change

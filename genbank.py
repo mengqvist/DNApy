@@ -209,7 +209,9 @@ class gbobject(object):
 		whole_line = '' #many things are broken over several lines, use this variable to collect them.
 		dna_list = [] #for collecting the dna
 		for line in infile:
-			if line[0:8] == 'FEATURES': #indicates start of feature section
+			if "".join(line.split()) == '':	#get rid of blank lines
+				pass
+			elif line[0:8] == 'FEATURES': #indicates start of feature section
 				self.parse_header_line(whole_line)
 				sect_feature = True
 				whole_line = ''
@@ -1026,10 +1028,11 @@ class gbobject(object):
 		else:
 			if finish == -1:
 				finish = len(self.GetDNA())
+			
 			assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 			assert start <= finish, 'Starting point must be before finish.'
-			assert start > 0 and start <= len(self.gbfile['dna']), 'Starting point must be between 1 and the the DNA length.'
-			assert finish > 0 and finish <= len(self.gbfile['dna']), 'Finish must be between 1 and the the DNA length.'
+			assert start > 0 and start <= len(self.gbfile['dna']), 'Starting point must be between 1 and the the DNA length. %s is not' % start
+			assert finish > 0 and finish <= len(self.gbfile['dna']), 'Finish must be between 1 and the the DNA length. %s is not' % finish
 			return self.gbfile['dna'][start-1:finish]
 	
 	def GetFilepath(self):
@@ -1458,7 +1461,11 @@ indeces >-1 are feature indeces'''
 		for n in range(0,len(location)): #for each character
 			if location[n] != '<' and location[n] != '>': 
 				templocation += location[n]
-		start, finish = templocation.split('..')
+		try:
+			start, finish = templocation.split('..')
+		except:
+			start = templocation
+			finish = templocation
 		return int(start), int(finish)
 
 

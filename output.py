@@ -33,7 +33,7 @@
 import wx.richtext as rt
 import wx
 from base_class import DNApyBaseClass
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 class create(DNApyBaseClass):
 	'''A class to print colored output to a rich textctrl'''
@@ -49,8 +49,8 @@ class create(DNApyBaseClass):
 #		self.rtc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
 
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'placeholder' 		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+#		self.listening_group = 'placeholder' 		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(item=self.rtc, proportion=-1, flag=wx.EXPAND)

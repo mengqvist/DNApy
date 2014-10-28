@@ -166,11 +166,13 @@ def GetCodons(AA, table=1, separate=False):
 	If separate=True they are split up as L = ['TTA', 'TTG'] and L2 = ['CTT', 'CTC', 'CTA', 'CTG']
 	'''
 	AA = AA.upper()
-	if separate is False:
-		assert len(AA) == 1, 'Error, function takes a single amino acid as input'
-		assert AA in 'FLSYCWPHERIMTNKVADQG', 'Error, %s is not a valid amino acid' % str(AA)
+#	if separate is False: #what the heck is this if clause for?? Can I remove it?
+	assert len(AA) == 1, 'Error, function takes a single amino acid as input'
+	assert AA in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % str(AA)
 	
 	codons = CodonTable(table).getCodons(separate)
+	if AA == '*':
+		AA = 'stop'
 	return codons[AA]	
 	
 def ReverseTranslate(protein, table=1):
@@ -188,6 +190,80 @@ def ReverseTranslate(protein, table=1):
 	return dnalist
 
 
+	
+def count_codons(seq):
+	'''
+	Counts codons in a DNA sequence.
+	Input should be a string comprising whole codons. 
+	No ambiguous codons allowed.
+	Output is a dictionary with codon keys and integer values.
+	'''
+	assert type(seq) is str and len(seq) % 3 == 0, 'Error, the sequence must be a string comprising whole codons. %s' % seq
+	
+	codons = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0, 
+				'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0, 
+				'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0, 
+				'GUG': 0, 'UAU': 0, 'UAC': 0, 'UAA': 0, 'UAG': 0, 
+				'CAU': 0, 'CAC': 0, 'CAA': 0, 'CAG': 0, 'AAU': 0, 
+				'AAC': 0, 'AAA': 0, 'AAG': 0, 'GAU': 0, 'GAC': 0, 
+				'GAA': 0, 'GAG': 0, 'UCU': 0, 'UCC': 0, 'UCA': 0, 
+				'UCG': 0, 'CCU': 0, 'CCC': 0, 'CCA': 0, 'CCG': 0, 
+				'ACU': 0, 'ACC': 0, 'ACA': 0, 'ACG': 0, 'GCU': 0, 
+				'GCC': 0, 'GCA': 0, 'GCG': 0, 'UGU': 0, 'UGC': 0, 
+				'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0, 
+				'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0, 
+				'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0} 
+
+	seq = seq.upper()
+	for i in range(0, len(seq), 3): 
+		codon = seq[i:i+3].replace('T', 'U')
+		if codon in codons.keys():
+			codons[codon] += 1
+		else:
+			raise ValueError, 'Codon %s is not valid.' % codon
+	return codons
+
+	
+def make_codon_freq_table(file):
+	'''
+	Input is a file path.
+	Counts the usage of each codon in a FASTA file of DNA sequences.
+	Then converts that as codon usage per 1000 codons.
+	Good for generating codon tables.
+	Output is a dictionary of codon frequencies per 1000 codons and the total number in brackets.
+	'''
+	
+	num_table = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0, 
+				'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0, 
+				'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0, 
+				'GUG': 0, 'UAU': 0, 'UAC': 0, 'UAA': 0, 'UAG': 0, 
+				'CAU': 0, 'CAC': 0, 'CAA': 0, 'CAG': 0, 'AAU': 0, 
+				'AAC': 0, 'AAA': 0, 'AAG': 0, 'GAU': 0, 'GAC': 0, 
+				'GAA': 0, 'GAG': 0, 'UCU': 0, 'UCC': 0, 'UCA': 0, 
+				'UCG': 0, 'CCU': 0, 'CCC': 0, 'CCA': 0, 'CCG': 0, 
+				'ACU': 0, 'ACC': 0, 'ACA': 0, 'ACG': 0, 'GCU': 0, 
+				'GCC': 0, 'GCA': 0, 'GCG': 0, 'UGU': 0, 'UGC': 0, 
+				'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0, 
+				'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0, 
+				'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0} 
+	records = fasta.parseFile(file)
+	for record in records:
+		cds = record[1]
+		codons = count_codons(cds)
+		for key in codons.keys():
+			num_table[key] += codons[key]
+
+	#sum codons
+	sum = 0.0
+	for key in num_table.keys():
+		sum += num_table[key]
+	
+	#divide each by the sum and multiply by 1000
+	freq_table = {}
+	for key in num_table.keys():
+		freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
+	return freq_table		
+	
 ############################################################
 
 def combine(input_list, max_total=50000):
@@ -754,7 +830,7 @@ class CodonTable:
 			
 			if aa == '*': #if aa is stop
 				codons['stop'].append(codon)
-			elif aa in 'FLSYCWPHERIMTNKVADQG':
+			elif aa in 'FLSYCWPHERIMTNKVADQG*':
 				codons[aa].append(codon)
 			else:
 				raise Error, '"%s" is not a valid amino acid' % aa

@@ -37,7 +37,7 @@
 import ast
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 import sys, os
 import string
@@ -78,14 +78,14 @@ class FeatureList(DNApyBaseClass):
 #		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
-		pub.Publisher.subscribe(self.listen_to_updateUI, str(self.listening_group))
+#		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
+#		pub.Publisher.subscribe(self.listen_to_updateUI, str(self.listening_group))
 
-		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
+#		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
 
-		self.listening_group4 = 'from_main'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
+#		self.listening_group4 = 'from_main'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 		
 		#buttons
 		imageFile = files['default_dir']+"/icon/new_small.png"
@@ -183,7 +183,7 @@ class FeatureList(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.Publisher.sendMessage('from_feature_list', '')
+#		pub.Publisher.sendMessage('from_feature_list', '')
 
 ######################################################
 

@@ -37,7 +37,7 @@
 import ast
 import wx
 from wx.lib.agw import ultimatelistctrl as ULC
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 import genbank
 
@@ -155,8 +155,8 @@ class FeatureEdit(DNApyBaseClass):
 
 		#determing which listening group from which to recieve messages about UI updates
 
-		self.listening_group4 = 'from_main'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
+#		self.listening_group4 = 'from_main'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 
 		##
 		# first panel, for editing feature
@@ -304,8 +304,8 @@ class FeatureEdit(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.Publisher.sendMessage('from_feature_edit', '')
-
+#		pub.Publisher.sendMessage('from_feature_edit', '')
+		pass
 
 	def update_ownUI(self):
 		'''Updates all fields depending on which feature is chosen'''

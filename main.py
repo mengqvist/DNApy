@@ -51,7 +51,7 @@ import featureedit_GUI
 import featurelist_GUI
 import plasmid_GUI
 import genbank_GUI
-import mixed_base_codons_GUI
+#import mixed_base_codons_GUI
 
 
 #if sys.platform == 'win32':

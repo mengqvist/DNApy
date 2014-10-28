@@ -44,7 +44,7 @@ import string
 
 import genbank
 import wx.stc
-from wx.lib.pubsub import pub
+#from wx.lib.pubsub import pub
 
 import pyperclip
 import copy
@@ -253,20 +253,20 @@ class DNAedit(DNApyBaseClass):
 ##		self.linecount.SetEditable(False)
 
 		#determing which listening group from which to recieve messages about UI updates
-		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
+#		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
 
-		self.listening_group2 = 'from_feature_edit'		
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
+#		self.listening_group2 = 'from_feature_edit'		
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-		self.listening_group4 = 'from_plasmid_view'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
+#		self.listening_group4 = 'from_plasmid_view'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
 
-		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_plasmid_view'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
+#		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_plasmid_view'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
 
-		self.listening_group6 = 'from_main'
-		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group6)
+#		self.listening_group6 = 'from_main'
+#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group6)
 
 		#create dna view panel
 		self.stc = CustomSTC(self)
@@ -352,8 +352,8 @@ class DNAedit(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pub.Publisher.sendMessage('from_dna_edit', '')
-
+#		pub.Publisher.sendMessage('from_dna_edit', '')
+		pass
 
 	
 	def update_ownUI(self):
@@ -376,13 +376,13 @@ class DNAedit(DNApyBaseClass):
 
 	def OnLeftUp(self, event):
 		self.set_dna_selection('') #update the varable keeping track of DNA selection
-		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
 		event.Skip() #very important to make the event propagate and fulfill its original function		
 
 	def OnMotion(self, event):
 		if event.Dragging() and event.LeftIsDown():
 			self.set_dna_selection('') #update the varable keeping track of DNA selection
-			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+#			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnRightUp(self, event):
@@ -464,7 +464,7 @@ class DNAedit(DNApyBaseClass):
 			self.stc.LineDownExtend()
 
 		self.set_dna_selection('') #update the varable keeping track of DNA selection
-		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
 
 ##########################
 	def make_outputpopup(self):
