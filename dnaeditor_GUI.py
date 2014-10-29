@@ -52,7 +52,7 @@ import copy
 import output
 import dna
 from base_class import DNApyBaseClass
-
+import featurelist_GUI
 
 #TODO
 #fix statusbar in general
@@ -242,7 +242,7 @@ class CustomSTC(wx.stc.StyledTextCtrl):
 
 
 ########### class for text ######################
-class DNAedit(DNApyBaseClass):
+class TextEdit(DNApyBaseClass):
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 		
@@ -336,7 +336,7 @@ class DNAedit(DNApyBaseClass):
 		self.stc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress) #This is important for controlling the input into the editor
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
-		sizer.Add(self.stc, -1, wx.EXPAND)
+		sizer.Add(item=self.stc, proportion=-1, flag=wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 		self.Centre()
@@ -724,10 +724,27 @@ class DNAedit(DNApyBaseClass):
 
 
 
+			
+			
 ######################################
 ######################################
 
 
+
+
+class DNAedit(DNApyBaseClass):
+	def __init__(self, parent, id):
+		#glue together the textedit panel and the featurelist panel
+		wx.Panel.__init__(self, parent)
+		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
+		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
+		self.dnaview = TextEdit(splitter1, id=wx.ID_ANY)
+		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
+
+		sizer = wx.BoxSizer(wx.HORIZONTAL)
+		sizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
+		self.SetSizer(sizer)
+		
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):

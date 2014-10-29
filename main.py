@@ -59,7 +59,6 @@ import genbank_GUI
 
 
 #TODO
-#add pretty dna view
 #make rightklick menus
 
 
@@ -85,22 +84,23 @@ class MyFrame(wx.Frame):
 	def __init__(self, parent, id, title):
 		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
-#		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
-#		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
+
+		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
+		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
 		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-		self.listening_group = 'from_feature_list'	
-		pub.subscribe(self.listen_to_updateUI, self.listening_group)
+#		self.listening_group = 'from_feature_list'	
+#		pub.subscribe(self.listen_to_updateUI, self.listening_group)
 
-		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
+#		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
+#		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
 
-		self.listening_group2 = 'from_feature_edit'		
-		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
+#		self.listening_group2 = 'from_feature_edit'		
+#		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
 
-		self.listening_group4 = 'from_plasmid_view'
-		pub.subscribe(self.listen_to_updateUI, self.listening_group4)	
+#		self.listening_group4 = 'from_plasmid_view'
+#		pub.subscribe(self.listen_to_updateUI, self.listening_group4)	
 
 
 
@@ -126,20 +126,19 @@ class MyFrame(wx.Frame):
 		genbank.gb.fileName = ''
 
 		#create splitter and panels
-#		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
+##		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
 
-		self.splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
-		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
-		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-240))
+#		self.splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
+#		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
+#		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
+#		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-240))
 
 
-		#plasmid view
-		self.plasmid_frame = wx.Frame(self, -1, title="Plasmid view", size=(500,500))
-		self.plasmid_view = plasmid_GUI.PlasmidView(self.plasmid_frame, -1)		
-		self.plasmid_frame.Bind(wx.EVT_CLOSE, self.OnPlasmidClose)
-#		self.plasmid_frame.Bind(wx.EVT_ENTER_WINDOW, self.plasmid_frame.SetFocus())
-#		self.splitter2.SplitVertically(self.splitter1, self.plasmid_view, sashPosition=-(windowsize[0]/2.2))
+
+		self.generate_dnaview_tab("")
+		self.generate_plasmidview_tab("")
+#		self.generate_sequencingview_tab('')
+		self.generate_genbankview_tab("")
 		
 		self.do_layout()
 		self.Centre()
@@ -148,37 +147,69 @@ class MyFrame(wx.Frame):
 
 	def do_layout(self):
 		'''Pack toolbar and the tabs in their sizers'''
-		#add to sizer
-		sizer_1 = wx.BoxSizer(wx.VERTICAL)
-		sizer_1.Add(item=self.frame_1_toolbar, proportion=0, flag=wx.EXPAND)
-		sizer_1.Add(item=self.splitter1, proportion=-1, flag=wx.EXPAND)
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
 		#if second toolbar is present, add that too.
 		try:
-			sizer_1.Add(self.frame_2_toolbar, 0, wx.EXPAND)
+			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		except:
 			pass
-		self.SetSizer(sizer_1)
+		sizer.Add(self.DNApy, -1, wx.EXPAND)
+		self.SetSizer(sizer)	
 		
 
 
+	def generate_dnaview_tab(self, evt):
+		number=len(self.tab_list)
+		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
+	
+	
+		#create splitter and panels
+		self.dnaview = dnaeditor_GUI.DNAedit(self.panel[number], -1)	
+		self.tab_list.append(self.dnaview)
+
+		#add to sizer
+		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
+		self.DNApy.AddPage(self.panel[number], "DNA")
+		self.panel[number].SetSizer(sizer_1)
+
+
+
+	def generate_plasmidview_tab(self, evt):
+		number=len(self.tab_list)
+		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
+		
+		#plasmid view
+		self.plasmid_view = plasmid_GUI.PlasmidView(self.panel[number], -1)		
+		self.tab_list.append(self.plasmid_view)
+
+		#add to sizer
+		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
+		self.DNApy.AddPage(self.panel[number], "Plasmid")
+		self.panel[number].SetSizer(sizer_1)		
+		
+	def generate_sequencingview_tab(self, evt):
+		pass
 
 	
 
 
-#	def generate_genbankview_tab(self, evt):
-#		number=len(self.tab_list)
-#
-#		self.panel.append(wx.Panel(self.DNApy, -1))
-#		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
-#		self.genbankview.rtc.SetEditable(False)
-#
-#		self.tab_list.append(self.genbankview)
-#
-#
-#		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-#		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-#		self.DNApy.AddPage(self.panel[number], "GenBank")
-#		self.panel[number].SetSizer(sizer_1)
+	def generate_genbankview_tab(self, evt):
+		number=len(self.tab_list)
+		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
+
+		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
+		self.genbankview.rtc.SetEditable(False)
+
+		self.tab_list.append(self.genbankview)
+
+		#add to sizer
+		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
+		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
+		self.DNApy.AddPage(self.panel[number], "GenBank")
+		self.panel[number].SetSizer(sizer_1)
 
 ################ file functions #################
 
@@ -308,6 +339,18 @@ class MyFrame(wx.Frame):
 
 ##########################################################
 
+	def page_change(self, ev):
+		'''When changing between tabs'''
+		print('page change')
+		self.Refresh()
+		self.current_tab=self.DNApy.GetSelection()
+		print('tab', self.current_tab)
+		self.tab_list[self.current_tab].update_ownUI()
+#		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
+#		try:
+#			self.updateUI()
+#		except:
+#			pass
 
 
 	def update_statusbar(self, evt):
@@ -594,6 +637,9 @@ Put Table here
 		self.update_ownUI()
 
 
+
+
+		
 	def update_ownUI(self):
 		#and now actually update the UI
 		print('filever index', genbank.gb.get_file_version_index())
@@ -607,8 +653,11 @@ Put Table here
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
 
+		#update whatever tab is currently active
+		
+
 	def update_globalUI(self):
-		pub.sendMessage('from_main', '')
+		pass
 
 ######################################
 
