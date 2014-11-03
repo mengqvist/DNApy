@@ -109,7 +109,7 @@ def Translate(DNA, table=1):
 				protein.append('S')
 			elif any(DNA[i:(i+3)] in s for s in codons['Y']):
 				protein.append('Y')
-			elif any(DNA[i:(i+3)] in s for s in codons['stop']):
+			elif any(DNA[i:(i+3)] in s for s in codons['*']):
 				protein.append('*')
 			elif any(DNA[i:(i+3)] in s for s in codons['C']):
 				protein.append('C')
@@ -171,8 +171,7 @@ def GetCodons(AA, table=1, separate=False):
 	assert AA in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % str(AA)
 	
 	codons = CodonTable(table).getCodons(separate)
-	if AA == '*':
-		AA = 'stop'
+
 	return codons[AA]	
 	
 def ReverseTranslate(protein, table=1):
@@ -294,13 +293,28 @@ def combine(input_list, max_total=50000):
 					output[j+i*output_len] += pos[i]
 	return output #return the list
 
+	
+	
+def listupper(t):
+	'''
+	Capitalizes all strings in nested lists. 
+	'''
+	if isinstance(t, list):
+		return [listupper(s) for s in t]
+	elif isinstance(t, str):
+		return t.upper()
+	else:
+		return t
+		
+	
 def Amb(list):
 	'''
 	This function finds the degenerate nucleotide for a list containing CATG nucleotides.
 	Output is a single ambiguous DNA nucleotide as a string.
 	Example input is: ['A','T','C','G']. The output for that input is 'N'
 	'''
-	list = [s.upper() for s in list]
+	list = listupper(list)
+	
 	if all([x in 'A' for x in list]): #test whether each item in a string is present in the list
 		output = 'A'
 
@@ -420,7 +434,70 @@ def UnAmb(string):
 
 	return combine(pos_list) #call combine function and return the result as a list of strings
 
+	
+	
+	
+def commonNuc(nuc_list): 
+	"""
+	This function takes a list of lists and finds all degenerate symbols that represent at least one nucleotide from each of the lists.
 
+	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
+	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
+
+	Another example input is: [['G'], ['T'], ['T']].
+	In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T). 
+	"""
+	nuc_list = listupper(nuc_list)
+	output = []
+	
+	if all(['A' in s for s in nuc_list]):
+		output.append('A')
+		
+	if all(['G' in s for s in nuc_list]):
+		output.append('G')
+
+	if all(['C' in s for s in nuc_list]):
+		output.append('C')
+
+	if all(['T' in s for s in nuc_list]):
+		output.append('T')
+
+	if all(['C' in s or 'T' in s for s in nuc_list]):
+		output.append('Y')
+		
+	if all(['G' in s or 'T' in s for s in nuc_list]):
+		output.append('K')
+
+	if all(['A' in s or 'C' in s for s in nuc_list]):
+		output.append('M')
+
+	if all(['C' in s or 'G' in s for s in nuc_list]):
+		output.append('S')
+		
+	if all(['A' in s or 'T' in s for s in nuc_list]):
+		output.append('W')
+		
+	if all(['A' in s or 'G' in s for s in nuc_list]):
+		output.append('R')
+		
+	if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]):
+		output.append('H')
+		
+	if all(['C' in s or 'A' in s or 'G' in s for s in nuc_list]):
+		output.append('V')
+
+	if all(['T' in s or 'A' in s or 'G' in s for s in nuc_list]):
+		output.append('D')
+
+	if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]):
+		output.append('B')
+
+	if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]):
+		output.append('N')
+		
+	return output
+
+	
 def randomizeSeq(seq):
 	'''
 	Randomize a given DNA or protein sequence.
@@ -824,13 +901,11 @@ class CodonTable:
 		Method is not intended for direct use.
 		'''
 		code, AAs, Starts, Base1, Base2, Base3 = self.getTable()
-		codons = {'start':[], 'F':[], 'L':[], 'S':[], 'Y':[], 'C':[], 'W':[], 'P':[], 'H':[], 'E':[], 'R':[], 'I':[], 'M':[], 'T':[], 'N':[], 'K':[], 'V':[], 'A':[], 'D':[], 'Q':[], 'G':[], 'stop':[]}
+		codons = {'start':[], 'F':[], 'L':[], 'S':[], 'Y':[], 'C':[], 'W':[], 'P':[], 'H':[], 'E':[], 'R':[], 'I':[], 'M':[], 'T':[], 'N':[], 'K':[], 'V':[], 'A':[], 'D':[], 'Q':[], 'G':[], '*':[]}
 		for aa, s, b1, b2, b3 in zip(AAs, Starts, Base1, Base2, Base3):
 			codon = b1+b2+b3
 			
-			if aa == '*': #if aa is stop
-				codons['stop'].append(codon)
-			elif aa in 'FLSYCWPHERIMTNKVADQG*':
+			if aa in 'FLSYCWPHERIMTNKVADQG*':
 				codons[aa].append(codon)
 			else:
 				raise Error, '"%s" is not a valid amino acid' % aa
@@ -863,25 +938,22 @@ class CodonTable:
 		Returns a dictionary of amino acids with their codons for the specified codon table.
 		The separate variable determines whether codons for one amino acid with dissimilar first two nucleotides should be separated out.
 		For example if separate=False the codons for L are 	['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'].
-		If separate=True they are split up as L = ['TTA', 'TTG'] and L1 = ['CTT', 'CTC', 'CTA', 'CTG']
+		If separate=True they are split up as L = [['TTA', 'TTG'], ['CTT', 'CTC', 'CTA', 'CTG']]
 		'''
 		assert type(separate) is bool, 'Error, "separate" must be True or False'
 		if separate is False: #returns a dictionary containing the codon table
 			return self.codons 
 		elif separate is True:
 			newdict = {}
-			for aa in 'FLSYCWPHERIMTNKVADQG':
+			for aa in 'FLSYCWPHERIMTNKVADQG*':
 				f = lambda x: [codon[0:2] for codon in x] #function to get all first two nucleotides for an aa
 				firsttwolist = list(set(f(self.codons[aa]))) #list of all unique first two nucleotides for an aa. For example ['TT', 'CT'] for leucine
 #				print('aa', aa)
 #				print('ftl', firsttwolist)
 				if len(firsttwolist) > 1: #if there is more than one set of the first two nucleotides for this amino acid
+					newdict[aa] = []
 					for i in range(len(firsttwolist)):
-						if i == 0:
-							newaa = aa
-						else:
-							newaa = aa+str(i) #add a number after the amino acid
-						newdict[newaa] = [x for x in self.codons[aa] if x[0:2] in firsttwolist[i]] #add all the codons that match the first two
+						newdict[aa].append([x for x in self.codons[aa] if x[0:2] in firsttwolist[i]]) #add all the codons that match the first two
 				else:
 					newdict[aa] = self.codons[aa] #
 			return newdict				
@@ -907,7 +979,7 @@ class CodonTable:
 		codons = self.getCodons()
 		print('start = %s' %codons['start'])
 		print('stop  = %s' %codons['stop'])
-		for aa in 'FLSYCWPHERIMTNKVADQG':
+		for aa in 'FLSYCWPHERIMTNKVADQG*':
 			print('%s     = %s' % (aa, codons[aa]))
 		
 		

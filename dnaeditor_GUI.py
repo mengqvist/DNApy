@@ -352,7 +352,6 @@ class TextEdit(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-#		pub.Publisher.sendMessage('from_dna_edit', '')
 		pass
 
 	
@@ -730,15 +729,42 @@ class TextEdit(DNApyBaseClass):
 ######################################
 
 
+#make derivative classes that make global updates
+class FeatureList2(featurelist_GUI.FeatureList):
+	def __init__(self, parent, id):
+		super(FeatureList2, self).__init__(parent, id)
+		
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		print('parent', self.GetTopLevelParent())
+		self.GetParent().GetParent().dnaview.update_ownUI()
 
-
+class TextEdit2(TextEdit):
+	def __init__(self, parent, id):
+		super(TextEdit2, self).__init__(parent, id)
+		
+	def update_globalUI(self):
+		'''Method should be modified as to update other panels in response to changes in own panel.
+		Preferred use is through sending a message using the pub module.
+		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
+		The first string is the "listening group" and deterimines which listeners get the message. 
+		The second string is the message and is unimportant for this implementation.
+		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		print('parent', self.GetTopLevelParent())
+		self.GetParent().GetParent().feature_list.update_ownUI()	
+		
 class DNAedit(DNApyBaseClass):
 	def __init__(self, parent, id):
 		#glue together the textedit panel and the featurelist panel
 		wx.Panel.__init__(self, parent)
 		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
-		self.dnaview = TextEdit(splitter1, id=wx.ID_ANY)
+		self.feature_list = FeatureList2(splitter1, id=wx.ID_ANY)
+		self.dnaview = TextEdit2(splitter1, id=wx.ID_ANY)
 		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -749,7 +775,7 @@ class DNAedit(DNApyBaseClass):
 class MyApp(wx.App):
 	def OnInit(self):
 		frame = wx.Frame(None, -1, title="DNA Edit", size=(700,600))
-		panel =	DNAedit(frame, -1)
+		panel = DNAedit(frame, -1)
 		frame.Centre()
 		frame.Show(True)
 		self.SetTopWindow(frame)
@@ -768,7 +794,8 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 
 	genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
-
+	genbank.search_hits = []
+	
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
 	print('Opening %s' % str(sys.argv[1]))

@@ -88,25 +88,26 @@ class FeatureList(DNApyBaseClass):
 #		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 		
 		#buttons
+		padding = 10 #how much to add around the picture
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		newfeature = wx.BitmapButton(self, id=1, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		newfeature = wx.BitmapButton(self, id=1, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/remove_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		deletefeature = wx.BitmapButton(self, id=2, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		deletefeature = wx.BitmapButton(self, id=2, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/move_up.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		moveup = wx.BitmapButton(self, id=4, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		moveup = wx.BitmapButton(self, id=4, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/move_down.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		movedown = wx.BitmapButton(self, id=5, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "share")
+		movedown = wx.BitmapButton(self, id=5, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/edit.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		edit = wx.BitmapButton(self, id=6, bitmap=image1, size = (image1.GetWidth()+15, image1.GetHeight()+15), name = "edit")
+		edit = wx.BitmapButton(self, id=6, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "edit")
 		
 		#bind feature list buttons
 		self.Bind(wx.EVT_BUTTON, self.OnNew, id=1)
@@ -183,7 +184,7 @@ class FeatureList(DNApyBaseClass):
 		The first string is the "listening group" and deterimines which listeners get the message. 
 		The second string is the message and is unimportant for this implementation.
 		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-#		pub.Publisher.sendMessage('from_feature_list', '')
+		pass
 
 ######################################################
 

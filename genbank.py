@@ -1570,7 +1570,7 @@ indeces >-1 are feature indeces'''
 		elif changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
-			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
+			self.gbfile['header']['locus']['length'] = len(self.gbfile['dna']) #changing header
 			for i in range(len(self.gbfile['features'])): #change features already present
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
@@ -1584,7 +1584,7 @@ indeces >-1 are feature indeces'''
 			deletionlist = []
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + self.gbfile['dna'][changeend:]
-			self.gbfile['header'] = self.gbfile['header'].replace('%s bp' % olddnalength, '%s bp' % len(self.gbfile['dna'])) #changing header
+			self.gbfile['header']['locus']['length'] = len(self.gbfile['dna']) #changing header
 			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
