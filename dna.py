@@ -437,15 +437,29 @@ def UnAmb(string):
 	
 	
 	
-def commonNuc(nuc_list): 
+def commonNuc(nuc_list, greedy=False): 
 	"""
-	This function takes a list of lists and finds all degenerate symbols that represent at least one nucleotide from each of the lists.
-
+	This function takes a list of lists and finds all degenerate symbols that represent 
+	at least one nucleotide from each of the lists.
+	The variable "greedy" determines whether the algorithm is greedy or not.
+	
+	With greedy=False	
 	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
 	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
 
+	With greedy=False
 	Another example input is: [['G'], ['T'], ['T']].
 	In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T). 
+
+	
+	With greedy=True 
+	For the input: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']]
+	The greedy output includes all degenerate nucleotides that contain the desired regular nucleotides: 
+	['C', 'T', 'Y', 'K', 'M', 'S', 'W', 'H', 'V', 'D', 'B', 'N']
+	
+	With greedy=True
+	For the input: [['G'], ['T'], ['T']]
+	The greedy output is: ['K', 'D', 'B', 'N']
 	"""
 	nuc_list = listupper(nuc_list)
 	output = []
@@ -462,6 +476,10 @@ def commonNuc(nuc_list):
 	if all(['T' in s for s in nuc_list]):
 		output.append('T')
 
+	if greedy is False and len(output)>0:
+		return output
+	
+	
 	if all(['C' in s or 'T' in s for s in nuc_list]):
 		output.append('Y')
 		
@@ -480,6 +498,10 @@ def commonNuc(nuc_list):
 	if all(['A' in s or 'G' in s for s in nuc_list]):
 		output.append('R')
 		
+	if greedy is False and len(output)>0:
+		return output
+		
+		
 	if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]):
 		output.append('H')
 		
@@ -491,6 +513,10 @@ def commonNuc(nuc_list):
 
 	if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]):
 		output.append('B')
+		
+	if greedy is False and len(output)>0:
+		return output
+		
 
 	if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]):
 		output.append('N')

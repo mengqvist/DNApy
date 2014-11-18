@@ -44,7 +44,6 @@ import string
 
 import genbank
 import wx.stc
-#from wx.lib.pubsub import pub
 
 import pyperclip
 import copy
@@ -56,6 +55,8 @@ import featurelist_GUI
 
 #TODO
 #fix statusbar in general
+#fix save option
+#fix undo/redo on windows
 
 
 
@@ -252,22 +253,6 @@ class TextEdit(DNApyBaseClass):
 ##		self.linecount = output.create(self, style=wx.VSCROLL|wx.HSCROLL|wx.BORDER_NONE); #create DNA window
 ##		self.linecount.SetEditable(False)
 
-		#determing which listening group from which to recieve messages about UI updates
-#		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
-
-#		self.listening_group2 = 'from_feature_edit'		
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
-
-#		self.listening_group4 = 'from_plasmid_view'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)	
-
-#		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_plasmid_view'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
-
-#		self.listening_group6 = 'from_main'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group6)
-
 		#create dna view panel
 		self.stc = CustomSTC(self)
 		self.stc.SetWrapMode(wx.stc.STC_WRAP_CHAR) #enable word wrap
@@ -340,18 +325,14 @@ class TextEdit(DNApyBaseClass):
 		self.SetSizer(sizer)	
 		
 		self.Centre()
-		self.update_ownUI()
 
 
 ####### Modify methods from base calss to fit current needs #########
 
 	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-		Preferred use is through sending a message using the pub module.
-		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
-		The first string is the "listening group" and deterimines which listeners get the message. 
-		The second string is the message and is unimportant for this implementation.
-		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
+		'''
+		Method should be modified as to update other panels in response to changes in own panel.
+		'''
 		pass
 
 	
@@ -735,13 +716,9 @@ class FeatureList2(featurelist_GUI.FeatureList):
 		super(FeatureList2, self).__init__(parent, id)
 		
 	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-		Preferred use is through sending a message using the pub module.
-		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
-		The first string is the "listening group" and deterimines which listeners get the message. 
-		The second string is the message and is unimportant for this implementation.
-		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		print('parent', self.GetTopLevelParent())
+		'''
+		Update other panels in response to changes in own panel.
+		'''
 		self.GetParent().GetParent().dnaview.update_ownUI()
 
 class TextEdit2(TextEdit):
@@ -749,18 +726,17 @@ class TextEdit2(TextEdit):
 		super(TextEdit2, self).__init__(parent, id)
 		
 	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-		Preferred use is through sending a message using the pub module.
-		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
-		The first string is the "listening group" and deterimines which listeners get the message. 
-		The second string is the message and is unimportant for this implementation.
-		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		print('parent', self.GetTopLevelParent())
+		'''
+		Update other panels in response to changes in own panel.
+		'''		
 		self.GetParent().GetParent().feature_list.update_ownUI()	
+
 		
 class DNAedit(DNApyBaseClass):
+	'''
+	This class is intended to glue together the dnaedit and featurelist panels.
+	'''
 	def __init__(self, parent, id):
-		#glue together the textedit panel and the featurelist panel
 		wx.Panel.__init__(self, parent)
 		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
 		self.feature_list = FeatureList2(splitter1, id=wx.ID_ANY)
@@ -770,6 +746,16 @@ class DNAedit(DNApyBaseClass):
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
 		self.SetSizer(sizer)
+
+		self.update_ownUI()
+		
+	#### Need to define update methods inherited from DNApyBaseClass #####
+
+	def update_ownUI(self):
+		self.feature_list.update_ownUI()
+		self.dnaview.update_ownUI()
+		
+	#######################################################################
 		
 ##### main loop
 class MyApp(wx.App):

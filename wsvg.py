@@ -34,7 +34,7 @@ class Scene:
 
     def strarray(self):
         var = ["<?xml version=\"1.0\"?>\n",
-               "<svg height=\"%r\" width=\"%r\" >\n" % (self.height,self.width)]
+               '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="%r" width="%r" >\n' % (self.height,self.width)]
         for item in self.items: var += item.strarray()            
         var += ["</svg>\n"]
         return var
@@ -280,7 +280,7 @@ class DoubleArc(Arc):
 
 class Text:
 	'''Draws rotated text with the top (12 on a clock) being 0 degrees'''
-	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="Liberation Sans", anchor="left", align='start'):
+	def __init__(self, text, origin, angle, size, color, style="normal", variant="normal", weight='normal', stretch="normal", height="125", lspacing="0", wspacing="0",opacity="1", stroke="none", family="sans-serif", anchor="left", align='start'):
 		self.text = text
 		self.origin = origin
 		self.angle = angle

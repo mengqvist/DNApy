@@ -155,7 +155,7 @@ def Draw(table=1):
 
 
 	scene.write_svg()
-	scene.display()
+
 
 if __name__ == "__main__": 
 	Draw()

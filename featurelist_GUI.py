@@ -76,16 +76,7 @@ class FeatureList(DNApyBaseClass):
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
 #		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
-		
-		#determing which listening group from which to recieve messages about UI updates
-#		self.listening_group = 'from_feature_edit' #recieve updates from feature editor
-#		pub.Publisher.subscribe(self.listen_to_updateUI, str(self.listening_group))
 
-#		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group1)
-
-#		self.listening_group4 = 'from_main'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
 		
 		#buttons
 		padding = 10 #how much to add around the picture
@@ -132,10 +123,16 @@ class FeatureList(DNApyBaseClass):
 		sizer2.Add(item=self.feature_list, proportion=3, flag=wx.EXPAND)
 
 		self.SetSizer(sizer2)
-		self.update_ownUI()
+
 
 ####### Modify methods from base calss to fit current needs #########
 
+	def update_globalUI(self):
+		'''
+		Method should be modified as to update other panels in response to changes in own panel.
+		'''
+		pass
+		
 
 	def update_ownUI(self):
 		'''Refreshes only the UI of this panel by re-filling the table from features stored in the genbank object'''
@@ -177,14 +174,6 @@ class FeatureList(DNApyBaseClass):
 		except:
 			pass
 
-	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-		Preferred use is through sending a message using the pub module.
-		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
-		The first string is the "listening group" and deterimines which listeners get the message. 
-		The second string is the message and is unimportant for this implementation.
-		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		pass
 
 ######################################################
 
@@ -340,6 +329,7 @@ class MyApp(wx.App):
 		frame.Centre()
 		frame.Show(True)
 		self.SetTopWindow(frame)
+		panel.update_ownUI()
 		return True
 
 

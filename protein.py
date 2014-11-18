@@ -57,7 +57,7 @@ def one_to_three(one_letter):
 	'N':'Asn',
 	'K':'Lys',
 	'R':'Arg',
-	'*':'Stop'}	
+	'*':'***'}	
 	three_letter = AA[one_letter.upper()]
 	return three_letter
 	
@@ -87,6 +87,37 @@ def three_to_one(three_letter):
 	'ASN':'N',
 	'LYS':'K',
 	'ARG':'R',
-	'STOP':'*'}
+	'***':'*'}
 	one_letter = AA[three_letter.upper()]
 	return one_letter
+	
+def count_aa(seq):
+	'''
+	Count occurrences of all amino acids in sequence. Return as dictionary.
+	'''
+	seq = seq.upper()
+	assert all([s in 'XIVLFCMAGTWSYPHEQDNKR*' for s in seq]) is True, 'Error, unknown amino acids %s in sequence: %s' % (str([s for s in seq if s not in 'XIVLFCMAGTWSYPHEQDNKR*']), seq)
+	
+	AA = {'I':seq.count('I'),
+	'V':seq.count('V'),
+	'L':seq.count('L'),
+	'F':seq.count('F'),
+	'C':seq.count('C'),
+	'M':seq.count('M'),
+	'A':seq.count('A'),
+	'G':seq.count('G'),
+	'T':seq.count('T'),
+	'W':seq.count('W'),
+	'S':seq.count('S'),
+	'Y':seq.count('Y'),
+	'P':seq.count('P'),
+	'H':seq.count('H'),
+	'E':seq.count('E'),
+	'Q':seq.count('Q'),
+	'D':seq.count('D'),
+	'N':seq.count('N'),
+	'K':seq.count('K'),
+	'R':seq.count('R'),
+	'X':seq.count('R'),
+	'*':seq.count('*')}	
+	return AA

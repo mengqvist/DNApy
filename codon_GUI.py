@@ -33,7 +33,7 @@
 
 
 import wx
-import wx.lib.graphics
+#import wx.lib.graphics
 import math
 from base_class import DNApyBaseDrawingClass
 import mixed_base_codons as mbc
@@ -76,7 +76,7 @@ class Button:
 		self.hl_brush = wx.Brush("#ffd976")
 		self.hl_text = '#4B4424'
 
-		self.font = wx.Font(pointSize=self.size[1]/2.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.font = wx.Font(pointSize=self.size[1]/2.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 
 		#add 'reset' button to index
 		self.parent.catalog[str(self.parent.NextRGB()+(255,))] = 'reset'
@@ -94,7 +94,7 @@ class Button:
 		dc.SetBackground(wx.Brush("White"))
 		dc.Clear() # make sure you clear the bitmap!
 		self.gcdc = wx.GCDC(dc) #make gcdc from the dc (for use of transparancy and antialiasing)
-		self.gcdc.SetFont(self.font)
+#		self.gcdc.SetFont(self.font)
 
 
 		#make a hidden dc to which features can be drawn in uinique colors and later used for hittests
@@ -180,7 +180,7 @@ class TextCtrl:
 
 		self.caret_pen = wx.Pen(colour='#666666', width=2) 
 
-		self.font = wx.Font(pointSize=self.pointsize, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.font = wx.Font(pointSize=self.pointsize, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
 
 
 		#add 'reset' button to index
@@ -197,7 +197,7 @@ class TextCtrl:
 		dc.SetBackground(wx.Brush("White"))
 		dc.Clear() # make sure you clear the bitmap!
 		self.gcdc = wx.GCDC(dc) #make gcdc from the dc (for use of transparancy and antialiasing)
-		self.gcdc.SetFont(self.font)
+#		self.gcdc.SetFont(self.font)
 
 
 		#make a hidden dc to which features can be drawn in uinique colors and later used for hittests
@@ -425,8 +425,8 @@ class CodonView(DNApyBaseDrawingClass):
 		#draw first nucleotide
 		radius = first_nucleotide_thickness
 		thickness = first_nucleotide_thickness
-		font = wx.Font(pointSize=thickness/1.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=thickness/1.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetPen(wx.Pen(colour='#666666', width=0))
 		self.gcdc.SetBrush(wx.Brush("#ffe7ab"))
 		nucleotides = ['U', 'C', 'A', 'G']
@@ -449,8 +449,8 @@ class CodonView(DNApyBaseDrawingClass):
 		#draw second nucleotide
 		radius = first_nucleotide_thickness+second_nucleotide_thickness
 		thickness = second_nucleotide_thickness
-		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetBrush(wx.Brush("#ffd976"))
 		nucleotides = ['UU', 'UC', 'UA', 'UG','CU', 'CC', 'CA', 'CG','AU', 'AC', 'AA', 'AG', 'GU', 'GC', 'GA', 'GG']
 		for i in range(len(nucleotides)):
@@ -474,8 +474,8 @@ class CodonView(DNApyBaseDrawingClass):
 		#draw third nucleotide
 		radius = first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness
 		thickness = third_nucleotide_thickness
-		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetBrush(wx.Brush("#ffc700"))
 		nucleotides = ['UUU', 'UUC', 'UUA', 'UUG','UCU', 'UCC', 'UCA', 'UCG','UAU', 'UAC', 'UAA', 'UAG', 'UGU', 'UGC', 'UGA', 'UGG',\
 					'CUU', 'CUC', 'CUA', 'CUG','CCU', 'CCC', 'CCA', 'CCG','CAU', 'CAC', 'CAA', 'CAG', 'CGU', 'CGC', 'CGA', 'CGG',\
@@ -498,8 +498,8 @@ class CodonView(DNApyBaseDrawingClass):
 		#draw amino acids
 		radius = first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness+amino_acid_thickness
 		thickness = amino_acid_thickness
-		font = wx.Font(pointSize=third_nucleotide_thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=third_nucleotide_thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground(('#000000'))
 
 		AA = ['F', 'L', 'S', 'Y', 'stop', 'C', 'stop2', 'W', 'L2', 'P', 'H', 'Q', 'R', 'I', 'M', 'T', 'N', 'K', 'S2', 'R2', 'V', 'A', 'D', 'E', 'G']
@@ -547,30 +547,31 @@ class CodonView(DNApyBaseDrawingClass):
 
 			#draw text
 			text_angle = finish_angle-(finish_angle-start_angle)/2
-			if finish_angle <= 180:
-				text_extent = self.gcdc.GetTextExtent(AA_full[AA[i]])
-				text_radius = (first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness)*1.05
 
-				#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
-				tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
-				radians = math.atan(tanangle) #negate the Tin part and get radians
-				degrees = radians*(180/math.pi)	#convert radians to degrees
-				text_position_angle = text_angle-degrees			
-
-				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
-				self.gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle+90)
-			else:
-				text_extent = self.gcdc.GetTextExtent(AA_full[AA[i]])
-				text_radius = (first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness)*1.05 + text_extent[0]
-
-				#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
-				tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
-				radians = math.atan(tanangle) #negate the Tin part and get radians
-				degrees = radians*(180/math.pi)	#convert radians to degrees
-				text_position_angle = text_angle+degrees			
-
-				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
-				self.gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle-90)
+#			if finish_angle <= 180:
+#				text_extent = self.gcdc.GetTextExtent(AA_full[AA[i]])
+#				text_radius = (first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness)*1.05
+#
+#				#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
+#				tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
+#				radians = math.atan(tanangle) #negate the Tan part and get radians
+#				degrees = radians*(180/math.pi)	#convert radians to degrees
+#				text_position_angle = text_angle-degrees			
+#
+#				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
+#				self.gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle+90)
+#			else:
+#				text_extent = self.gcdc.GetTextExtent(AA_full[AA[i]])
+#				text_radius = (first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness)*1.05 + text_extent[0]
+#
+#				#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
+#				tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
+#				radians = math.atan(tanangle) #negate the Tin part and get radians
+#				degrees = radians*(180/math.pi)	#convert radians to degrees
+#				text_position_angle = text_angle+degrees			
+#
+#				tx, ty = self.AngleToPoints(self.xc, self.yc, text_radius, text_position_angle)
+#				self.gcdc.DrawRotatedText(AA_full[AA[i]], tx, ty, -text_angle-90)
 
 
 
@@ -589,8 +590,8 @@ class CodonView(DNApyBaseDrawingClass):
 
 		#write what the ambigous codon is 
 		point_size = int(self.Radius/8)
-		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.ITALIC, weight=wx.FONTWEIGHT_NORMAL)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.ITALIC, weight=wx.FONTWEIGHT_NORMAL)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground((line_color))
 		x = self.size[0]*0.62
 		y = self.size[1]*0.1
@@ -599,8 +600,8 @@ class CodonView(DNApyBaseDrawingClass):
 
 		x = self.size[0]*0.75
 		point_size = int(self.Radius/6)
-		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground((coding_nucleotide_color))
 		
 		if self.codon is False:
@@ -632,8 +633,8 @@ class CodonView(DNApyBaseDrawingClass):
 
 			#set new text size
 			point_size = int(self.Radius/18)
-			font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTSTYLE_ITALIC, weight=wx.FONTWEIGHT_NORMAL)
-			self.gcdc.SetFont(font)
+#			font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTSTYLE_ITALIC, weight=wx.FONTWEIGHT_NORMAL)
+#			self.gcdc.SetFont(font)
 			self.gcdc.SetTextForeground((coding_nucleotide_color))
 
 			first = dna.UnAmb(self.codon[0])
@@ -669,8 +670,8 @@ class CodonView(DNApyBaseDrawingClass):
 		height = self.Radius/16
 		
 		point_size = int(self.Radius/20)
-		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground(('#666666'))
 
 		#target key
@@ -730,8 +731,8 @@ class CodonView(DNApyBaseDrawingClass):
 
 		#title
 		point_size = int(sizex/12)
-		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground((line_color))
 		title = 'Codon count for each AA'
 		self.gcdc.DrawText(title, originx, originy-self.gcdc.GetTextExtent(text)[1]*2)
@@ -740,8 +741,8 @@ class CodonView(DNApyBaseDrawingClass):
 
 		#y labels (amino acids)		
 		point_size = int(self.Radius/18)
-		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		self.gcdc.SetFont(font)
+#		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+#		self.gcdc.SetFont(font)
 		self.gcdc.SetTextForeground((line_color))
 		for i in range(0, 21):	
 			amino_acid = AA_full[str(AA_order[i])]

@@ -36,7 +36,7 @@
 
 import wx
 #import wx.lib.graphics
-#from wx.lib.pubsub import pub
+
 
 
 import genbank
@@ -64,7 +64,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 		genbank.dna_selection = (1,1)
 
 		self.highlighted_feature = False
-		
 	
 
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -74,35 +73,16 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
 
-		#determing which listening group from which to recieve messages about UI updates
-#		self.listening_group = 'from_feature_list' #needs to be assigned or will raise an error		
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group)
-
-#		self.listening_group2 = 'from_feature_edit'		
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group2)		
-
-#		self.listening_group3 = 'from_dna_edit'		
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group3)	
-
-#		self.listening_group4 = 'from_main'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group4)
-
-#		self.listening_group5 = 'private_group_for_those_that_affect_DNA_selection_from_DNA_editor'
-#		pub.Publisher.subscribe(self.listen_to_updateUI, self.listening_group5)
-
 
 ############ Setting required methods ####################
 
 	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-		Preferred use is through sending a message using the pub module.
-		Example use is: pub.Publisher.sendMessage('feature_list_updateUI', '').
-		The first string is the "listening group" and deterimines which listeners get the message. 
-		The second string is the message and is unimportant for this implementation.
-		The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-#		pub.Publisher.sendMessage('from_plasmid_view', '')
+		'''
+		Method should be modified as to update other panels in response to changes in own panel.
+		'''
 		pass
-	
+		
+
 	def update_ownUI(self):
 		"""
 		This would get called if the drawing needed to change, for whatever reason.
@@ -122,7 +102,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 	def set_dna_selection(self, selection):
-		'''Recieves requests for DNA selection and then sends it.'''
+		'''Receives requests for DNA selection and then sends it.'''
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
 		selection = (int(selection[0]), int(selection[1]))
 		genbank.dna_selection = selection
@@ -681,7 +661,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		self.set_dna_selection((start, finish))
 		self.update_ownUI()
-#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 
 
 	def OnMotion(self, event):
@@ -701,7 +680,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 			self.set_dna_selection((start, finish))
 			self.update_ownUI()
-#			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_plasmid_view', '') #tell others that DNA selection changed
 		else:
 			new_index = self.HitTest()
 			if new_index is self.highlighted_feature: #if the index did not change
@@ -712,7 +690,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 	def OnLeftDouble(self, event):
-		'''When left button is duble clicked, launch the feature edit dialog.'''
+		'''When left button is double clicked, launch the feature edit dialog.'''
 		new_index = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
 		if new_index is not False: #False is returned for the background
 			featurelist = genbank.gb.get_all_feature_positions()

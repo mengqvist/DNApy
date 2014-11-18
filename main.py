@@ -55,10 +55,11 @@ import genbank_GUI
 
 
 #if sys.platform == 'win32':
-#	from wx.lib.pubsub import pub
+#	pass
 
 
 #TODO
+#un-break things
 #make rightklick menus
 
 
@@ -90,24 +91,9 @@ class MyFrame(wx.Frame):
 
 		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-#		self.listening_group = 'from_feature_list'	
-#		pub.subscribe(self.listen_to_updateUI, self.listening_group)
-
-#		self.listening_group1 = 'from_dna_edit' #recieve updates from DNA editor
-#		pub.subscribe(self.listen_to_updateUI, self.listening_group1)
-
-#		self.listening_group2 = 'from_feature_edit'		
-#		pub.subscribe(self.listen_to_updateUI, self.listening_group2)		
-
-#		self.listening_group4 = 'from_plasmid_view'
-#		pub.subscribe(self.listen_to_updateUI, self.listening_group4)	
-
-
-
 		#create toolbars
 		self.__generate_toolbar()
 		self.__generate_searchandmutate_toolbar()
-		
 		
 		#create Menu Bar
 		self.create_menu()
@@ -125,19 +111,9 @@ class MyFrame(wx.Frame):
 		genbank.search_hits = []
 		genbank.gb.fileName = ''
 
-		#create splitter and panels
-##		self.splitter2 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
-
-#		self.splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-#		self.feature_list = featurelist_GUI.FeatureList(self.splitter1, id=wx.ID_ANY)
-#		self.dnaview = dnaeditor_GUI.DNAedit(self.splitter1, id=wx.ID_ANY)
-#		self.splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-240))
-
-
-
-		self.generate_dnaview_tab("")
+		self.generate_dnaedit_tab("")
 		self.generate_plasmidview_tab("")
-#		self.generate_sequencingview_tab('')
+		self.generate_sequencingview_tab("")
 		self.generate_genbankview_tab("")
 		
 		self.do_layout()
@@ -146,7 +122,9 @@ class MyFrame(wx.Frame):
 		
 
 	def do_layout(self):
-		'''Pack toolbar and the tabs in their sizers'''
+		'''
+		Pack toolbar and the tabs in their sizers.
+		'''
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
 		#if second toolbar is present, add that too.
@@ -159,14 +137,19 @@ class MyFrame(wx.Frame):
 		
 
 
-	def generate_dnaview_tab(self, evt):
+	def generate_dnaedit_tab(self, evt):
+		'''
+		This method generates the dnaedit tab.
+		It displays the DNA sequence as well as a feature list.
+		'''
+		
 		number=len(self.tab_list)
 		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
 	
 	
 		#create splitter and panels
-		self.dnaview = dnaeditor_GUI.DNAedit(self.panel[number], -1)	
-		self.tab_list.append(self.dnaview)
+		self.dnaedit = dnaeditor_GUI.DNAedit(self.panel[number], -1)	
+		self.tab_list.append(self.dnaedit)
 
 		#add to sizer
 		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -177,6 +160,10 @@ class MyFrame(wx.Frame):
 
 
 	def generate_plasmidview_tab(self, evt):
+		'''
+		This method generates the plasmidview tab.
+		It displays a whole plasmid overview.
+		'''
 		number=len(self.tab_list)
 		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
 		
@@ -191,12 +178,33 @@ class MyFrame(wx.Frame):
 		self.panel[number].SetSizer(sizer_1)		
 		
 	def generate_sequencingview_tab(self, evt):
-		pass
+		'''
+		This method generates the sequencingview tab.
+		It will be used to process sequencing reads and performing alignments.
+		'''
+		
+		number=len(self.tab_list)
+		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
+		
+		#sequencing view
+		self.sequencing_view = wx.Panel(self.panel[number], -1)		
+		self.paceholder_text = wx.StaticText(self.sequencing_view, wx.ID_ANY, label="I'm a placeholder waiting for better things...")
+		self.tab_list.append(self.sequencing_view)
+
+		#add to sizer
+		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
+		self.DNApy.AddPage(self.panel[number], "Sequencing")
+		self.panel[number].SetSizer(sizer_1)	
 
 	
 
 
 	def generate_genbankview_tab(self, evt):
+		'''
+		This method generates the genbankview tab.
+		It shows the current genbank file in text format.
+		'''
 		number=len(self.tab_list)
 		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
 
@@ -234,7 +242,7 @@ class MyFrame(wx.Frame):
 			
 
 		elif self.fileopen == True: #if a file IS open, make a new window
-			subprocess.Popen("python ~/Python_files/DNApy/main.py 1", shell=True)
+			subprocess.Popen("python ~/Python_files/DNApy/main.py 1", shell=True) #this needs a fix for windows
 
 	def open_file(self, evt):
 		'''Function for opening file'''
@@ -251,8 +259,6 @@ class MyFrame(wx.Frame):
 		name, extension = genbank.gb.fileName.split('.')
 		if extension.lower() == 'gb':
 			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
-			self.dnaview.update_ownUI()
-			self.dnaview.update_globalUI()
 
 			self.SetTitle(genbank.gb.fileName+' - DNApy')
 			if genbank.gb.clutter == True: #if tags from ApE or Vector NTI is found in file
@@ -261,9 +267,8 @@ class MyFrame(wx.Frame):
 				dlg.Destroy()
 				if result == wx.ID_YES: #if yes, remove clutter
 					genbank.gb.clean_clutter()
-					self.dnaview.update_ownUI()
-					self.dnaview.update_globalUI()				
 
+			#enable the tools
 			self.frame_1_toolbar.EnableTool(502, True)
 			self.frame_1_toolbar.EnableTool(503, True)
 			self.frame_1_toolbar.EnableTool(504, True)
@@ -272,6 +277,9 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(511, True)
 			self.frame_1_toolbar.EnableTool(512, True)
 			self.fileopen = True
+
+			self.current_tab=self.DNApy.GetSelection()
+			self.tab_list[self.current_tab].update_ownUI()
 			
 		else:
 			print("error, not a gb file")		
@@ -332,10 +340,7 @@ class MyFrame(wx.Frame):
 #			file.close()
 		self.Destroy()
 
-	def OnPlasmidClose(self, evt):
-		'''When plasmid window is closed, don't destroy it, just hide it'''
-		self.frame_1_toolbar.ToggleTool(516, False)
-		self.toggle_plasmid_view(None)
+
 
 ##########################################################
 
@@ -346,11 +351,7 @@ class MyFrame(wx.Frame):
 		self.current_tab=self.DNApy.GetSelection()
 		print('tab', self.current_tab)
 		self.tab_list[self.current_tab].update_ownUI()
-#		self.tab_list[self.current_tab].SetFocus()   #to restore the pointer
-#		try:
-#			self.updateUI()
-#		except:
-#			pass
+
 
 
 	def update_statusbar(self, evt):
@@ -365,7 +366,7 @@ class MyFrame(wx.Frame):
 #		self.current_tab=self.DNApy.GetSelection()
 #		if self.current_tab == 0: #if dna editor is active
 
-##		mposition, Feature = self.dnaview.mouse_position("") #get mouse position
+##		mposition, Feature = self.dnaedit.mouse_position("") #get mouse position
 		mposition = 'None'
 		Feature = "None"
 	
@@ -380,25 +381,29 @@ class MyFrame(wx.Frame):
 			Feature = ""
 	
 		try:		
-			SelectionFrom, SelectionTo = (str(self.dnaview.stc.GetSelection()[0]+1), str(self.dnaview.stc.GetSelection()[1]))
+			SelectionFrom, SelectionTo = (str(self.dnaedit.stc.GetSelection()[0]+1), str(self.dnaedit.stc.GetSelection()[1]))
 			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
 				SelectionFrom, SelectionTo = ("0", "0")
 		except:
 			SelectionFrom, SelectionTo = ("0", "0")
 		try:	
-			Length = str(self.dnaview.stc.GetSelection()[1] - self.dnaview.stc.GetSelection()[0])
+			Length = str(self.dnaedit.stc.GetSelection()[1] - self.dnaedit.stc.GetSelection()[0])
 		except:
 			Length = ""
 
 
 		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
 	
-		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-			AA = ': %s' % dna.Translate(self.dnaview.stc.GetSelectedText())
-		else:
-			AA = ''
+	
+		#this is broken... FIX!!
+#		if float(Length)/3 == 1: #if one triplet is selected, show the AA
+#			AA = ': %s' % dna.Translate(self.dnaedit.stc.GetSelectedText())
+#		else:
+#			AA = ''
+
+
 		
-		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+#		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
 
 #		else:
 #			self.SetStatusText('', 0)
@@ -452,16 +457,16 @@ class MyFrame(wx.Frame):
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
-		elif control == self.dnaview.stc: #the main dna window	
-			self.dnaview.cut()
+		elif control == self.dnaedit.stc: #the main dna window	
+			self.dnaedit.cut()
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
-		elif control == self.dnaview.stc: #the main dna window
-			self.dnaview.paste()		
+		elif control == self.dnaedit.stc: #the main dna window
+			self.dnaedit.paste()		
 
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
@@ -470,32 +475,32 @@ class MyFrame(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.dnaview.stc: #the main dna window	
-			self.dnaview.copy()
+		elif control == self.dnaedit.stc: #the main dna window	
+			self.dnaedit.copy()
 
 	def cut_reverse_complement(self, evt):
-		self.dnaview.cut_reverse_complement()
+		self.dnaedit.cut_reverse_complement()
 
 	def paste_reverse_complement(self, evt):
-		self.dnaview.paste_reverse_complement()
+		self.dnaedit.paste_reverse_complement()
 
 	def copy_reverse_complement(self, evt):
-		self.dnaview.copy_reverse_complement()
+		self.dnaedit.copy_reverse_complement()
 
 #	def delete(self, evt):
-#		self.dnaview.delete()
+#		self.dnaedit.delete()
 
 #		print('deleted')
 
 	def reverse_complement_selection(self, evt):
-		self.dnaview.reverse_complement_selection()
+		self.dnaedit.reverse_complement_selection()
 
 	def select_all(self, evt):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
-		elif control == self.dnaview.stc: #the main dna window	
-			self.dnaview.select_all()
+		elif control == self.dnaedit.stc: #the main dna window	
+			self.dnaedit.select_all()
 
 ##########################################
 
@@ -608,19 +613,19 @@ Put Table here
 		self.dlg.Center()
 
 	def uppercase(self, event):
-		self.dnaview.uppercase()
+		self.dnaedit.uppercase()
 
 	def lowercase(self, event):
-		self.dnaview.lowercase()
+		self.dnaedit.lowercase()
 
 	def translate_selection(self, event):
-		self.dnaview.translate_selection()
+		self.dnaedit.translate_selection()
 
 	def translate_selection_reverse_complement(self, event):
-		self.dnaview.translate_selection_reverse_complement()
+		self.dnaedit.translate_selection_reverse_complement()
 
 	def translate_feature(self, event):
-		self.dnaview.translate_feature()
+		self.dnaedit.translate_feature()
 #####################################
 
 	def Undo(self, evt):
@@ -731,11 +736,8 @@ Put Table here
    		self.frame_1_toolbar.AddLabelTool(514, "Redo", wx.Bitmap(files['default_dir']+"/icon/redo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Redo', 'Redo')
    		wx.EVT_TOOL(self, 514, self.Redo) 
 		#Print current window
-#   		self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
- #  		wx.EVT_TOOL(self, 510, self.print_setup)
-
-   		self.frame_1_toolbar.AddCheckTool(516, wx.Bitmap(files['default_dir']+"/icon/plasmid.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/plasmid.png", wx.BITMAP_TYPE_ANY), 'Plasmid view', 'Plasmid view')
-   		wx.EVT_TOOL(self, 516, self.toggle_plasmid_view)
+#   	self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
+#  		wx.EVT_TOOL(self, 510, self.print_setup)
 
    		self.frame_1_toolbar.AddCheckTool(511, wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Find', 'Find')
    		wx.EVT_TOOL(self, 511, self.toggle_searchandmutate_toolbar)
@@ -765,22 +767,9 @@ Put Table here
 		self.findormutSelection = 'Find'
 		self.add_search_tools(self.findormutSelection)
 			
-
 		self.frame_2_toolbar.Realize()
 		self.frame_2_toolbar.Hide()
 
-	def toggle_plasmid_view(self, event):
-		'''When the plasmid view button is toggled, show/hide the plasmid veiw'''
-		
-
-		if self.frame_1_toolbar.GetToolState(516) == True:
-			self.plasmid_frame.Show()
-
-		elif self.frame_1_toolbar.GetToolState(516) == False:
-			try:
-				self.plasmid_frame.Hide()
-			except:
-				pass
 
 
 	def add_search_tools(self, typeof):
@@ -968,11 +957,11 @@ Put Table here
 
 		#close single
 #		fileitem.Append(5, "Close", "Close current file")
-#		wx.EVT_MENU(self, 5, self.dnaview.close_file)
+#		wx.EVT_MENU(self, 5, self.dnaedit.close_file)
 
 		#close all
 #		fileitem.Append(6, "Close all", "Close all tabs")
-#		wx.EVT_MENU(self, 6, self.dnaview.close_all)
+#		wx.EVT_MENU(self, 6, self.dnaedit.close_all)
 #		fileitem.AppendSeparator()
 
 		#quit

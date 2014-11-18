@@ -42,35 +42,12 @@ class DNApyBaseClass(wx.Panel):
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 
-#		self.listening_group = NotImplementedError #needs to be assigned a listening group name (a string) to recieve requests for own panel UI updates.
-#		pub.subscribe(self.listen_to_updateUI, self.listening_group)
-
 
 #### own UI updates ####
 	def update_ownUI(self):
 		'''Method should be modified as to update graphical elements of own panel only. 
 			Preferred use is through a self.update_ownUI() call.'''
 		raise NotImplementedError
-
-	def listen_to_updateUI(self, msg):
-		'''For recieving requests for UI updates.
-			This is the listening method for recieving requests for own UI updates.
-			Its purpuse is to update the UI of own panel upon recieveing an UI update message.
-			'''
-		self.update_ownUI()
-
-
-#### other UI updates ####
-	def update_globalUI(self):
-		'''Method should be modified as to update other panels in response to changes in own panel.
-			Preferred use is through sending a message using the pub module.
-			Example use is: pub.sendMessage('feature_list_updateUI', '').
-			The first string is the "listening group" and deterimines which listeners get the message. 
-			The second string is the message and is unimportant for this implementation.
-			The listening group assigned here (to identify recipients) must be different from the listening group assigned in __init__ (to subscribe to messages).'''
-		raise NotImplementedError
-
-		
 
 	
 class DNApyBaseDrawingClass(DNApyBaseClass):
@@ -223,7 +200,7 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 		'''Takes the centre of a circle, an angle (in degrees) and a radius and calculates the correspoinding XY coordinate on the circle'''
 		assert type(centre_x) is int and type(centre_y) is int, 'Error, the input coordinates need to be integers.'
  		assert (type(angle) is int or type(angle) is float) and (type(radius) is int or type(radius) is float), 'Error, the input angle and radius need to be integers or floats.'
-		assert 0<=angle<=360, 'Error, the input angle needs to be between 0 and 360.'
+		assert 0<=angle<=360, 'Error, the input angle is %s, but needs to be between 0 and 360.' % angle
 		x = int(centre_x + radius * math.cos((angle-90)*(math.pi/180)))
 		y = int(centre_y + radius * math.sin((angle-90)*(math.pi/180)))
 		return (x, y)
