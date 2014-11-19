@@ -34,23 +34,29 @@
 import wx
 import os, sys
 import math
+import colcol
 
 
 
 class DNApyBaseClass(wx.Panel):
-	'''This is a base class which should serve as the base for any panel used in DNApy.'''
+	'''
+	This is a base class which should serve as the base for any panel used in DNApy.
+	'''
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 
 
 #### own UI updates ####
 	def update_ownUI(self):
-		'''Method should be modified as to update graphical elements of own panel only. 
-			Preferred use is through a self.update_ownUI() call.'''
+		'''
+		Method should be modified as to update graphical elements of own panel only. 
+		Preferred use is through a self.update_ownUI() call.
+		'''
 		raise NotImplementedError
 
 	
 class DNApyBaseDrawingClass(DNApyBaseClass):
+############# This first piece of code comes from a drawing example by ChrisBarker-NOAA  #####################
 	'''
 	A Buffered window class which should serve as the base for drawing panels used in DNApy.
 
@@ -63,10 +69,16 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 	UpdateDrawing() method. Since the drawing is stored in a bitmap, you
 	can also save the drawing to file by calling the
 	SaveToFile(self, file_name, file_type) method.
+	
+	Draw, OnPaint, OnSize and SaveToFile methods from ChrisBarker-NOAA at GitHub
+	https://github.com/PythonCHB/wxPythonDemos/blob/master/ClientDCTest.py
+	
+	Other code by Martin K. M. Engqvist for the DNApy project.
 	'''
 	def __init__(self, parent, id):
-		DNApyBaseClass.__init__(self, parent, id)
-
+		wx.Panel.__init__(self, parent)
+		self.parent = parent
+		
 		self.Bind(wx.EVT_PAINT, self.OnPaint)
 		self.Bind(wx.EVT_SIZE, self.OnSize)
 
@@ -108,37 +120,20 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 		## wx.Bitmap::SaveFile for the details
 		self._Buffer.SaveFile(FileName, FileType)
 
+######### ChrisBarker-NOAA code ends ##################################################################
+#######################################################################################################
+		
 	def NextRGB(self):
-		'''Method for generating unique RGB colors. 
-		The input is a tuple of RGB colors and the method returns the next color.
-		When R reaches 255 one is added to G and R is reset.
-		When R and G both reach 255 one is added to B and R and G are reset.
-		This should generate over 1.6 million colors (255*255*255)
 		'''
-
+		Get next RGB color.
+		'''
 		if self.unique_color == None:
 			self.unique_color = (0,0,0)
 		else:
-			R, G, B = self.unique_color
-			assert 0<=R<=255 and 0<=G<=255 and 0<=B<=255, 'Error, R, G and B must be integer values between 0 and 255.'
-
-			if R == 255 and G == 255 and B == 255:
-				raise ValueError, 'R, G and B all have the value 255, no further colors are available.'
-			elif  R == 255 and G == 255:
-				R = 0
-				G = 0
-				B += 1
-			elif R == 255:
-				R = 0
-				G += 1
-			else:
-				R += 1
-			self.unique_color = (R, G, B)
+			self.unique_color = colcol.NextRGB(self.unique_color)
 		return self.unique_color
 
-
-
-############### Setting methods for interconverting angles to percent from angles ##############
+############### Setting methods for inter-converting angles to percent from angles ##############
 
 	def AngleToFraction(self, angle):
 		'''

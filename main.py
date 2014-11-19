@@ -128,11 +128,11 @@ class MyFrame(wx.Frame):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(self.frame_1_toolbar, 0, wx.EXPAND)
 		#if second toolbar is present, add that too.
+		sizer.Add(self.DNApy, -1, wx.EXPAND)
 		try:
 			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		except:
 			pass
-		sizer.Add(self.DNApy, -1, wx.EXPAND)
 		self.SetSizer(sizer)	
 		
 
@@ -168,9 +168,10 @@ class MyFrame(wx.Frame):
 		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
 		
 		#plasmid view
-		self.plasmid_view = plasmid_GUI.PlasmidView(self.panel[number], -1)		
+		self.plasmid_view = plasmid_GUI.PlasmidView2(self.panel[number], -1)		
 		self.tab_list.append(self.plasmid_view)
 
+		
 		#add to sizer
 		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
@@ -345,11 +346,12 @@ class MyFrame(wx.Frame):
 ##########################################################
 
 	def page_change(self, ev):
-		'''When changing between tabs'''
-		print('page change')
+		'''
+		When changing between tabs.
+		Or in general, when hte active tab needs to be up-dated.
+		'''
 		self.Refresh()
 		self.current_tab=self.DNApy.GetSelection()
-		print('tab', self.current_tab)
 		self.tab_list[self.current_tab].update_ownUI()
 
 
@@ -366,7 +368,7 @@ class MyFrame(wx.Frame):
 #		self.current_tab=self.DNApy.GetSelection()
 #		if self.current_tab == 0: #if dna editor is active
 
-##		mposition, Feature = self.dnaedit.mouse_position("") #get mouse position
+##		mposition, Feature = self.dnaedit.dnaview.mouse_position("") #get mouse position
 		mposition = 'None'
 		Feature = "None"
 	
@@ -381,13 +383,13 @@ class MyFrame(wx.Frame):
 			Feature = ""
 	
 		try:		
-			SelectionFrom, SelectionTo = (str(self.dnaedit.stc.GetSelection()[0]+1), str(self.dnaedit.stc.GetSelection()[1]))
+			SelectionFrom, SelectionTo = (str(self.dnaedit.dnaview.stc.GetSelection()[0]+1), str(self.dnaedit.dnaview.stc.GetSelection()[1]))
 			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
 				SelectionFrom, SelectionTo = ("0", "0")
 		except:
 			SelectionFrom, SelectionTo = ("0", "0")
 		try:	
-			Length = str(self.dnaedit.stc.GetSelection()[1] - self.dnaedit.stc.GetSelection()[0])
+			Length = str(self.dnaedit.dnaview.stc.GetSelection()[1] - self.dnaedit.dnaview.stc.GetSelection()[0])
 		except:
 			Length = ""
 
@@ -397,7 +399,7 @@ class MyFrame(wx.Frame):
 	
 		#this is broken... FIX!!
 #		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-#			AA = ': %s' % dna.Translate(self.dnaedit.stc.GetSelectedText())
+#			AA = ': %s' % dna.Translate(self.dnaedit.dnaview.stc.GetSelectedText())
 #		else:
 #			AA = ''
 
@@ -457,16 +459,16 @@ class MyFrame(wx.Frame):
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
-		elif control == self.dnaedit.stc: #the main dna window	
-			self.dnaedit.cut()
+		elif control == self.dnaedit.dnaview.stc: #the main dna window	
+			self.dnaedit.dnaview.cut()
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
-		elif control == self.dnaedit.stc: #the main dna window
-			self.dnaedit.paste()		
+		elif control == self.dnaedit.dnaview.stc: #the main dna window
+			self.dnaedit.dnaview.paste()		
 
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
@@ -475,32 +477,32 @@ class MyFrame(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.dnaedit.stc: #the main dna window	
-			self.dnaedit.copy()
+		elif control == self.dnaedit.dnaview.stc: #the main dna window	
+			self.dnaedit.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):
-		self.dnaedit.cut_reverse_complement()
+		self.dnaedit.dnaview.cut_reverse_complement()
 
 	def paste_reverse_complement(self, evt):
-		self.dnaedit.paste_reverse_complement()
+		self.dnaedit.dnaview.paste_reverse_complement()
 
 	def copy_reverse_complement(self, evt):
-		self.dnaedit.copy_reverse_complement()
+		self.dnaedit.dnaview.copy_reverse_complement()
 
 #	def delete(self, evt):
-#		self.dnaedit.delete()
+#		self.dnaedit.dnaview.delete()
 
 #		print('deleted')
 
 	def reverse_complement_selection(self, evt):
-		self.dnaedit.reverse_complement_selection()
+		self.dnaedit.dnaview.reverse_complement_selection()
 
 	def select_all(self, evt):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
-		elif control == self.dnaedit.stc: #the main dna window	
-			self.dnaedit.select_all()
+		elif control == self.dnaedit.dnaview.stc: #the main dna window	
+			self.dnaedit.dnaview.select_all()
 
 ##########################################
 
@@ -613,19 +615,19 @@ Put Table here
 		self.dlg.Center()
 
 	def uppercase(self, event):
-		self.dnaedit.uppercase()
+		self.dnaedit.dnaview.uppercase()
 
 	def lowercase(self, event):
-		self.dnaedit.lowercase()
+		self.dnaedit.dnaview.lowercase()
 
 	def translate_selection(self, event):
-		self.dnaedit.translate_selection()
+		self.dnaedit.dnaview.translate_selection()
 
 	def translate_selection_reverse_complement(self, event):
-		self.dnaedit.translate_selection_reverse_complement()
+		self.dnaedit.dnaview.translate_selection_reverse_complement()
 
 	def translate_feature(self, event):
-		self.dnaedit.translate_feature()
+		self.dnaedit.dnaview.translate_feature()
 #####################################
 
 	def Undo(self, evt):
@@ -662,7 +664,13 @@ Put Table here
 		
 
 	def update_globalUI(self):
-		pass
+		'''
+		The name of this method is rather misleading.
+		All it does is to update the currently active tab.
+		'''
+		self.Refresh()
+		self.current_tab=self.DNApy.GetSelection()
+		self.tab_list[self.current_tab].update_ownUI()
 
 ######################################
 
@@ -773,7 +781,10 @@ Put Table here
 
 
 	def add_search_tools(self, typeof):
-		'''Adds tools to the find/mutate toolbar. A string "find" or "mutate" is passed to determine which toolbar to build'''
+		'''
+		Adds tools to the find/mutate toolbar. 
+		A string "find" or "mutate" is passed to determine which toolbar to build
+		'''
 		featurelist = ['Molecule']
 		try:
 			#make a list of all feature names
@@ -957,11 +968,11 @@ Put Table here
 
 		#close single
 #		fileitem.Append(5, "Close", "Close current file")
-#		wx.EVT_MENU(self, 5, self.dnaedit.close_file)
+#		wx.EVT_MENU(self, 5, self.dnaedit.dnaview.close_file)
 
 		#close all
 #		fileitem.Append(6, "Close all", "Close all tabs")
-#		wx.EVT_MENU(self, 6, self.dnaedit.close_all)
+#		wx.EVT_MENU(self, 6, self.dnaedit.dnaview.close_all)
 #		fileitem.AppendSeparator()
 
 		#quit

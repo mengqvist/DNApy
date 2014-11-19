@@ -38,7 +38,7 @@ import wsvg
 
 def is_rgb(input):
 	'''
-	Check whether an input RGB tuple.
+	Check whether input is a valid RGB color.
 	Return True if it is, otherwise False.
 	'''
 	if len(input) == 3 and type(input) == tuple:
@@ -99,7 +99,7 @@ def hex_to_rgb(hex):
 def scale(col1, col2, white_mid=False):
 	'''
 	Function makes a color scale from 0 to 100 using the supplied colors.
-	white_mid is boolean and determines whether the colors 
+	The variable white_mid is boolean and determines whether the colors 
 	should transition over white in the middle or just smoothly run into each other.
 	The function returns a dictionary of integer keys and hex color values corresponding to the scores 0 to 100.
 	'''
@@ -135,14 +135,43 @@ def scale(col1, col2, white_mid=False):
 		
 	return color_dict
 	
+	
 def mix_colors(col1, col2):
 	'''
 	Mix two colors and return the result.
+	The input colors can be either RGB or hex.
+	It is also possible to use one RGB value and one hex value.
 	'''
 	color_dict = scale(col1, col2, white_mid=False)
 	return color_dict[50]
 	
 
+def NextRGB(color = (0,0,0)):
+	'''
+	Function for generating unique RGB colors. 
+	The input is a tuple of RGB colors (for example (124,1,34) and the method returns the "next" color.
+	When R reaches 255 one is added to G and R is reset.
+	When R and G both reach 255 one is added to B and R and G are reset.
+	This should generate over 1.6 million colors (255*255*255)
+	'''
+	assert is_rgb(color), 'Error, the input must be a tuple of three integers between 0 and 255'
+	R, G, B = color
+
+	if R == 255 and G == 255 and B == 255:
+		raise ValueError, 'R, G and B all have the value 255, no further colors are available.'
+	elif  R == 255 and G == 255:
+		R = 0
+		G = 0
+		B += 1
+	elif R == 255:
+		R = 0
+		G += 1
+	else:
+		R += 1
+	return (R, G, B)
+	
+	
+	
 def test_scale():
 	'''
 	For testing the color scale, make an svg file.

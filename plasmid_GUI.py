@@ -33,12 +33,10 @@
 #TODO
 #fix long plasmid names
 #add 'dna ruler'
+#add buttons for controlling labels
+#add rightclick menus
 
 import wx
-#import wx.lib.graphics
-
-
-
 import genbank
 import copy
 import math
@@ -46,6 +44,7 @@ import math
 import os, sys
 import string
 from base_class import DNApyBaseDrawingClass
+from base_class import DNApyBaseClass
 import featureedit_GUI
 
 files={}   #list with all configuration files
@@ -58,13 +57,11 @@ execfile(settings) #gets all the pre-assigned settings
 class PlasmidView(DNApyBaseDrawingClass):
 	highlighted_feature = False
 	genbank.search_hits = []
+	label_type = 'circular'	
 	def __init__(self, parent, id):
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 
 		genbank.dna_selection = (1,1)
-
-		self.highlighted_feature = False
-	
 
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
@@ -73,6 +70,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
 
+		
 
 ############ Setting required methods ####################
 
@@ -111,8 +109,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 ############### Done setting required methods #######################
 
 	def find_overlap(self, drawn_locations, new_range):
-		'''Takes two ranges and determines whether the new range has overlaps with the old one.
-		If there are overlaps the overlap locations are returned.'''
+		'''
+		Takes two ranges and determines whether the new range has overlaps with the old one.
+		If there are overlaps the overlap locations are returned.
+		This is used when drawing features. If two features overlap I want them drawn on different levels.
+		'''
 		assert type(drawn_locations) == list			
 		assert type(new_range) == tuple
 
@@ -189,8 +190,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
 
 #		font = wx.SystemSettings.GetFont(1)
-#		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-#		gcdc.SetFont(font)
+		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#666666'))
 		name_length = gcdc.GetTextExtent(name) #length of text in pixels
 		gcdc.DrawText(name, self.centre_x-name_length[0]/2, self.centre_y-name_length[1])
@@ -249,12 +250,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 		spacer = feature_thickness/4 #for in-between features
 
 		#for labels
-		label_type = 'circular'
 		font_size = int(self.Radius/18)
-#		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_BOLD, weight=wx.FONTWEIGHT_BOLD)
-#		gcdc.SetFont(font)
-		label_line_length = self.min_centre/8
-		max_label_length = self.Radius/2 #max length of label in pixels
+		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
+		gcdc.SetFont(font)
+		label_line_length = self.min_centre/8 #length of the line connection label to feature
+		max_label_length = self.Radius #max length of label in pixels
 		xc=self.centre_x #centre of circle
 		yc=self.centre_y #centre of circle
 
@@ -262,7 +262,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 		label_positions = {}	
 
 		#grouping labels
-		if label_type == 'group':
+		if self.label_type == 'group':
 			for i in range(0, 360, 2):
 				if 0 <= i <=15:
 					x = self.centre_x
@@ -309,13 +309,13 @@ class PlasmidView(DNApyBaseDrawingClass):
 				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
 
 		#radiating labels
-		elif label_type == 'radiating':
+		elif self.label_type == 'radiating':
 			for i in range(0, 360, 2):
 				x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
 				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
 
 		#circular labels
-		elif label_type == 'circular':
+		elif self.label_type == 'circular':
 			for i in range(0, 92, 4):
 				j = 88-i #I need to go backwards since I use the y-coordinate at the centre of the circle as a starting point
 				if j == 88:
@@ -461,9 +461,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 			x1, y1 = self.AngleToPoints(xc, yc, radius, angle)	
 
 			#now get the second coordinate
-			if label_type == 'group' or label_type == 'radiating': #'group' and 'radiating' have labels every 2 degrees, circular every 4
+			if self.label_type == 'group' or self.label_type == 'radiating': #'group' and 'radiating' have labels every 2 degrees, circular every 4
 				angle_step = 2
-			elif label_type == 'circular':
+			elif self.label_type == 'circular':
 				angle_step = 4				
 			else:
 				raise ValueError
@@ -488,7 +488,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			label_positions[str(angle)] = (x2, y2, True) #update so that the position is now used
 
 
-			if label_type == 'group' or label_type == 'circular':
+			if self.label_type == 'group' or self.label_type == 'circular':
 				gcdc.DrawLine(x1,y1,x2,y2) #draw line to feature
 				if angle <= 180:
 					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)
@@ -508,7 +508,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
 					self.hidden_dc.DrawRectangle(x2, y2, -gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
 
-			elif label_type == 'radiating':
+			elif self.label_type == 'radiating':
 				if i is self.highlighted_feature: #only draw line if feature is highlighted
 					gcdc.DrawLine(x1,y1,x2,y2)
 				if angle <= 180:
@@ -708,12 +708,112 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 ############ Done with mouse methods ####################
 
+class PlasmidView2(DNApyBaseClass):
+	'''
+	This class is intended to glue together the plasmid drawing with control buttons.
+	'''
+	def __init__(self, parent, id):
+		DNApyBaseClass.__init__(self, parent, id)
+		self.plasmid_view = PlasmidView(self, -1)	
 
+
+		
+
+		
+		##########  Add buttons and methods to control their behaviour ###########	
+		#buttons
+		padding = 10 #how much to add around the picture
+
+		imageFile = files['default_dir']+"/icon/circle.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		circle = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+
+		imageFile = files['default_dir']+"/icon/group.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		group = wx.BitmapButton(self, id=11, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+
+		imageFile = files['default_dir']+"/icon/radiating.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		radiating = wx.BitmapButton(self, id=12, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+
+		
+		imageFile = files['default_dir']+"/icon/new_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		newfeature = wx.BitmapButton(self, id=1, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+
+		imageFile = files['default_dir']+"/icon/remove_small.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		deletefeature = wx.BitmapButton(self, id=2, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+
+		imageFile = files['default_dir']+"/icon/edit.png"
+		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+		edit = wx.BitmapButton(self, id=6, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "edit")
+		
+		#bind feature list buttons
+		self.Bind(wx.EVT_BUTTON, self.OnCircularLabels, id=10)
+		self.Bind(wx.EVT_BUTTON, self.OnGroupLabels, id=11)
+		self.Bind(wx.EVT_BUTTON, self.OnRadiatingLabels, id=12)
+		
+		self.Bind(wx.EVT_BUTTON, self.OnNew, id=1)
+		self.Bind(wx.EVT_BUTTON, self.OnDelete, id=2)
+		self.Bind(wx.EVT_BUTTON, self.OnEditFeature, id=6)
+
+
+		#arrange buttons vertically		
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(item=circle)
+		sizer.Add(item=group)
+		sizer.Add(item=radiating)
+		sizer.Add(item=newfeature)
+		sizer.Add(item=deletefeature)
+		sizer.Add(item=edit)
+
+
+
+		#add feature list and buttons horizontally	
+		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer2.Add(item=sizer, proportion=0, flag=wx.EXPAND)
+		sizer2.Add(item=self.plasmid_view, proportion=-1, flag=wx.EXPAND)
+
+		self.SetSizer(sizer2)
+		
+	def update_ownUI(self):
+		'''
+		User interface updates.
+		'''
+		self.plasmid_view.update_ownUI()
+
+	def OnCircularLabels(self, evt):
+		self.plasmid_view.label_type = 'circular'
+		self.update_ownUI()
+		
+	def OnGroupLabels(self, evt):
+		self.plasmid_view.label_type = 'group'
+		self.update_ownUI()
+		
+	def OnRadiatingLabels(self, evt):
+		self.plasmid_view.label_type = 'radiating'
+		self.update_ownUI()
+		
+	def OnNew(self, evt):
+		pass
+		
+	def	OnDelete(self, evt):
+		pass
+		
+	def	OnEditFeature(self, evt):
+		pass
+		
+	
+	#######################################################################
+	
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
 		frame = wx.Frame(None, -1, title="Plasmid View", size=(700,600), style = wx.NO_FULL_REPAINT_ON_RESIZE)
-		panel =	PlasmidView(frame, -1)
+		panel =	PlasmidView2(frame, -1)
+	
+		
 		frame.Centre()
 		frame.Show(True)
 		self.SetTopWindow(frame)

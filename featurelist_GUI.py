@@ -37,7 +37,6 @@
 import ast
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx
-#from wx.lib.pubsub import pub
 
 import sys, os
 import string
@@ -61,7 +60,9 @@ execfile(settings) #gets all the pre-assigned settings
 
 
 class FeatureList(DNApyBaseClass):
-	"""Class for viewing features as a list"""
+	"""
+	Class for viewing features as a list and buttons for editing the features.
+	"""
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 		self.feature_list = ULC.UltimateListCtrl(self, id=3001, agwStyle=ULC.ULC_REPORT|ULC.ULC_SINGLE_SEL)
@@ -71,12 +72,10 @@ class FeatureList(DNApyBaseClass):
 		self.feature_list.InsertColumn(2, "Location on DNA", format=wx.LIST_FORMAT_LEFT, width=200)
 		self.feature_list.InsertColumn(3, "Strand", format=wx.LIST_FORMAT_LEFT, width=120)
 
-#		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
-#		self.feature_list.SetFont(font)
+		font = wx.Font(pointSize=10, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Monospace', encoding=wx.FONTENCODING_DEFAULT)
+		self.feature_list.SetFont(font)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
 		self.feature_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.ListOnActivate)
-#		self.feature_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.ListOnSelect)
-
 		
 		#buttons
 		padding = 10 #how much to add around the picture
@@ -135,7 +134,9 @@ class FeatureList(DNApyBaseClass):
 		
 
 	def update_ownUI(self):
-		'''Refreshes only the UI of this panel by re-filling the table from features stored in the genbank object'''
+		'''
+		Refreshes only the UI of this panel by re-filling the table from features stored in the genbank object
+		'''
 		#need to figure out how to do this without changing the selection....
 		self.feature_list.DeleteAllItems()
 		item = 0 #for feautrecolor
