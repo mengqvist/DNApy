@@ -58,8 +58,7 @@ def one_to_three(one_letter):
 	'K':'Lys',
 	'R':'Arg',
 	'*':'***'}	
-	three_letter = AA[one_letter.upper()]
-	return three_letter
+	return AA[one_letter.upper()]
 	
 def three_to_one(three_letter):
 	'''
@@ -88,8 +87,44 @@ def three_to_one(three_letter):
 	'LYS':'K',
 	'ARG':'R',
 	'***':'*'}
-	one_letter = AA[three_letter.upper()]
-	return one_letter
+	return AA[three_letter.upper()]
+	
+def one_to_full(one_letter):
+	'''
+	Convert one-letter amino acid code to full amino acid name.
+	'''
+	assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % one_letter
+	AA = {'F':'Phenylalanine', 
+	'L':'Leucine', 
+	'S':'Serine', 
+	'Y':'Tyrosine', 
+	'*':'Stop', 
+	'C':'Cysteine', 
+	'W':'Tryptophan', 
+	'P':'Proline', 
+	'H':'Histidine', 
+	'Q':'Glutamine', 
+	'R':'Arginine', 
+	'I':'Isoleucine', 
+	'M':'Methionine', 
+	'T':'Threonine', 
+	'N':'Asparagine', 
+	'K':'Lysine', 
+	'V':'Valine', 
+	'A':'Alanine', 
+	'D':'Aspartic acid', 
+	'E':'Glutamic acid', 
+	'G':'Glycine'}
+	return AA[one_letter]
+
+def full_to_one():
+	pass
+	
+def three_to_full():
+	pass
+
+def full_to_three():
+	pass
 	
 def count_aa(seq):
 	'''
