@@ -176,7 +176,7 @@ class CodonView(DNApyBaseDrawingClass):
 				if nucleotides[i].replace('U','T') in dna.UnAmb(self.codon[0]):
 					gcdc.SetTextForeground((coding_nucleotide_color))
 				
-			gcdc.DrawText(nucleotides[i], x1-radius/3.1, y1-radius/2.1)
+			gcdc.DrawText(nucleotides[i], x1-radius/3.8, y1-radius/2.8)
 
 
 		#draw second nucleotide
@@ -233,7 +233,7 @@ class CodonView(DNApyBaseDrawingClass):
 		#set parameters for drawing amino acids
 		radius = first_nucleotide_thickness+second_nucleotide_thickness+third_nucleotide_thickness+amino_acid_thickness
 		thickness = amino_acid_thickness
-		font = wx.Font(pointSize=third_nucleotide_thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+		font = wx.Font(pointSize=third_nucleotide_thickness/1.8, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
 		gcdc.SetTextForeground(('#000000'))
 		finish_angle = 0
