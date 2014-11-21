@@ -37,6 +37,7 @@ from base_class import DNApyBaseClass
 import mixed_base_codons as mbc
 import dna
 import protein
+import re
 
 
 		
@@ -160,7 +161,7 @@ class CodonView(DNApyBaseDrawingClass):
 		thickness = first_nucleotide_thickness
 		font = wx.Font(pointSize=thickness/1.5, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
-		gcdc.SetPen(wx.Pen(colour="#ffe7ab", width=0))
+		gcdc.SetPen(wx.Pen(colour="#ffe7ab", width=1))
 		gcdc.SetBrush(wx.Brush("#ffe7ab"))
 		nucleotides = ['T', 'C', 'A', 'G']
 		for i in range(len(nucleotides)):
@@ -184,7 +185,7 @@ class CodonView(DNApyBaseDrawingClass):
 		thickness = second_nucleotide_thickness
 		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
-		gcdc.SetPen(wx.Pen(colour="#ffd976", width=0))
+		gcdc.SetPen(wx.Pen(colour="#ffd976", width=1))
 		gcdc.SetBrush(wx.Brush("#ffd976"))
 		nucleotides = ['TT', 'TC', 'TA', 'TG','CT', 'CC', 'CA', 'CG','AT', 'AC', 'AA', 'AG', 'GT', 'GC', 'GA', 'GG']
 		for i in range(len(nucleotides)):
@@ -210,7 +211,7 @@ class CodonView(DNApyBaseDrawingClass):
 		thickness = third_nucleotide_thickness
 		font = wx.Font(pointSize=thickness/2, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_BOLD)
 		gcdc.SetFont(font)
-		gcdc.SetPen(wx.Pen(colour="#ffc700", width=0))
+		gcdc.SetPen(wx.Pen(colour="#ffc700", width=1))
 		gcdc.SetBrush(wx.Brush("#ffc700"))
 		codons = ['TTT', 'TTC', 'TTA', 'TTG','TCT', 'TCC', 'TCA', 'TCG','TAT', 'TAC', 'TAA', 'TAG', 'TGT', 'TGC', 'TGA', 'TGG',\
 					'CTT', 'CTC', 'CTA', 'CTG','CCT', 'CCC', 'CCA', 'CCG','CAT', 'CAC', 'CAA', 'CAG', 'CGT', 'CGC', 'CGA', 'CGG',\
@@ -319,19 +320,38 @@ class CodonView(DNApyBaseDrawingClass):
 				AA_width = 1
 
 
+				
+
+			
 		#now draw the highlighted amino acids
-#		finish_angle = 0
-#		gcdc.SetPen(wx.Pen(colour='#FF0000', width=1))
-#		gcdc.SetBrush(wx.Brush(colour=(0,0,0,0)))
-#		for i in range(len(AA)):
-#			#if current AA is highlighted, redraw that segment with a different pen
-#			start_angle = finish_angle
-#			finish_angle = start_angle+5.625*AA_width[AA[i]]
-#			if AA[i] == self.highlighted: #if highlighted AA is the current one
-#				pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.1)
-#				gcdc.DrawPolygon(pointlist)
+		gcdc.SetPen(wx.Pen(colour='#FF0000', width=1))
+		gcdc.SetBrush(wx.Brush(colour=(0,0,0,0)))
 
-
+		
+		#this is one off. Fix!
+		finish_angle = 0
+		start_angle = 0		
+		AA_width = 0
+		current_AA = dna.Translate(codons[0], self.table)
+		for codon in codons:
+			AA = dna.Translate(codon, self.table)
+			if codon == 'GGG': #catch the last codon
+				AA_width += 1
+				AA = None
+				
+			if current_AA == AA:
+				AA_width += 1
+			else:
+				#if current AA is highlighted, redraw that segment with a different pen
+				finish_angle = start_angle+5.625*AA_width
+				if AA == self.highlighted: #if highlighted AA is the current one
+					pointlist = self.make_arc(self.xc, self.yc, start_angle, finish_angle, radius, thickness, step=0.1)
+					gcdc.DrawPolygon(pointlist)
+				start_angle = finish_angle
+				current_AA = AA
+				AA_width = 1
+				
+				
 		#write what the ambiguous codon is 
 		point_size = int(self.Radius/8)
 		font = wx.Font(pointSize=point_size, family=wx.FONTFAMILY_SWISS, style=wx.ITALIC, weight=wx.FONTWEIGHT_NORMAL)
@@ -527,26 +547,19 @@ class CodonView(DNApyBaseDrawingClass):
 
 
 	def OnLeftUp(self, event):
-		'''When left mouse button is lifted up, determine the DNA selection from angles generated at down an up events.'''
+		'''
+		When left mouse button is lifted up, determine the DNA selection 
+		from angles generated at down an up events.
+		'''
 		amino_acid = self.HitTest()
 		if amino_acid is not False:
-
-			if amino_acid == 'reset': #special case to catch reset button
-				self.codon = False
-				self.target = []
-				self.offtarget = []
-				self.possible = []
-				self.text_edit_active = False #exit text editing mode
-			elif amino_acid == 'text': #special case to catch the codon edit region
-				self.text_edit_active = True #switch to text editing mode
-			elif amino_acid not in self.target:
+			if amino_acid not in self.target:
 				self.target.append(amino_acid)
-				self.text_edit_active = False #exit text editing mode
 			elif amino_acid in self.target:
 				self.target.remove(amino_acid)
-				self.text_edit_active = False #exit text editing mode
-		else:
-			self.text_edit_active = False #exit text editing mode
+			else:
+				raise ValueError
+
 			
 		if len(self.target)>0:
 			codon_object = mbc.AmbigousCodon(self.target, self.table)
@@ -563,14 +576,11 @@ class CodonView(DNApyBaseDrawingClass):
 
 
 	def OnMotion(self, event):
-		pass
-#		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
-#		amino_acid = self.HitTest()
-#		if amino_acid is not False:
-#			amino_acid = amino_acid.replace('2', '') #Fix!
-#		if amino_acid is not self.highlighted: #if the index did not change
-#			self.highlighted = amino_acid
-#			self.update_ownUI()
+		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
+		amino_acid = self.HitTest()
+		if amino_acid is not self.highlighted: #if the index did not change
+			self.highlighted = amino_acid
+			self.update_ownUI()
 
 
 
@@ -593,6 +603,9 @@ class CodonButtonWrapper(DNApyBaseClass):
 		#buttons
 		reset = wx.Button(self, 1, 'Reset')		
 		save = wx.Button(self, 3, 'Save Image')
+		self.evaluate = wx.Button(self, 5, 'Evaluate Codon')
+		self.evaluate.Disable() #disable the button by default
+		
 		
 		#the combobox
 		options = ["1: Standard Code",
@@ -618,20 +631,23 @@ class CodonButtonWrapper(DNApyBaseClass):
 		self.combobox = wx.ComboBox(self, id=2, size=(-1, -1), choices=options, style=wx.CB_READONLY)
 		self.combobox.Select(0)
 		
+		#text input field
+		self.input_codon = wx.TextCtrl(self, id=4, size=(50,-1), style=wx.TE_RICH)
+
 		#bind feature list buttons
 		self.Bind(wx.EVT_BUTTON, self.OnReset, id=1)
 		self.Bind(wx.EVT_COMBOBOX, self.OnComboboxSelect, id=2)
 		self.Bind(wx.EVT_BUTTON, self.OnSave, id=3)
-
-
+		self.Bind(wx.EVT_TEXT, self.InputCodonOnText, id=4)		
+		self.Bind(wx.EVT_BUTTON, self.OnEvaluate, id=5)
+		
 		#arrange buttons vertically		
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(item=reset)
 		sizer.Add(item=self.combobox)
-		sizer.Add(item=save)
-
-
-
+		sizer.Add(item=self.input_codon, flag=wx.LEFT, border=50)
+		sizer.Add(item=self.evaluate)
+		sizer.Add(item=save, flag=wx.LEFT, border=50)
 
 		#add feature list and buttons horizontally	
 		sizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -639,7 +655,8 @@ class CodonButtonWrapper(DNApyBaseClass):
 		sizer2.Add(item=self.codon_view, proportion=-1, flag=wx.EXPAND)
 
 		self.SetSizer(sizer2)
-		
+	
+	
 	def update_ownUI(self):
 		'''
 		User interface updates.
@@ -669,10 +686,35 @@ class CodonButtonWrapper(DNApyBaseClass):
 
 		
 	def OnSave(self, evt):	
-		pass
+		self.codon_view.SaveToFile(FileName='Test.png', FileType=wx.BITMAP_TYPE_PNG)
 	
+	def InputCodonOnText(self, evt):
+		'''
+		When text is entered into the text field, check if it is a valdid ambigous codon.
+		'''
+		codon = str(self.input_codon.GetLineText(0)).upper() #get the input codon
+	
+		m = re.match('^[GATCRYWSMKHBVDN]{3}$', codon)
+		if m != None:
+			self.input_codon.SetForegroundColour(wx.BLACK)
+			self.evaluate.Enable()
+		elif m == None:
+			self.input_codon.SetForegroundColour(wx.RED)
+			self.evaluate.Disable()
+			
+			
+	def OnEvaluate(self, evt):
+	
+		codon_object = mbc.AmbigousCodon(str(self.input_codon.GetLineText(0)).upper(), self.codon_view.table)
+		self.codon_view.codon = codon_object.getTriplet()
+		self.codon_view.target = codon_object.getTarget()
+		self.codon_view.offtarget = codon_object.getOfftarget()
+		self.codon_view.possible = codon_object.getPossible()	
 
+		#update drawing
+		self.update_ownUI()
 
+		
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):

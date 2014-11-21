@@ -119,7 +119,7 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 		## to the specified file. See the wxWindows docs for 
 		## wx.Bitmap::SaveFile for the details
 		self._Buffer.SaveFile(FileName, FileType)
-
+		
 ######### ChrisBarker-NOAA code ends ##################################################################
 #######################################################################################################
 		

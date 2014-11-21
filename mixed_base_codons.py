@@ -32,8 +32,12 @@
 
 from copy import deepcopy
 import dna
-
+import re
 	
+	
+#TODO 
+#clean up code
+#make code run faster
 
 def getinput():
 	###This is where I decide which AA I want
@@ -60,7 +64,7 @@ def getinput():
 
 class AmbigousCodon:
 	'''
-	Class that holds methods and values for computing the ambigous codon for a list of amino acids.
+	Class that holds methods and values for computing the ambiguous codon for a list of amino acids.
 	Required input is a list of desired amino acids in single letter code and 
 	an integer that determines the codon table to use.
 	
@@ -75,41 +79,49 @@ class AmbigousCodon:
 
 	Add more !!!!!!!!
 	'''
-	def __init__(self, AA_list, table):
+	def __init__(self, input, table):
 		self.setTable(table)
-		AA_list = [s.upper() for s in AA_list]
-		self.setTarget(AA_list)
+		
+		#input can be either a three-nucleotide string or a list of amino acids
+		if len(input) == 3 and type(input) == str: #if string i.e. an ambiguous codon
+			input = input.upper()
+			self.evaluateTriplet(input)
+		elif type(input) == list: #if list, i.e. a list of amino acids to evaluate
+			input = [s.upper() for s in input]
+			self.setTarget(input)
+		else:
+			raise ValueError, 'The input is not valid'
 		return
 
 		
 	######## Public methods intended for user interaction #########
 	def getTarget(self):
 		'''
-		
+		Retrieves a list of the target amino acids.
 		'''
 		return self.target
 		
 	def getOfftarget(self):
 		'''
-		
+		Retrieves a list of the off-target amino acids.
 		'''
 		return self.offtarget
 		
 	def getPossible(self):
 		'''
-		
+		Retrieves a list of amino acids still possible without further off-targets.
 		'''
 		return self.possible
 		
 	def getTriplet(self):
 		'''
-		
+		Retrieves the ambiguous codon.
 		'''
 		return self.triplet	
 		
 	def getTable(self):
 		'''
-		
+		Retrieves which genetic code was used.
 		'''
 		return self.table
 		
@@ -190,7 +202,10 @@ class AmbigousCodon:
 
 		
 	def find_degenerate(self, AA_list):
-	
+		'''
+		
+		'''
+		
 		#get all codons for chosen amino acids
 		regular_triplets = [dna.GetCodons(aa, table=self.table, separate=True) for aa in AA_list]
 		
@@ -230,7 +245,10 @@ class AmbigousCodon:
 
 	
 	def next_steps(self):
-		"""Function for finding which other amino acids can be selected without introducing further (more in number) off-target ones"""
+		"""
+		Function for finding which other amino acids can be selected without introducing 
+		further (more in number) off-target ones.
+		"""
 
 		possibleAA = []
 		targetAA = self.getTarget()
@@ -245,6 +263,19 @@ class AmbigousCodon:
 					possibleAA.append(AA)
 		return sorted(possibleAA)
 
+
+	def evaluateTriplet(self, amb_codon):
+		
+		m = re.match('^[GATCRYWSMKHBVDN]{3}$', amb_codon)
+		assert m != None, 'Error, the codon %s is not valid' % amb_codon
+		
+		self.target = [dna.Translate(s, self.getTable()) for s in dna.UnAmb(amb_codon)]
+		self.setTriplet(amb_codon) #the input ambigous codon
+		self.setOfftarget([]) #no offtargets
+
+		#see which other can be added without further off-target
+		possible = self.next_steps()
+		self.setPossible(possible)
 		
 	def setTarget(self, AA_list):
 		for s in AA_list:
