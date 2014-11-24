@@ -160,7 +160,9 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 
 
 	def PointsToAngle(self, centre_x, centre_y, x, y):
-		'''Calculates the angle (in degrees as a float) corresponding to mouse clicks.'''
+		'''
+		Calculates the angle (in degrees as a float) corresponding to mouse clicks.
+		'''
 		assert type(centre_x) is int and type(centre_y) is int and type(x) is int and type(y) is int, 'Error, the input coordinates need to be integers.'
 
 		#the click is one of the corners of a right-angled triangle
@@ -192,7 +194,9 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 
 
 	def AngleToPoints(self, centre_x, centre_y, radius, angle):	
-		'''Takes the centre of a circle, an angle (in degrees) and a radius and calculates the correspoinding XY coordinate on the circle'''
+		'''
+		Takes the centre of a circle, an angle (in degrees) and a radius and calculates the correspoinding XY coordinate on the circle
+		'''
 		assert type(centre_x) is int and type(centre_y) is int, 'Error, the input coordinates need to be integers.'
  		assert (type(angle) is int or type(angle) is float) and (type(radius) is int or type(radius) is float), 'Error, the input angle and radius need to be integers or floats.'
 		assert 0<=angle<=360, 'Error, the input angle is %s, but needs to be between 0 and 360.' % angle

@@ -60,6 +60,7 @@ def one_to_three(one_letter):
 	'*':'***'}	
 	return AA[one_letter.upper()]
 	
+	
 def three_to_one(three_letter):
 	'''
 	Convert a three letter code amino acid to a one letter code.
@@ -89,6 +90,7 @@ def three_to_one(three_letter):
 	'***':'*'}
 	return AA[three_letter.upper()]
 	
+	
 def one_to_full(one_letter):
 	'''
 	Convert one-letter amino acid code to full amino acid name.
@@ -115,16 +117,72 @@ def one_to_full(one_letter):
 	'D':'Aspartic acid', 
 	'E':'Glutamic acid', 
 	'G':'Glycine'}
-	return AA[one_letter]
+	return AA[one_letter.upper()]
 
-def full_to_one():
-	pass
 	
-def three_to_full():
-	pass
+def full_to_one(full):
+	'''
+	Convert full amino acid name to one-letter amino acid code.
+	'''
+	assert full.lower() in ['phenylalanine', 
+							'leucine', 
+							'serine', 
+							'tyrosine', 
+							'stop', 
+							'cysteine', 
+							'tryptophan', 
+							'proline', 
+							'histidine', 
+							'glutamine', 
+							'arginine', 
+							'isoleucine', 
+							'methionine', 
+							'threonine', 
+							'asparagine', 
+							'lysine', 
+							'valine', 
+							'alanine', 
+							'aspartic acid', 
+							'glutamic acid', 
+							'glycine'], 'Error, %s is not a valid amino acid' % full
 
-def full_to_three():
-	pass
+	AA = {'phenylalanine':'F', 
+			'leucine':'L', 
+			'serine':'S', 
+			'tyrosine':'Y', 
+			'stop':'*', 
+			'cysteine':'C', 
+			'tryptophan':'W', 
+			'proline':'P', 
+			'histidine':'H', 
+			'glutamine':'Q', 
+			'arginine':'R', 
+			'isoleucine':'I', 
+			'methionine':'M', 
+			'threonine':'T', 
+			'asparagine':'N', 
+			'lysine':'K', 
+			'valine':'V', 
+			'alanine':'A', 
+			'aspartic acid':'D', 
+			'glutamic acid':'E', 
+			'glycine':'G'}
+	return AA[full.lower()]
+	
+	
+def three_to_full(three_letter):
+	'''
+	Convert amino acid three letter code to full amino acid names.
+	'''
+	return one_to_full(three_to_one(three_letter))
+
+	
+def full_to_three(full):
+	'''
+	Convert full amino acid names to three letter code.
+	'''
+	return one_to_three(full_to_one(full))
+	
 	
 def count_aa(seq):
 	'''

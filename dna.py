@@ -883,7 +883,7 @@ class CodonTable:
 
 		elif number == 22:
 			#Genetic Code [22]
-			code = "Scenedesmus obliquus mitochondrial"
+			code = "Scenedesmus obliquus mitochondrial (transl_table=22)"
 			AAs  = "FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
 			Starts = "-----------------------------------M----------------------------"
 			Base1  = "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG"
@@ -920,7 +920,8 @@ class CodonTable:
 			raise ValueError, '%s is not a valid genetic code number' % number
 		self.code = code
 		self.table = [code, AAs, Starts, Base1, Base2, Base3]
-		
+	
+	
 	def setCodons(self):
 		'''
 		Use a predetermined codon table to generate a dictionary of amino acids with their codons.
@@ -959,6 +960,7 @@ class CodonTable:
 		'''
 		return self.table
 
+		
 	def getCodons(self, separate=False):
 		'''
 		Returns a dictionary of amino acids with their codons for the specified codon table.
@@ -991,7 +993,7 @@ class CodonTable:
 		Print specified codon table.
 		'''
 		code, AAs, Starts, Base1, Base2, Base3 = self.table
-		print('Code   = %s' % code)
+		print('\nCode   = %s' % code)
 		print('AAs    = %s' % AAs)
 		print('Starts = %s' % Starts)
 		print('Base1  = %s' % Base1)
