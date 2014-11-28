@@ -239,6 +239,15 @@ def test_scale():
 	y = 10
 	paintit(x, y, col1, col2, white_mid=True)
 	scene.write_svg()	
+
+	#dark yellow to blue
+	col1 = '#cba916'
+	col2 = '#8eb6d5'
+	x = 130
+	y = 10
+	paintit(x, y, col1, col2, white_mid=True)
+	scene.write_svg()	
+
 	
 if __name__ == "__main__": 
 	test_scale()

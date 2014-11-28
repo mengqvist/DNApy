@@ -340,7 +340,7 @@ class TextEdit(DNApyBaseClass):
 		'''For changing background color of text ranges'''
 		sequence = genbank.gb.GetDNA()
 		if sequence == None:
-			sequence = '  '	
+			sequence = ''	
 		self.stc.SetText(sequence) #put the DNA in the editor
 		start, finish = genbank.dna_selection
 		if finish == -1: #a caret insertion (and no selection). Will actually result in a selection where start is one larger than finish

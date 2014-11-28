@@ -33,10 +33,8 @@
 import fasta
 import string
 import random
-import genbank
 from Bio import AlignIO #biopython package
 from Bio.Align.Applications import MuscleCommandline #biopython package
-from StringIO import StringIO
 
 ############# Basic DNA functions #####################
 
@@ -62,13 +60,17 @@ def CleanDNA(DNA, ambiguous=False, silent=True):
 
 
 def R(DNA):
-	"""Returns the reverse of a DNA string"""
+	"""
+	Returns the reverse of a DNA string.
+	"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	return DNA[::-1]  #makes the reverse of the input string
 
 		
 def C(DNA):
-	"""Returns the complement of a DNA string"""
+	"""
+	Returns the complement of a DNA string.
+	"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n', 
 					'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
@@ -78,7 +80,9 @@ def C(DNA):
 
 	
 def RC(DNA):
-	"""Returns the reverse complement of a DNA string"""
+	"""
+	Returns the reverse complement of a DNA string.
+	"""
 	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
 	return R(C(DNA))
 
@@ -380,7 +384,9 @@ def MultipleAmb(largelist):
 
 	
 def UnAmb(string):
-	'''Converts an ambigous nucletotide sequence to a list of sequences containing only A, T, C and G (as appropriate)'''
+	'''
+	Converts an ambiguous nucleotide sequence to a list of sequences containing only A, T, C and G (as appropriate).
+	'''
 	assert type(string) is str, 'Error, the input has to be a string.'
 	string = string.upper()	
 

@@ -169,13 +169,15 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.Draw_plasmid_name(gcdc)
 
 		#draw features
-		self.Draw_features(gcdc)
+		if genbank.gb.get_all_feature_positions() != None:
+			self.Draw_features(gcdc)
 
 		#draw enzymes
 		self.Draw_enzymes(gcdc)
 
 		#draw selection
-		self.Draw_selection(gcdc)
+		if genbank.gb.GetDNA() != None:
+			self.Draw_selection(gcdc)
 
 		#draw search hits
 		self.Draw_search_hits(gcdc)
@@ -187,7 +189,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 	def Draw_plasmid_name(self, gcdc):
 		'''Draw the plasmid name and basepairs in the middle'''
 		name = genbank.gb.fileName.split('.')[0]
-		basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
+		basepairs = '0 bp'
+		if genbank.gb.GetDNA() != None:
+			basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
 
 #		font = wx.SystemSettings.GetFont(1)
 		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)

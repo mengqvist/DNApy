@@ -31,8 +31,9 @@
 #
 
 #TODO
-#fix reference parsing
-#fix how header is saved
+#fix the line shortening in the header section
+#fix file saving
+#add single base support to location parsing
 #add methods to modify header
 
 #match features with qualifiers (mandatory and optional)
@@ -139,7 +140,6 @@ class feature(object):
 class gbobject(object):
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self, filepath = None):
-		self.gbfile = {} #this variable stores the whole genbank file
 		self.clipboard = {}
 		self.clipboard['dna'] = ''
 		self.clipboard['features'] = []
@@ -147,38 +147,58 @@ class gbobject(object):
 
 
 		self.search_hits = []	# variable for storing a list of search hits
-
-		self.file_versions = (copy.deepcopy(self.gbfile),) #stores version of the file
-		self.file_version_index = 0 #stores at which index the current file is
-
-		#space constants for where info starts
-		self.space_header = 12*' '
-		self.space_feature = 21*' '
-		self.space_DNA = 10*' '
 		
-		#set up header info
-		self.gbfile['header'] = {}
-		self.gbfile['header']['locus'] = {}
-		self.gbfile['header']['gi'] = ''
-		self.gbfile['header']['definition'] = ''
-		self.gbfile['header']['accession'] = ''
-		self.gbfile['header']['version'] = []
-		self.gbfile['header']['dblink'] = []
-		self.gbfile['header']['keywords'] = []
-		self.gbfile['header']['source'] = []
-		self.gbfile['header']['references'] = []
-		self.gbfile['header']['comments'] = []
+		#set up data structure
+		self.gbfile = {} #this variable stores the whole genbank file
+		self.gbfile['locus'] = {}
+		self.gbfile['locus']['name'] = None
+		self.gbfile['locus']['length'] = None
+		self.gbfile['locus']['type'] = None
+		self.gbfile['locus']['topology'] = None
+		self.gbfile['locus']['division'] = None
+		self.gbfile['locus']['date'] = None		
+		self.gbfile['definition'] = None
+		self.gbfile['accession'] = None
+		self.gbfile['version'] = None
+		self.gbfile['gi'] = None
+		self.gbfile['dblink'] = None
+		self.gbfile['keywords'] = None
+		self.gbfile['segment'] = None		
+		self.gbfile['source'] = None
+		self.gbfile['organism'] = None
+		self.gbfile['references'] = None
+		self.gbfile['comments'] = None
+		self.gbfile['dbsource'] = None	#not sure this is a valid keyword
+		self.gbfile['primary'] = None	#not sure this is a valid keyword	
+		self.gbfile['features'] = None
+		self.gbfile['origin'] = None
+		self.gbfile['contig'] = None		
+		self.gbfile['dna'] = None
 
-		#set up feature info
-		self.gbfile['features'] = []
-		
-		#set up dna info
-		self.gbfile['dna'] = ''
-		
-		#set up file info
 		self.gbfile['filepath'] = filepath
+
 		self.fileName = 'New DNA' #name of the file/plasmid name
 
+		
+		## compile regular expressions used for parsing ##
+		self._re_locus = re.compile(r'''
+				LOCUS \s+? ([a-zA-Z0-9_-]+?) \s+?												#match name
+				([0-9]+?)[ ](?:bp|aa) \s+														#match length
+				((?:ss-|ds-|ms-)*(?:NA|DNA|RNA|tRNA|rRNA|mRNA|uRNA))* \s+						#match type, zero or one time
+				(linear|circular)* \s+															#match topology, zero or one time
+				(PRI|ROD|MAM|VRT|INV|PLN|BCT|VRL|PHG|SYN|UNA|EST|PAT|STS|GSS|HTG|HTC|ENV)* \s+  #match division, zero or one time
+				([0-9]{2}-(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC){1}-[0-9]{4})*		#match date, zero or one time
+				''', re.VERBOSE)
+
+		self._re_version = re.compile(r'''
+					VERSION \s+ ([-_.a-zA-Z0-9]+) \s+ 		#match version
+					GI:([0-9]+)*							#match gi, zero or one time
+					''', re.VERBOSE)
+
+		#for undo/redo
+		self.file_versions = [] #stores version of the file
+		self.file_version_index = 0 #stores at which index the current file is					
+		
 		if filepath == None:
 			pass
 		else:
@@ -187,6 +207,9 @@ class gbobject(object):
 				filepath = filepath.replace('\\', '/')
 			self.opengb(filepath)
 
+		
+					
+					
 ###############################
 
 	def opengb(self, filepath):
@@ -202,201 +225,262 @@ class gbobject(object):
 
 			
 	def readgb(self, infile):
-		"""Function takes a genbank file and parses it into a managable data structure."""
-		file_read = False #indicate whether the file was completely read
-		#to keep track where in the document I currently am. 
-		#in the header section both sect_feature and sect_origin are false
-		#in the feature section sect_feature is True and the other False
-		#in the DNA section both are True
-		sect_feature = False
-		sect_contig = False
-		sect_origin = False
-		whole_line = '' #many things are broken over several lines, use this variable to collect them.
-		dna_list = [] #for collecting the dna
+		"""
+		Method takes a genbank file and parses it into a manageable data structure.
+		"""
+
+		line_list = [] #for collecting the dna
 		for line in infile:
-			if "".join(line.split()) == '':	#get rid of blank lines
+			if re.match('^[ \t\n]+$', line): #get rid of blank lines
 				pass
-			elif line[0:8] == 'FEATURES': #indicates start of feature section
-				self.parse_header_line(whole_line)
-				sect_feature = True
-				whole_line = ''
 
-			elif line[0:6] == 'CONTIG': #not sure what to do with this part... needs fixing!
-				#does the contig ALWAYS come after features and before origin?????
-				self.parse_feature_line(whole_line)
-				sect_contig = True
-				whole_line = ''
+			elif line[0] == ' ' and line[0:10] != '        1 ': #a line that starts with a space is a continuation of the previous line (and belongs to the previous keyword). I have to have a special case '        1 ' for where the DNA sequence starts.
+				line_list.append(line)
+
+			elif (line[0] != ' ' or line[0:10] == '        1 ') and len(line_list) == 0: #a line that does not start with a space marks a new keyword
+				line_list.append(line)
 				
-			elif line[0:6] == 'ORIGIN': #indicates start of DNA section
-				if sect_contig is False:
-					self.parse_feature_line(whole_line)
-				sect_origin = True
-				whole_line = ''
-
-			elif line[0:2] == '//' and sect_feature is True and sect_origin is True: #this indicates the end of the file
-				self.parse_dna(dna_list)
-				file_read = True
-				
-			elif sect_feature is False and sect_origin is False:
-				if line[0:1] == ' ': #this line is a continuation of a previous header section entry
-					whole_line += line
-				elif whole_line == '': #start of a new entry
-					whole_line = line
-				else: #the entry is over and needs to be parsed
-					self.parse_header_line(whole_line)
-					whole_line = line
-
-			elif sect_contig is True and sect_origin is False:
-				#we are in the contig section here... Find a useful way to parse it
-				pass
-					
-			elif sect_feature is True and sect_origin is False:
-				if line[0:21] == self.space_feature: #this line is a continuation of a previous feature entry
-					whole_line += line
-				elif whole_line == '': #start of a new entry
-					whole_line = line
-				else: #the entry is over and needs to be parsed
-					self.parse_feature_line(whole_line)
-					whole_line = line
-					
-			elif sect_feature is True and sect_origin is True:
-				dna_list.append(line)
-
-		assert file_read is True, 'There was an unknown error reading the file. \n%s' %infile
-		self.add_file_version()
+			elif (line[0] != ' ' or line[0:10] == '        1 ') and len(line_list) > 0: #a line that does not start with a space marks a new keyword
+				self.parse(''.join(line_list)) 
+				line_list = []
+				line_list.append(line)
+			
+		#add the loaded file state to the undo/redo list
+#		self.add_file_version()
 
 		
-	def parse_header_line(self, line):
+	def parse(self, line):
 		'''
-		Parses a header line into the correct data format.
-		The term 'line' is used loosely and can actually be comprised of several lines that together describe a header entry subpart.
+		Method for parsing a genbank line. The term line is used very flexibly and indicates all the lines belonging to a certain keyword.
+		It matches certain keywords to the beginning of the line and parses accordingly.
 		'''
 		if 'LOCUS' in line[0:12]:
-		
-			#make this parsing better!!!
-		
-			line_list = line[12:].split(' ')
-			line_list = [x.rstrip('\t\n\x0b\x0c\r ') for x in line_list if x != '']
-			self.gbfile['header']['locus']['id'] = line_list[0]
-			self.gbfile['header']['locus']['length'] = line_list[1]
-#			self.gbfile['header']['locus']['type'] = line_list[3]
-#			self.gbfile['header']['locus']['topology'] = line_list[4]
-
-			#sometimes the division number is missing, need to check for that
-#			if len(line_list) == 7: #division number present, all is ok
-#				self.gbfile['header']['locus']['division'] = line_list[5]
-#				self.gbfile['header']['locus']['date'] = line_list[6]
-#			elif len(line_list[5]) == 3: #the last entry is three long, so it must be the division entry
-#				self.gbfile['header']['locus']['division'] = line_list[5]
-#			elif re.match('^([0-9]){2}[-]([A-Z]){3}[-]([0-9]){4}$', line_list[5]) != None: #the last entry is the date
-#				self.gbfile['header']['locus']['date'] = line_list[5]
-#			else:
-#				raise ValueError('Error parsing the LOCUS line, check the date and division entry.')
- 			
+			#LOCUS A short mnemonic name for the entry, chosen to suggest the sequence's definition. Mandatory keyword/exactly one record.
+			
+			#match line with re
+			m = re.match(self._re_locus, line)
+			
+			#assign values
+			self.gbfile['locus']['name'] = m.group(1) #locus id
+			self.gbfile['locus']['length'] = m.group(2) #sequence length
+			self.gbfile['locus']['type'] = m.group(3) #type of sequence
+			self.gbfile['locus']['topology'] = m.group(4) #linear or circular
+			self.gbfile['locus']['division'] = m.group(5) #which GenBank division the sequence belongs to
+			self.gbfile['locus']['date'] = m.group(6) #modification date
+			
 		elif 'DEFINITION' in line[0:12]:
+			#A concise description of the sequence. Mandatory keyword/one or more records.
 			line_list = line[12:].split('\n') #split by line
-			self.gbfile['header']['definition'] = ''.join([re.sub(' +', ' ', x) for x in line_list]) #remove spaces longer than one and empty entries
+			self.gbfile['definition'] = ''.join([re.sub(' +', ' ', x) for x in line_list]) #remove spaces longer than one and empty entries
 			
 		elif 'ACCESSION' in line[0:12]:
-			self.gbfile['header']['accession'] = line[12:].rstrip('\t\n\x0b\x0c\r ')
+			#The primary accession number is a unique, unchanging identifier assigned to each GenBank sequence record. (Please use this identifier when citing information from GenBank.) Mandatory keyword/one or more records.
+			self.gbfile['accession'] = line[12:].strip('\t\n\x0b\x0c\r ')
 			
 		elif 'VERSION' in line[0:12]:
-			line_list = re.split('[\n ]', line[12:]) #split by line and space
-			self.gbfile['header']['version'] = ' '.join([re.sub(' +', ' ', x) for x in line_list if x != '']) #remove spaces longer than one and empty entries
-			
-			#get the gi number
-			try:
-				m = re.search('GI:([0-9]+)', self.gbfile['header']['version']) 
-				self.gbfile['header']['gi'] = m.group(1)
-			except:
-				self.gbfile['header']['gi'] = None
+			#A compound identifier consisting of the primary accession number and a numeric version number associated with the current version of the sequence data in the record. This is optionally followed by an integer identifier (a "GI") assigned to the sequence by NCBI. Mandatory keyword/exactly one record.
+			m = re.match(self._re_version, line)
+			self.gbfile['version'] = m.group(1)
+			self.gbfile['gi'] = m.group(2)
+			assert self.gbfile['version'] != None, 'Error parsing VERSION line: %s' % line
 		
+		elif 'NID' in line[0:3]:
+			#An alternative method of presenting the NCBI GI identifier (described above).
+			#NOTE: The NID linetype is obsolete and was removed from the GenBank flatfile format in December 1999.
+			if self.gbfile['gi'] == None: #if the gi has not yet been assigned
+				self.gbfile['gi'] = ''.join(line[0:12].split('\n')).strip()
+			else:
+				pass
+			
+		elif 'PROJECT' in line[0:12]:
+			#The identifier of a project (such as a Genome Sequencing Project) to which a GenBank sequence record belongs. Optional keyword/one or more records.
+			#NOTE: The PROJECT linetype is obsolete and was removed from the GenBank flatfile format after Release 171.0 in April 2009.
+			self.gbfile['project'] = ''.join(line[12:].split('\n')).strip()
+			
 		elif 'DBLINK' in  line[0:12]:
+			#Provides cross-references to resources that support the existence a sequence record, such as the Project Database and the NCBI Trace Assembly Archive. Optional keyword/one or more records.
 			line_list = line[12:].split('\n') #split by line only
-			self.gbfile['header']['dblink'] = [x.rstrip('\t\n\x0b\x0c\r ') for x in line_list if x != '']
-		
-		elif 'DBSOURCE' in  line[0:12]:
-			pass
-			
+			self.gbfile['dblink'] = ' '.join([s.strip() for s in line[12:].split('\n')])
+
 		elif 'KEYWORDS' in line[0:12]:
+			#Short phrases describing gene products and other information about an entry. Mandatory keyword in all annotated entries/one or more records.
 			line_list = re.split('[\n ]', line[12:]) #split by line and space
-			self.gbfile['header']['keywords'] = [re.sub(' +', ' ', x) for x in line_list if x != ''] #remove spaces longer than one and empty entries
-		
-		elif 'SOURCE' in line[0:12]:
-			line_list = line[12:].split('\n') #split by line and ; delimiter
+			self.gbfile['keywords'] = ' '.join([re.sub(' +', ' ', x) for x in line_list if x != '']) #remove spaces longer than one, and also empty entries
+
+		elif 'SEGMENT' in line[0:12]:
+			#Information on the order in which this entry appears in a series of discontinuous sequences from the same molecule. Optional keyword (only in segmented entries)/exactly one record.
+			self.gbfile['segment'] = line[12:].strip()
+			
+		elif 'SOURCE' in line[0:6]:
+			#Common name of the organism or the name most frequently used in the literature. Mandatory keyword in all annotated entries/one or more records/includes one subkeyword.
+			#contains the sub-class ORGANISM, Formal scientific name of the organism (first line) and taxonomic classification levels (second and subsequent lines). Mandatory subkeyword in all annotated entries/two or more records.
+			
+			line_list = line[12:].split('\n') #split by line break
 			index = next(line_list.index(x) for x in line_list if 'ORGANISM' in x)  #find the index of 'ORGANISM'
 			
-			self.gbfile['header']['source'].append(' '.join([re.sub('[ .\n]+', ' ', x) for x in line_list[0:index]])) #the first entry (the source line)
+			#the free-format organism information (which may stretch over several lines)
+			self.gbfile['source'] = ' '.join([re.sub('[ .\n]+', ' ', x) for x in line_list[0:index]]) #the first entry (the source line)
 	
-			self.gbfile['header']['source'].append(line_list[index][12:]) #this is the 'organism' line
+			#The formal scientific name for the source organism
+			self.gbfile['organism'] = []
+			self.gbfile['organism'].append(line_list[index][12:]) #this is the 'organism' line
 			
+			#here comes the taxonomy
 			taxon = ''.join(line_list[index+1:]).split(';') #join the rest of the entries and split on the ; delimiter
-			self.gbfile['header']['source'].extend([re.sub('[ .]+', '', x.replace('[','').replace(']','')) for x in taxon]) #now remove spaces and punctuations and add the taxonomy to the global data structure
-			
+			self.gbfile['organism'].extend([re.sub('[ .]+', '', x.replace('[','').replace(']','')) for x in taxon]) #now remove spaces and punctuations and add the taxonomy to the global data structure
+
 		elif 'REFERENCE' in line[0:12]:
-			pass
+			#Citations for all articles containing data reported in this entry. Includes seven subkeywords and may repeat. Mandatory keyword/one or more records.
+			#AUTHORS - Lists the authors of the citation. Optional subkeyword/one or more records.
+			#CONSRTM - Lists the collective names of consortiums associated with the citation (eg, International Human Genome Sequencing Consortium), rather than individual author names. Optional subkeyword/one or more records.
+			#TITLE - Full title of citation. Optional subkeyword (present in all but unpublished citations)/one or more records.
+			#JOURNAL - Lists the journal name, volume, year, and page numbers of the citation. Mandatory subkeyword/one or more records.
+			#MEDLINE - Provides the Medline unique identifier for a citation. Optional subkeyword/one record.
+			#NOTE: The MEDLINE linetype is obsolete and was removed
+			#PUBMED - Provides the PubMed unique identifier for a citation. Optional subkeyword/one record.
+			#REMARK	- Specifies the relevance of a citation to an entry. Optional subkeyword/one or more records. from the GenBank flatfile format in April 2005.
+			if self.gbfile['references'] == None:
+				self.gbfile['references'] = []
+			current_ref = {}
+			current_ref['reference'] = None
+			current_ref['authors'] = None
+			current_ref['consrtm'] = None
+			current_ref['title'] = None
+			current_ref['journal'] = None
+			current_ref['medline'] = None
+			current_ref['pubmed'] = None
+			current_ref['remark'] = None
 			
-		elif 'PRIMARY' in line[0:12]:
-			pass
-			#see gi_625194262
+			ref_lines = re.split('\n(?!            )', line) #match newline only if it is not matched by 12 whitespace characters
 			
+			for l in ref_lines:
+				if 'REFERENCE' in l[0:12]:
+					current_ref['reference'] = ' '.join([s.strip() for s in l[12:].split('\n')])			
+				elif 'AUTHORS' in l[0:12]:
+					current_ref['authors'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'CONSRTM' in l[0:12]:
+					current_ref['consrtm'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'TITLE' in l[0:12]:
+					current_ref['title'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'JOURNAL' in l[0:12]:
+					current_ref['journal'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'MEDLINE' in l[0:12]:
+					current_ref['medline'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'NOTE:' in l[0:12]:
+					pass
+				elif 'PUBMED' in l[0:12]:
+					current_ref['pubmed'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+				elif 'REMARK' in l[0:12]:
+					current_ref['remark'] = ' '.join([s.strip() for s in l[12:].split('\n')])
+			
+			self.gbfile['references'].append(current_ref)
+			
+
 		elif 'COMMENT' in line[0:12]:
+			#Cross-references to other sequence entries, comparisons to other collections, notes of changes in LOCUS names, and other remarks. Optional keyword/one or more records/may include blank records.
+			if self.gbfile['comments'] == None:
+				self.gbfile['comments'] = []
 			line_list = line[12:].split('\n') #split by line
-			self.gbfile['header']['comments'].append(''.join([re.sub(' +', ' ', x) for x in line_list if x != '']))  #remove spaces longer than one and empty entries
+			self.gbfile['comments'].append(''.join([re.sub(' +', ' ', x) for x in line_list if x != '']))  #remove spaces longer than one and empty entries
+			
+		elif 'DBSOURCE' in  line[0:12]: #should I really include this one?
+			self.gbfile['dbsource'] = ''.join(line[12:].split('\n')).strip()
+			
+		elif 'PRIMARY' in line[0:12]: #should I really include this one?
+			self.gbfile['primary'] = ''.join(line[12:].split('\n')).strip()
+			#see gi_625194262
+		
+		elif 'FEATURES' in line[0:12]:
+			#Table containing information on portions of the sequence that code for proteins and RNA molecules and information on experimentally determined sites of biological significance. Optional keyword/one or more records.
+			feature_lines = re.split('\n(?!                     )', line) #match newline only if it is not matched by 21 whitespace characters
+			if self.gbfile['features'] == None:
+				self.gbfile['features'] = []
+			
+			for l in feature_lines:
+				if l != '':
+					self.parse_feature_line(l)
+			
+		elif 'BASE COUNT' in line[0:12]:
+			#Summary of the number of occurrences of each basepair code (a, c, t, g, and other) in the sequence. Optional keyword/exactly one record. 
+			#NOTE: The BASE COUNT linetype is obsolete and was removed from the GenBank flatfile format in October 2003.
+			pass
+			
+		elif 'ORIGIN' in line[0:12]:
+			#Specification of how the first base of the reported sequence is operationally located within the genome. Where possible, this includes its location within a larger genetic map. Mandatory keyword/exactly one record.
+			self.gbfile['origin'] = line[12:].strip()
+			
+		elif '        1 ' in line[0:10]:
+			#the DNA/RNA/protein sequence
+			self.gbfile['dna'] = ''.join([re.match('[a-zA-Z]', b).group(0) for b in line if re.match('[a-zA-Z]', b) is not None]) #make the DNA string while skipping anything that is not a-z
 
+		elif 'CONTIG' in line[0:12]:
+			#This linetype provides information about how individual sequence
+			#records can be combined to form larger-scale biological objects, such as
+			#chromosomes or complete genomes. Rather than presenting actual sequence
+			#data, a special join() statement on the CONTIG line provides the accession
+			#numbers and basepair ranges of the underlying records which comprise the object.
+			#It is an alternative to providing a sequence.
+			self.gbfile['contig'] = ''.join(line[12:].split('\n')).strip()
+		
 		else:
-			raise ValueError, 'Unparsed line: "%s" in record %s' % (line, self.gbfile['header']['locus']['id'])
+			raise ValueError, 'Unparsed line: "%s" in record %s' % (line, self.gbfile['locus']['name'])
 
+		#check the stored features for Vector NTI and ApE clutter and store result
+		self.clutter = self.ApEandVNTI_clutter() 
+			
+			
 			
 	def parse_feature_line(self, inputline):
 		'''
 		Takes a feature line consisting info for an entire feature and parses them into the DNApy data format.
-		This method only works if only one feature is to be parsed at a time.
 		'''
 		assert type(inputline) == str, 'Error, the input has to be a string.'
-		
-		#first I need to go through the input and see if there are any info that wraps over several lines
-		linelist = inputline.split('\n')
-		wholelinelist = [] #for storing the complete un-wrapped lines
-		whole_line = ''
-		for line in linelist:
-			if whole_line == '': #to catch the first line
-				whole_line = line		
-			elif line[0:21] == 21*' ' and line[21] != '/': #continuation of line which is broken on several lines
-				whole_line += line
-			elif line == '': #catch empty lines (that should not be there in any case) and move to next line
-				pass
-			elif line[0:21] == 21*' ' and line[21] == '/': #new qualifier line
-				wholelinelist.append(whole_line)
-				whole_line = line
-		wholelinelist.append(whole_line) #catch the last one
+		if 'FEATURES' in inputline[0:12]:
+			pass
+		else:
+			#first I need to go through the input and see if there are any info that wraps over several lines
+			linelist = inputline.split('\n')
+			wholelinelist = [] #for storing the complete un-wrapped lines
+			whole_line = ''
+			for line in linelist:
+				if whole_line == '': #to catch the first line
+					whole_line = line		
+				elif line[0:21] == 21*' ' and line[21] != '/': #continuation of line which is broken on several lines
+					whole_line += line
+				elif line == '': #catch empty lines (that should not be there in any case) and move to next line
+					pass
+				elif line[0:21] == 21*' ' and line[21] == '/': #new qualifier line
+					wholelinelist.append(whole_line)
+					whole_line = line
+			wholelinelist.append(whole_line) #catch the last one
 
-		
-		#now parse the whole lines into the correct data structure
-		feature = {}
-		feature['qualifiers'] = []
-		for line in wholelinelist:
-			assert type(line) is str, "Error parsing genbank line. Input line is not a string, it is %s:" % str(type(line))
-		
-			#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
+			
+			#now parse the whole lines into the correct data structure
+			feature = {}
+			feature['qualifiers'] = []
+			for line in wholelinelist:
+				assert type(line) is str, "Error parsing genbank line. Input line is not a string, it is %s:" % str(type(line))
+			
+				#the line either starts with 5 blanks and then a feature key (feature key line), or it start with 21 blanks and then / (qualifier line)
 
-			if line[0:5] == 5*' ' and (line[5] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ35') == True:
-				key = line[5:20].rstrip('\t\n\x0b\x0c\r ')
-				location = line[21:].rstrip('\t\n\x0b\x0c\r ')
-				feature["key"] = key
-				feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(location)
+				if line[0:5] == 5*' ' and (line[5] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ35') == True:
+					key = line[5:20].rstrip('\t\n\x0b\x0c\r ')
+					location = line[21:].rstrip('\t\n\x0b\x0c\r ')
+					feature["key"] = key
+					feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(location)
 
-			elif line[0:21] == '                     ' and line[21] == '/':
-				qualifier = line[21:].rstrip('\t\n\x0b\x0c\r ')
-				feature['qualifiers'].append(qualifier)
+				elif line[0:21] == '                     ' and line[21] == '/':
+					if '/translation' in line:
+						qualifier = re.sub('[ \n]+', '', line[21:]) #remove newline characters and all spaces
+					else:
+						qualifier = re.sub('[ \n]+', ' ', line[21:]) #remove newline characters and spaces longer than 1
+					feature['qualifiers'].append(qualifier)
 
-			else:
-				print('error', line)	
+				else:
+					print('error parsing feature line', line)	
 
 
-		self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
-		self.clutter = self.ApEandVNTI_clutter() #check the stored features for Vector NTI and ApE clutter and store result
-
+			self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
 		
 
 	def parse_location(self, locationstring):
@@ -424,32 +508,14 @@ class gbobject(object):
 		for entry in commasplit:
 			tempstr = ''
 			for n in range(len(entry)):
-				if (entry[n] == '1' or
-					entry[n] == '2' or
-					entry[n] == '3' or
-					entry[n] == '4' or
-					entry[n] == '5' or
-					entry[n] == '6' or
-					entry[n] == '7' or
-					entry[n] == '8' or
-					entry[n] == '9' or
-					entry[n] == '0' or
-					entry[n] == '<' or
-					entry[n] == '>' or
-					entry[n] == '.'):			   
+				if entry[n] in '0123456789<>.':			   
 					tempstr += entry[n]
 			tempsites.append(tempstr)
 		location = tempsites
 			
 		return location, complement, join, order
 
-	def parse_dna(self, dna_list):
-		#clean DNA from numbering and spaces and append it to a list. This list will later be converted to a string.
-
-		#need to fix this so that I can also load protein records!!!!!!!
-		#dna_list = [dna.CleanDNA(x, silent=True) for x in dna_list]
-		self.gbfile['dna'] = ''.join([re.match('[a-zA-Z]', b).group(0) for b in ''.join(dna_list) if re.match('[a-zA-Z]', b) is not None]) #make the DNA string while skipping anything that is not a-z
-	
+		
 	def clean_clutter(self):
 		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
 		deletionlist = []
@@ -471,21 +537,30 @@ class gbobject(object):
 ############# undo and redo functions #################
 
 	def get_file_version(self):
-		'''Get the current file version'''
+		'''
+		Get the current file version
+		'''
 		return self.file_versions[self.get_file_version_index()]
 
 	def add_file_version(self):
-		'''Add another file version to the version list.
-			This should be added after the current version and should delete all later versions if there are any.'''
+		'''
+		Add another file version to the version list.
+		This should be added after the current version and should delete all later versions if there are any.
+		'''
 		index = self.get_file_version_index()
-		if index == len(self.file_versions)-1: #if the current version is the last one
+		if len(self.file_versions) == 0: #the first version of the file
 			self.file_versions += (copy.deepcopy(self.gbfile),)
+		elif index == len(self.file_versions)-1: #if the current version is the last one
+			self.file_versions += (copy.deepcopy(self.gbfile),)
+			self.set_file_version_index(index+1)
 		else:
 			self.file_versions = self.file_versions[0:index]+(copy.deepcopy(self.gbfile),)
-		self.set_file_version_index(index+1)
+			self.set_file_version_index(index+1)
 
 	def get_file_version_index(self):
-		'''Get the index of the current file version'''
+		'''
+		Get the index of the current file version
+		'''
 		return self.file_version_index
 
 	def set_file_version_index(self, index):
@@ -988,10 +1063,13 @@ class gbobject(object):
 
 	def ApEandVNTI_clutter(self):
 		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
-		for i in range(len(self.gbfile['features'])):
-			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
-				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
-					return True
+		if self.gbfile['features'] == None:
+			return False
+		else:
+			for i in range(len(self.gbfile['features'])):
+				for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+					if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
+						return True
 		return False
 
 
@@ -1053,7 +1131,9 @@ class gbobject(object):
 
 	def GetDNA(self, start=1, finish=-1):
 		'''Get the entire DNA sequence from the self.gbfile'''
-		if (start == 1 and finish == -1) == True:
+		if self.gbfile['dna'] == None:
+			return None
+		elif start == 1 and finish == -1:
 			return self.gbfile['dna']
 		else:
 			if finish == -1:
@@ -1501,18 +1581,20 @@ indeces >-1 are feature indeces'''
 
 	def get_all_feature_positions(self):
 		'''Get type, complement, start and finish for each feature'''		
-		positionlist = []
-		
-		for i in range(0,len(self.gbfile['features'])):
-			Key = self.gbfile['features'][i]['key']
-			Complement = self.gbfile['features'][i]['complement']
-			name = self.gbfile['features'][i]['qualifiers'][0].split('=')[1]
-			for entry in self.gbfile['features'][i]['location']:
-				start, finish = self.get_location(entry)
-				start = int(start)
-				finish = int(finish)
-				positionlist.append([Key, Complement, start, finish, name, i])
-		return positionlist
+		if self.gbfile['features'] == None:
+			return None
+		else:
+			positionlist = []
+			for i in range(0,len(self.gbfile['features'])):
+				Key = self.gbfile['features'][i]['key']
+				Complement = self.gbfile['features'][i]['complement']
+				name = self.gbfile['features'][i]['qualifiers'][0].split('=')[1]
+				for entry in self.gbfile['features'][i]['location']:
+					start, finish = self.get_location(entry)
+					start = int(start)
+					finish = int(finish)
+					positionlist.append([Key, Complement, start, finish, name, i])
+			return positionlist
 
 
 # does this work? is it needed?	
@@ -1600,7 +1682,7 @@ indeces >-1 are feature indeces'''
 		elif changetype == 'i': #insertion
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
-			self.gbfile['header']['locus']['length'] = len(self.gbfile['dna']) #changing header
+			self.gbfile['locus']['length'] = len(self.gbfile['dna']) #changing header
 			for i in range(len(self.gbfile['features'])): #change features already present
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
@@ -1614,7 +1696,7 @@ indeces >-1 are feature indeces'''
 			deletionlist = []
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + self.gbfile['dna'][changeend:]
-			self.gbfile['header']['locus']['length'] = len(self.gbfile['dna']) #changing header
+			self.gbfile['locus']['length'] = len(self.gbfile['dna']) #changing header
 			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
@@ -1644,70 +1726,305 @@ indeces >-1 are feature indeces'''
 		else:
 			print('%s is not a valid argument for changetype' % changetype)
 
+			
+	def check_line(self, line, line_type):
+		'''
+		Evaluates a line (for the genbank file) and makes sure it is maximum 80 characters.
+		If the line is longer it finds a good place to break it and returns a modified line.
+		Line type is either 'header', 'locations' or 'feature' and indicates from which part of the genbank file the line came.
+		'''
+		mod_line = ''
+		if line_type == 'header':
+			pass #fix
 
+		elif line_type == 'locations':
+			if len(line) <= 58: #add short lines directly
+					mod_line = line
+			else: #split long lines
+				locations = line.split(',')
+				part_line = ''
+				for location in locations:
+					if part_line == '':
+						part_line += location
+					elif len(part_line + ',' + location) <= 58:
+						part_line += ',' + location
+					elif len(part_line + ' ' + location) > 58:
+						if mod_line == '':
+							mod_line += part_line + ',' + '\n'
+						else:
+							mod_line += ' '*21 + part_line + ',' + '\n'
+						part_line = location
+					else:
+						raise ValueError
+				mod_line += ' '*21 + part_line #catch the last part
+			
+		elif line_type == 'feature':
+			if '/translation=' in line:		#it's a sequence, so just break at 58
+				for i in range(0, len(line), 58):
+					mod_line += ' '*21 + line[0+i:58+i] + '\n'
+				mod_line = mod_line[:-1] #remove the last \n
+			else: 	#it's regular text, so match line breaks at spaces
+				if len(line) <= 58: #add short lines directly
+					mod_line = ' '*21 + line
+				else: #split long lines
+					words = line.split()
+					part_line = ''
+					for word in words:
+						if part_line == '':
+							part_line += word
+						elif len(part_line + ' ' + word) <= 58:
+							part_line += ' ' + word
+						elif len(part_line + ' ' + word) > 58:
+							mod_line += ' '*21 + part_line + '\n'
+							part_line = word
+						else:
+							raise ValueError
+					mod_line += ' '*21 + part_line #catch the last part
+		else:
+			raise ValueError
+		
+		return mod_line
+	
+	
 	def make_gbstring(self):
 		'''
-		Prepare data stored in gbfile into one string. 
-		Used for saving and for displayig gbfile
+		Prepare data stored in data structure into one "genbank format" string. 
+		Used for saving to flatfile in .gb format and for displaying gbfile.
 		'''
-		string = ''
+		output = [] #collect the output line by line
 
+		## add the LOCUS line ##
+		#Positions  Contents
+		#---------  --------
+		#01-05      'LOCUS'
+		#06-12      spaces
+		#13-28      Locus name
+		#29-29      space
+		#30-40      Length of sequence, right-justified
+		#41-41      space
+		#42-43      bp
+		#44-44      space
+		#45-47      spaces, ss- (single-stranded), ds- (double-stranded), or
+		#           ms- (mixed-stranded)
+		#48-53      NA, DNA, RNA, tRNA (transfer RNA), rRNA (ribosomal RNA), 
+		#           mRNA (messenger RNA), uRNA (small nuclear RNA).
+		#           Left justified.
+		#54-55      space
+		#56-63      'linear' followed by two spaces, or 'circular'
+		#64-64      space
+		#65-67      The division code
+		#68-68      space
+		#69-79      Date, in the form dd-MMM-yyyy (e.g., 15-MAR-1991)
 		
-		### Needs fixing!!! The header stuff here is just for placeholding atm.
-		string += str(self.gbfile['header']['locus'])+'\n'
-		string += str(self.gbfile['header']['gi'])+'\n'
-		string += str(self.gbfile['header']['definition'])+'\n'
-		string += str(self.gbfile['header']['accession'])+'\n'
-		string += str(self.gbfile['header']['version'])+'\n'
-		string += str(self.gbfile['header']['dblink'])+'\n'
-		string += str(self.gbfile['header']['keywords'])+'\n'
-		string += str(self.gbfile['header']['source'])+'\n'
-		string += str(self.gbfile['header']['references'])+'\n'
-		string += str(self.gbfile['header']['comments'])+'\n'
-		###############
-
-		string += ('FEATURES             Location/Qualifiers\n')
-		for entry in self.gbfile['features']:
+		line = ''
+		line += 'LOCUS' + ' '*(12-len('LOCUS'))
+		
+		name = ''
+		if self.gbfile['locus']['name'] != None:
+			name = name = self.gbfile['locus']['name']
+		line += name + ' '*(16-len(name)) + ' '
+		
+		length = ''
+		if self.gbfile['locus']['length'] != None:
+			length = str(self.gbfile['locus']['length'])
+		line += ' '*(11-len(length)) + length + ' ' + 'bp' + ' '
+		
+		type = ''
+		if self.gbfile['locus']['type'] != None:
+			type = self.gbfile['locus']['type']
+			if type[2] == '-':
+				start = type[:2]
+				type = type[2:]
+			else:
+				start = '   '
+		line += start + type + ' '*(6-len(type)) + '  '
 			
-			locations = entry['location'][0]
-			if len(entry['location']) > 1:
-				for i in range(1, len(entry['location'])):
-					locations += ',' + entry['location'][i]
+		topology = ''
+		if self.gbfile['locus']['topology'] != None:
+			topology = self.gbfile['locus']['topology']
+		line += topology + ' '*(8-len(topology)) + ' '
+		
+		division = ''
+		if self.gbfile['locus']['division'] != None:
+			division = self.gbfile['locus']['division']
+		line += division + ' '
+		
+		date = ''
+		if self.gbfile['locus']['date'] != None:
+			date = self.gbfile['locus']['date']
+		line += date + ' '*(11-len(date))
+		
+		output.append(line)
+		
+			
+		## add definition line ##
+		if self.gbfile['definition'] != None:
+			line = 'DEFINITION' + ' '*(12-len('DEFINITION')) + self.gbfile['definition']
+			output.append(line)
+		
+		## add accession line ##
+		if self.gbfile['accession'] != None:
+			line = 'ACCESSION' + ' '*(12-len('ACCESSION')) + self.gbfile['accession']
+			output.append(line)
+		
+		## add version line ##
+		if self.gbfile['version'] != None:
+			line = 'VERSION' + ' '*(12-len('VERSION')) + self.gbfile['version']
+			if self.gbfile['gi'] != None:
+				line += '  GI:' + self.gbfile['gi']
+			output.append(line)
+		
+		## add dblink ##
+		if self.gbfile['dblink'] != None:
+			line = 'DBLINK' + ' '*(12-len('DBLINK')) + self.gbfile['dblink']
+			output.append(line)
+		
+		## add keywords line ##
+		if self.gbfile['keywords'] != None:
+			line = 'KEYWORDS' + ' '*(12-len('KEYWORDS')) + self.gbfile['keywords']
+			output.append(line)
+		
+		## add segment line ##
+		if self.gbfile['segment'] != None:
+			line = 'SEGMENT' + ' '*(12-len('SEGMENT')) + self.gbfile['segment']
+			output.append(line)
+		
+		## add source line ##		
+		if self.gbfile['source'] != None:
+			line = 'SOURCE' + ' '*(12-len('SOURCE')) + self.gbfile['source']
+			output.append(line)
+		
+		## add organism ##
+		if self.gbfile['organism'] != None:
+			line = '  ORGANISM' + ' '*(12-len('  ORGANISM')) + self.gbfile['organism'][0]
+			output.append(line)
+			line = ' '*12
+			for entry in self.gbfile['organism'][1:]:
+				if entry != self.gbfile['organism'][-1]:
+					line += entry + '; '
+				else:
+					line += entry + '.'
+			output.append(line)
+		
+		## add references ##
+		#The REFERENCE field consists of five parts: the keyword REFERENCE, and
+		#the subkeywords AUTHORS, TITLE (optional), JOURNAL, MEDLINE (optional),
+		#PUBMED (optional), and REMARK (optional).
+		if self.gbfile['references'] != None:
+			for reference in self.gbfile['references']:
+				line = 'REFERENCE' + ' '*(12-len('REFERENCE'))
+				if reference['reference'] != None:
+					line += reference['reference']
+				output.append(line)
+						
+				if reference['authors'] != None:
+					line = '  AUTHORS' + ' '*(12-len('  AUTHORS')) + reference['authors']
+				output.append(line)
+				
+				if reference['consrtm'] != None: #optional
+					line = '  CONSRTM' + ' '*(12-len('  CONSRTM')) + reference['consrtm']
+					output.append(line)
+				
+				if reference['title'] != None: #optional
+					line = '  TITLE' + ' '*(12-len('  TITLE')) + reference['title']
+					output.append(line)
+					
+				line = '  JOURNAL' + ' '*(12-len('  JOURNAL'))
+				if reference['journal'] != None:
+					line += reference['journal']
+					output.append(line)
+					
+				if reference['medline'] != None: #optional
+					line = '   MEDLINE' + ' '*(12-len('   MEDLINE')) + reference['medline']
+					output.append(line)
+					
+				if reference['pubmed'] != None: #optional
+					line = '   PUBMED' + ' '*(12-len('   PUBMED')) + reference['pubmed']
+					output.append(line)
+					
+				if reference['remark'] != None: #optional
+					line = '  REMARK' + ' '*(12-len('  REMARK')) + reference['remark']
+					output.append(line)
+		
+		## add comments ##
+		if self.gbfile['comments'] != None:
+			for comment in self.gbfile['comments']:
+				line = 'COMMENT' + ' '*(12-len('COMMENT')) + comment
+				output.append(line)
+		
+		## add dbsource ##
+		if self.gbfile['dbsource'] != None:
+			line = 'DBSOURCE' + ' '*(12-len('DBSOURCE')) + self.gbfile['dbsource']
+			output.append(line)
+		
+		## add primary ##
+		if self.gbfile['primary'] != None:
+			line = 'PRIMARY' + ' '*(12-len('PRIMARY')) + self.gbfile['primary']
+			output.append(line)	
+		
+		## add features ##
+		output.append('FEATURES             Location/Qualifiers')
+		if self.gbfile['features'] != None:
+			for entry in self.gbfile['features']:
+				
+				locations = entry['location'][0]
+				if len(entry['location']) > 1:
+					for i in range(1, len(entry['location'])):
+						locations += ',' + entry['location'][i]
+
+					
+				if entry['complement'] == True and entry['join'] == True and entry['order'] == False:
+					locations = 'complement(join(%s))' % locations
+				
+				elif entry['complement'] == True and entry['join'] == False and entry['order'] == True:
+					locations = 'complement(order(%s))' % locations
+				
+				elif entry['complement'] == True and entry['join'] == False and entry['order'] == False:
+					locations = 'complement(%s)' % locations
+				
+				
+				elif entry['complement'] == False and entry['join'] == True and entry['order'] == False:
+					locations = 'join(%s)' % locations
+				
+				elif entry['complement'] == False and entry['join'] == False and entry['order'] == True:
+					locations = 'order(%s)' % locations
+				
+				elif entry['complement'] == False and entry['join'] == False and entry['order'] == False:
+					locations = '%s' % locations			
+
+				line = self.check_line(locations, 'locations')
+				output.append(('     %s%s%s') % (entry['key'], ' '*(16-len(str(entry['key']))), line))
 
 				
-			if entry['complement'] == True and entry['join'] == True and entry['order'] == False:
-				locations = 'complement(join(%s))' % locations
-			
-			elif entry['complement'] == True and entry['join'] == False and entry['order'] == True:
-				locations = 'complement(order(%s))' % locations
-			
-			elif entry['complement'] == True and entry['join'] == False and entry['order'] == False:
-				locations = 'complement(%s)' % locations
-			
-			
-			elif entry['complement'] == False and entry['join'] == True and entry['order'] == False:
-				locations = 'join(%s)' % locations
-			
-			elif entry['complement'] == False and entry['join'] == False and entry['order'] == True:
-				locations = 'order(%s)' % locations
-			
-			elif entry['complement'] == False and entry['join'] == False and entry['order'] == False:
-				locations = '%s' % locations			
+				for i in range(len(entry['qualifiers'])):
+					line = self.check_line(entry['qualifiers'][i], 'feature')
+					output.append(line)
+		
+		## add origin line ##
+		origin = ''
+		if self.gbfile['origin'] != None:
+			origin = self.gbfile['origin']
+		line = 'ORIGIN' + ' '*(12-len('ORIGIN')) + origin
+		output.append(line)
+		
+		## add contig ##
+		if self.gbfile['contig'] != None:
+			line = 'CONTIG' + ' '*(12-len('CONTIG')) + self.gbfile['contig'] #need to fix for when it exceeds 80 characters
+			output.append(line)
+		
+		## add sequence ##		
+		if self.gbfile['dna'] != None:
+			for i in range(0, len(self.gbfile['dna']), 60):
+				output.append('%s%d %s %s %s %s %s %s' % (' '*(9-len(str(i))), i+1, self.gbfile['dna'][i:i+10], self.gbfile['dna'][i+10:i+20],self.gbfile['dna'][i+20:i+30],self.gbfile['dna'][i+30:i+40],self.gbfile['dna'][i+40:i+50],self.gbfile['dna'][i+50:i+60]))
+		
+		## add the last // ##
+		output.append('//')		
 
-			string += (('     %s%s%s\n') % (entry['key'], ' '*(16-len(str(entry['key']))), locations))
+		return '\n'.join(output)
 
-			for i in range(len(entry['qualifiers'])):
-				string += (('                     %s\n') % entry['qualifiers'][i])
-
-		string += ('ORIGIN\n')
-		for i in range(0, len(self.gbfile['dna']), 60):
-			string += ('%s%d %s %s %s %s %s %s\n' % (' '*(9-len(str(i))), i+1, self.gbfile['dna'][i:i+10], self.gbfile['dna'][i+10:i+20],self.gbfile['dna'][i+20:i+30],self.gbfile['dna'][i+30:i+40],self.gbfile['dna'][i+40:i+50],self.gbfile['dna'][i+50:i+60]))
-		string += ('//')		
-
-		return string
-
+		
 	def Save(self, filepath=None):
-		"""Function writes data stored in header, featruelist and dna to a .gb file"""
+		"""Function writes data stored in header, feature list and dna to a .gb file"""
 		if filepath==None:
 			filepath = self.GetFilepath()
 
