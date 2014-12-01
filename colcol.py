@@ -53,7 +53,7 @@ def rgb_to_hex(rgb):
 	'''
 	Convert RGB colors to hex.
 	Input should be a tuple of integers (R, G, B).
-	Output is a string.
+	Output is a string representing a hex numer. For instance '#FFFFFF'.
 	''' 
 	#make sure input is ok
 	assert is_rgb(rgb) is True, 'Error, %s is not a valid RGB color.' % str(rgb)
@@ -85,7 +85,7 @@ def is_hex(input):
 def hex_to_rgb(hex):
 	'''
 	Convert a hex color to RGB.
-	Input should be a string.
+	Input should be a string. For example '#FFFFFF'.
 	Output is a tuple of integers (R, G, B).
 	'''
 	#make sure input is ok
@@ -149,7 +149,7 @@ def mix_colors(col1, col2):
 def NextRGB(color = (0,0,0)):
 	'''
 	Function for generating unique RGB colors. 
-	The input is a tuple of RGB colors (for example (124,1,34) and the method returns the "next" color.
+	The input is a tuple of an RGB color, for example (124,1,34), and the method returns the "next" color.
 	When R reaches 255 one is added to G and R is reset.
 	When R and G both reach 255 one is added to B and R and G are reset.
 	This should generate over 1.6 million colors (255*255*255)

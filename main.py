@@ -296,7 +296,7 @@ class MyFrame(wx.Frame):
 		result = genbank.gb.Save()
 		if result is True:
 			pass
-		elif result is False:
+		elif result is False: #if there is no pre-established file path, use "save as"
 			self.save_as_file(None)
 
 	def save_as_file(self, evt):

@@ -44,7 +44,7 @@ import string
 
 import copy
 
-
+import colcol
 import genbank
 from base_class import DNApyBaseClass
 import featureedit_GUI
@@ -166,7 +166,7 @@ class FeatureList(DNApyBaseClass):
 				#coloring
 				self.get_feature_color(entry)
 				hexcolor = self.current_highlight_color #get hex color
-				r, g, b = self.hex_to_rgb(hexcolor) #convert to RGB
+				r, g, b = colcol.hex_to_rgb(hexcolor) #convert to RGB
 				color = wx.Colour(r, g, b) #make color object
 				self.feature_list.SetItemBackgroundColour(item, color)	
 				item += 1
@@ -195,7 +195,7 @@ class FeatureList(DNApyBaseClass):
 		start = genbank.gb.get_location(locations[0])[0]
 		finish = genbank.gb.get_location(locations[-1])[1]
 		genbank.dna_selection = copy.copy((start-1, finish))
-		self.GetTopLevelParent().dnaview.stc.SetSelection(start-1, finish) #update DNA selection
+		self.GetParent().GetParent().dnaview.stc.SetSelection(start-1, finish) #update DNA selection
 
 ######
 ######
@@ -259,9 +259,9 @@ class FeatureList(DNApyBaseClass):
 	def OnEditFeature(self, event):
 		'''Edit a feature that is already present'''
 		dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
-		dlg.ShowModal()
 		dlg.Center()
-		self.self.GetParent().GetParent().update_globalUI()
+		dlg.ShowModal()
+		self.GetParent().GetParent().update_ownUI()
 
 	def focus_feature_selection(self):
 		index = copy.copy(genbank.feature_selection)
@@ -308,14 +308,6 @@ class FeatureList(DNApyBaseClass):
 		'''This method is needed to get the dna selection for creating new features.'''
 		return genbank.dna_selection
 
-
-	def hex_to_rgb(self, value):
-		value = value.lstrip('#')
-		lv = len(value)
-		return tuple(int(value[i:i+lv/3], 16) for i in range(0, lv, lv/3))
-
-	def rgb_to_hex(self, rgb):
-		return '#%02x%02x%02x' % rgb
 
 
 

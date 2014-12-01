@@ -33,7 +33,6 @@
 #TODO
 #fix long plasmid names
 #add 'dna ruler'
-#add buttons for controlling labels
 #add rightclick menus
 
 import wx
@@ -102,7 +101,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 	def set_dna_selection(self, selection):
 		'''Receives requests for DNA selection and then sends it.'''
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
-		selection = (int(selection[0]), int(selection[1]))
+		selection = (int(selection[0]-1), int(selection[1]))
 		genbank.dna_selection = selection
 
 

@@ -191,8 +191,8 @@ class gbobject(object):
 				''', re.VERBOSE)
 
 		self._re_version = re.compile(r'''
-					VERSION \s+ ([-_.a-zA-Z0-9]+) \s+ 		#match version
-					GI:([0-9]+)*							#match gi, zero or one time
+					VERSION \s+ ([-_.a-zA-Z0-9]+)* \s+ 		#match version, zero or one time
+					(?:GI:([0-9]+))*							#match gi, zero or one time
 					''', re.VERBOSE)
 
 		#for undo/redo
@@ -280,9 +280,9 @@ class gbobject(object):
 		elif 'VERSION' in line[0:12]:
 			#A compound identifier consisting of the primary accession number and a numeric version number associated with the current version of the sequence data in the record. This is optionally followed by an integer identifier (a "GI") assigned to the sequence by NCBI. Mandatory keyword/exactly one record.
 			m = re.match(self._re_version, line)
+			
 			self.gbfile['version'] = m.group(1)
 			self.gbfile['gi'] = m.group(2)
-			assert self.gbfile['version'] != None, 'Error parsing VERSION line: %s' % line
 		
 		elif 'NID' in line[0:3]:
 			#An alternative method of presenting the NCBI GI identifier (described above).
@@ -735,7 +735,10 @@ class gbobject(object):
 		return int(start), int(finish)
 
 	def GetFirstLastLocation(self, feature):
-		'''Returns ultimate first and ultimate last position of a feature, regardless of how many pieces it is broken into'''
+		'''
+		Returns ultimate first and ultimate last position of a feature, 
+		regardless of how many pieces it is broken into.
+		'''
 		index = self.get_feature_index(feature)
 		if index is False:
 			print('Error, no index found')
@@ -743,7 +746,7 @@ class gbobject(object):
 			locations = self.gbfile['features'][index]['location']
 			start = locations[0].split('..')[0]
 			finish = locations[-1].split('..')[1]
-			print(start, finish)
+#			print(start, finish)
 			return int(start), int(finish)
 
 	def remove_location(self, index, number):
@@ -1025,7 +1028,6 @@ class gbobject(object):
 		else:
 			del self.gbfile['features'][position]
 			
-		print(self.gbfile['features'])
 		if len(self.gbfile['features']) == 0:
 			self.gbfile['features'] = None
 		self.add_file_version()
