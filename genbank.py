@@ -1013,6 +1013,7 @@ class gbobject(object):
 			self.gbfile['features'].append(feature) #change append to sth that works for dicts
 		self.add_file_version()
 		
+		
 	def remove_feature(self, feature):
 		"""
 		Function removes the feature that is passed to it from the genbank file.
@@ -1029,6 +1030,7 @@ class gbobject(object):
 			self.gbfile['features'] = None
 		self.add_file_version()
 
+		
 	def move_feature(self, feature, upordown):
 		'''Moves a feature one step up or down the list (up defined as closer to the beginning)'''
 		index = self.get_feature_index(feature)
@@ -1039,6 +1041,7 @@ class gbobject(object):
 			self.gbfile['features'][index+1], self.gbfile['features'][index] = self.gbfile['features'][index], self.gbfile['features'][index+1]
 		self.add_file_version()
 
+		
 	def add_qualifier(self, feature, newqualifier):
 		'''Adds qualifier tag to existing feature'''
 		index = self.get_feature_index(feature)
@@ -1047,6 +1050,7 @@ class gbobject(object):
 		else:
 			self.gbfile['features'][index]['qualifiers'].append(newqualifier)  #change append to sth that works for dicts
 		self.add_file_version()		
+		
 		
 	def remove_qualifier(self, feature, number):
 		'''Removes a qualifier tag from an existing feature'''
@@ -1057,6 +1061,7 @@ class gbobject(object):
 			del self.gbfile['features'][index]['qualifiers'][number]
 		self.add_file_version()
 
+		
 	def move_qualifier(self, feature, number, upordown):
 		'''Moves a qualifier one step up or down the list (up defined as closer to the beginning)'''
 		index = self.get_feature_index(feature)
@@ -1070,6 +1075,7 @@ class gbobject(object):
 				self.gbfile['features'][index]['qualifiers'][number+1], self.gbfile['features'][index]['qualifiers'][number] = self.gbfile['features'][index]['qualifiers'][number], self.gbfile['features'][index]['qualifiers'][number+1]
 		self.add_file_version()
 
+		
 	def ApEandVNTI_clutter(self):
 		'''Find out whether there is clutter from Vector NTI or ApE in the genbank file'''
 		if self.gbfile['features'] == None:

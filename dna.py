@@ -33,8 +33,7 @@
 import fasta
 import string
 import random
-from Bio import AlignIO #biopython package
-from Bio.Align.Applications import MuscleCommandline #biopython package
+
 
 ############# Basic DNA functions #####################
 
@@ -622,112 +621,6 @@ def AllIdent(align_file, single_gaps=True):
 ####################### End identity functions #################################
 
 
-####################### Alignment functions ####################################
-
-def alignString(string):
-
-
-	records_handle = StringIO(string) #turn string into a handle
-	tempdata = records_handle.getvalue()
-	
-	#for separate fasta entries
-	muscle_cline = MuscleCommandline()
-	stdout, stderr = muscle_cline(stdin=tempdata)
-	stdout = fasta.parseString(stdout)
-
-#	#for aligned fasta entries
-#	muscle_cline = MuscleCommandline(clw=True)
-#	stdout, stderr = muscle_cline(stdin=tempdata)
-#	print(stdout)
-	
-#	#the clustalw-type output can be further formated
-#	align = AlignIO.read(StringIO(stdout), "clustal")
-#	print(align)
-
-	return stdout
-	
-def alignList(tlist):
-	'''
-	Muscle alignment, takes a list of tuples as input and aligns all at once.
-	Example input: [('id1', 'CACC'), ('id2', 'CATC'), ('id3', 'TACC')]
-	The alignment data is returned as id, dna tuples in a generator.
-	'''
-	#prepare input as a 'virtual' FASTA file
-		
-	string = ''
-	for entry in tlist:
-		if entry[0][0] != '>':
-			string += '>%s\n%s\n' % entry
-		elif entry[0][0] == '>':
-			string += '%s\n%s\n' % entry
-		else:
-			print('Muscle name error')	
-	return alignString(string)
-
-	
-def alignFile(filepath):
-	'''
-	Function for aligning all the records in a file containing fasta sequences.
-	The input is the absolute filepath including the filename (as a string).
-	The alignment data is returned as id, dna tuples in a generator.
-	'''
-	string = open(filepath)
-	return alignString(string)
-
-
-
-
-########################################################
-
-def NCBIfetch(id, db = 'nucleotide', rettype = 'gb', retmode = 'text'):
-	'''
-	Retrieve records from NCBI.
-	Format of the string is http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=<database>&id=<uid_list>&rettype=<retrieval_type>&retmode=<retrieval_mode>
-
-	For any series of more than 100 requests, do this at weekends or outside USA peak times. This is up to you to obey.
-	Use the http://eutils.ncbi.nlm.nih.gov address, not the standard NCBI Web address. Biopython uses this web address.
-	Make no more than three requests every seconds (relaxed from at most one request every three seconds in early 2009).
-	Use the optional email parameter so the NCBI can contact you if there is a problem. You can either explicitly set this as a parameter with each call to Entrez (e.g. include email="A.N.Other@example.com" in the argument list).
-	'''
-	import urllib2
-	url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&id=%s&rettype=%s&retmode=%s&tool=DNApy&email=martin.engqvist@chalmers.se' % (db, id, rettype, retmode)
-	file = urllib2.urlopen(url).read() #this returns the result as a string. I'll need to parse it to get the info out.
-	return file
-
-def NCBIfetchGB(id):
-	'''
-	Same as NCBIfetch, but instead of returning a text string it returns a genbank object.
-	'''
-	file = NCBIfetch(id).split('\n') #get file and split it
-	file = [x+'\n' for x in file] #add back the linebreaks
-	x = genbank.gbobject()
-	x.readgb(file)
-	return x
-
-	
-def NCBIblast(blast_type, database, seq): #function for blasting 
-	'''Blasts a sequence against the NCBI database'''
-	#"tblastn", "nt", seq
-	#add asserts...
-	from Bio.Blast import NCBIWWW
-	from Bio.Blast import NCBIXML
-	from copy import deepcopy
-
-	result_handle = NCBIWWW.qblast(blast_type, database, seq) #perform the BLAST
-	blast_record = NCBIXML.read(result_handle)
-	string = ''
-
-	for alignment in blast_record.alignments: #print all seq IDs and sequences in the fasta file
-		for hsp in alignment.hsps:
-			subject = hsp.sbjct[0:]
-			nodash = subject.replace("-", "")
-			string += ">"+alignment.title+"\n"+nodash+"\n"
-	return string
-	result_handle.close()
-#	save_file = open(protname+"_my_blast_nt.xml", "w")
-#	save_file.write(result_handle.read())
-#	save_file.close()
-	
 
 				
 				
