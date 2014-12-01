@@ -579,49 +579,6 @@ def PairIdent(Seq1, Seq2, single_gaps=True):
 	return percent
 
 
-
-
-def SingleIdent(align_file, single_gaps=True):
-	'''
-	Get identities for all proteins compared to one reference sequence in aligned FASTA file.
-	Input is the absolute path to a file.
-	Assumes that align_file is a fasta-formatted alignment.
-	Assumes that reference sequence is the first one.
-	Returns a tuple of the results.
-	'''
-
-	results = ()
-	input_handle = open(align_file, "rU")
-	alignment = AlignIO.read(input_handle, "fasta")
-	input_handle.close()
-	for record2 in range(1, len(alignment)):
-		percent = PairIdent(alignment[0].seq, alignment[record2].seq, single_gaps)
-		results += (alignment[0].id + ' vs ' + alignment[record2].id+' '+str(percent),)
-	return results
-
-	
-def AllIdent(align_file, single_gaps=True):
-	'''
-	Get identities for all combinations of proteins in aligned FASTA file.
-	Input is the absolute path to a file.
-	Assumes that align_file is a fasta-formatted alignment.
-	Returns a tuple of the results.
-	'''
-
-	results = ()
-	input_handle = open(align_file, "rU")
-	alignment = AlignIO.read(input_handle, "fasta")
-	input_handle.close()
-	for record in range(len(alignment)):
-		for record2 in range(record+1, len(alignment)):
-			percent = PairIdent(alignment[record].seq, alignment[record2].seq, single_gaps)
-			results += (alignment[record].id + ' vs ' + alignment[record2].id+' '+str(percent),)
-	return results
-
-####################### End identity functions #################################
-
-
-
 				
 				
 class CodonTable:
