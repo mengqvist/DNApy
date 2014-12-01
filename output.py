@@ -58,7 +58,7 @@ class create(DNApyBaseClass):
 
 
 
-####### Modify methods from base calss to fit current needs #########
+####### Modify methods from base class to fit current needs #########
 
 	def update_globalUI(self):
 		'''Method should be modified as to update other panels in response to changes in own panel.
@@ -73,8 +73,8 @@ class create(DNApyBaseClass):
 	def update_ownUI(self):
 		'''Updates all fields depending on which feature is chosen'''
 		pass
+		
 #####################################################################
-
 
 	def OnKeyPress(self, evt):
 		print('keypress')

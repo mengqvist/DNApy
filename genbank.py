@@ -34,11 +34,11 @@
 #fix the line shortening in the header section
 #fix file saving
 #add single base support to location parsing
-#add methods to modify header
+#add methods to modify header sections
 
-#match features with qualifiers (mandatory and optional)
-#add a function that checks that everything is ok
-#make changes to how genbank handles /qualifier=xyz, the '=' is not always there...
+#match features with mandatory and optional qualifiers
+#add a function that checks that everything is ok. I.e. that it conforms to the genbank format.
+#make changes to how qualifiers are parsed. For example /qualifier=xyz, the '=' is not always there...
 
 import dna
 import copy
@@ -750,7 +750,7 @@ class gbobject(object):
 		'''Removes locaiton in self.gbfile['features'][index]['location'][number]'''
 		del self.gbfile['features'][index]['location'][number]
 		if len(self.gbfile['features'][index]['location']) == 0: # if no locations are left for that feature, delete feature
-			del self.gbfile['features'][index] 
+			self.remove_feature(self.gbfile['features'][index])
 
 	def IsValidLocation(self, locationlist):
 		'''Takes a location list and tests whether it is valid'''
@@ -1007,17 +1007,26 @@ class gbobject(object):
 			print('Order error')
 			return False
 		
-		self.gbfile['features'].append(feature) #change append to sth that works for dicts
+		if self.gbfile['features'] == None:
+			self.gbfile['features'] = [feature]
+		else:
+			self.gbfile['features'].append(feature) #change append to sth that works for dicts
 		self.add_file_version()
 		
 	def remove_feature(self, feature):
-		"""Function removes the feature that is passed to it from the genbank file"""
+		"""
+		Function removes the feature that is passed to it from the genbank file.
+		"""
 		position = self.get_feature_index(feature)
 		
 		if position is False:
 			print('feature identify error')
 		else:
 			del self.gbfile['features'][position]
+			
+		print(self.gbfile['features'])
+		if len(self.gbfile['features']) == 0:
+			self.gbfile['features'] = None
 		self.add_file_version()
 
 	def move_feature(self, feature, upordown):
@@ -1676,20 +1685,24 @@ indeces >-1 are feature indeces'''
 		
 	def changegbsequence(self, changestart, changeend, changetype, change):
 		"""Function changes the dna sequence of a .gb file and modifies the feature positions accordingly."""
-		if changetype == 'r': #replacement. This method does NOT modify feture positions. Use with caution.
+		if changetype == 'r': #replacement. This method does NOT modify feature positions. Use with caution.
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changeend:]
 					
 		elif changetype == 'i': #insertion
-			olddnalength = len(self.gbfile['dna']) #for changing header
-			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
-			self.gbfile['locus']['length'] = len(self.gbfile['dna']) #changing header
-			for i in range(len(self.gbfile['features'])): #change features already present
-				for n in range(len(self.gbfile['features'][i]['location'])):
-					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
-					if start<changestart<=finish: #if change is within the feature
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'f')
-					elif changestart<=start: #if change is before feature
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'b')
+			if self.gbfile['dna'] == '' or self.gbfile['dna'] == None: #empty dna
+				self.gbfile['dna'] = change
+			else:
+				olddnalength = len(self.gbfile['dna']) #for changing header
+				self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + change + self.gbfile['dna'][changestart-1:]
+				self.gbfile['locus']['length'] = len(self.gbfile['dna']) #changing header
+				if self.gbfile['features'] != None: #change features already present
+					for i in range(len(self.gbfile['features'])): 
+						for n in range(len(self.gbfile['features'][i]['location'])):
+							start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
+							if start<changestart<=finish: #if change is within the feature
+								self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'f')
+							elif changestart<=start: #if change is before feature
+								self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], len(change), 'b')
 		
 		
 		elif changetype == 'd': #deletion
@@ -1697,46 +1710,63 @@ indeces >-1 are feature indeces'''
 			olddnalength = len(self.gbfile['dna']) #for changing header
 			self.gbfile['dna'] = self.gbfile['dna'][:changestart-1] + self.gbfile['dna'][changeend:]
 			self.gbfile['locus']['length'] = len(self.gbfile['dna']) #changing header
-			for i in range(len(self.gbfile['features'])): #modifies self.allgbfeatures to match dna change
-				for n in range(len(self.gbfile['features'][i]['location'])):
-					start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
-					if i >= len(self.gbfile['features']):
-						break
-					if (start<=changestart and changeend<finish) or (start<changestart and changeend<=finish): #if change is within the feature, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f') #finish
-						#print('within feature')
-					elif changestart<start and start<=changeend<finish: #if change encompasses start, change start and finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend+1-start, 's')	#start					
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
-						#print('encompass start')
-					elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart)-1, 'f')	 #finish
-						#print('encompass finish')
-					elif changestart<=start and finish<=changeend: #if change encompasses whole feature, add to deletion list
-						deletionlist.append(copy.deepcopy((i, n)))
-						#print('encompass all')
-					elif changestart<start and changeend<start: #if change is before feature, change start and finish
-						self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')	 #both			
-						#print('before start')
-			#execute deletions (if any)
-			while len(deletionlist)>0:
-				index, number = deletionlist[-1]
-				self.remove_location(index, number)
-				del deletionlist[-1]
+			if self.gbfile['features'] != None: #change features already present
+				for i in range(len(self.gbfile['features'])):
+					for n in range(len(self.gbfile['features'][i]['location'])):
+						start, finish = self.get_location(self.gbfile['features'][i]['location'][n])
+						if i >= len(self.gbfile['features']):
+							break
+						if (start<=changestart and changeend<finish) or (start<changestart and changeend<=finish): #if change is within the feature, change finish
+							self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'f') #finish
+							#print('within feature')
+						elif changestart<start and start<=changeend<finish: #if change encompasses start, change start and finish
+							self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], changeend+1-start, 's')	#start					
+							self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b') #both
+							#print('encompass start')
+						elif start<changestart<=finish and finish<changeend: #if change encompasses finish, change finish
+							self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -(finish-changestart)-1, 'f')	 #finish
+							#print('encompass finish')
+						elif changestart<=start and finish<=changeend: #if change encompasses whole feature, add to deletion list
+							deletionlist.append(copy.deepcopy((i, n)))
+							#print('encompass all')
+						elif changestart<start and changeend<start: #if change is before feature, change start and finish
+							self.gbfile['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -len(change), 'b')	 #both			
+							#print('before start')
+				#execute deletions (if any)
+				while len(deletionlist)>0:
+					index, number = deletionlist[-1]
+					self.remove_location(index, number)
+					del deletionlist[-1]
 		else:
 			print('%s is not a valid argument for changetype' % changetype)
 
 			
 	def check_line(self, line, line_type):
 		'''
-		Evaluates a line (for the genbank file) and makes sure it is maximum 80 characters.
+		Evaluates a line (for the genbank file) and makes sure it is maximum 79 characters.
 		If the line is longer it finds a good place to break it and returns a modified line.
 		Line type is either 'header', 'locations' or 'feature' and indicates from which part of the genbank file the line came.
 		'''
 		mod_line = ''
 		if line_type == 'header':
-			pass #fix
+			if len(line) <= 79: #add short lines directly
+				mod_line = line
+			else: #split long lines
+				words = line[12:].split()
+				part_line = ''
+				for word in words:
+					if part_line == '':
+						part_line += line[:12] + word
+					elif len(part_line + ' ' + word) <= 67:
+						part_line += ' ' + word
+					elif len(part_line + ' ' + word) > 67:
+						mod_line += part_line + '\n'
+						part_line = ' '*12 + word
+					else:
+						raise ValueError
+				mod_line += part_line #catch the last part
 
+				
 		elif line_type == 'locations':
 			if len(line) <= 58: #add short lines directly
 					mod_line = line
@@ -1830,6 +1860,7 @@ indeces >-1 are feature indeces'''
 		line += ' '*(11-len(length)) + length + ' ' + 'bp' + ' '
 		
 		type = ''
+		start = ''
 		if self.gbfile['locus']['type'] != None:
 			type = self.gbfile['locus']['type']
 			if type[2] == '-':
@@ -1860,8 +1891,9 @@ indeces >-1 are feature indeces'''
 		## add definition line ##
 		if self.gbfile['definition'] != None:
 			line = 'DEFINITION' + ' '*(12-len('DEFINITION')) + self.gbfile['definition']
+			line = self.check_line(line, 'header')
 			output.append(line)
-		
+			
 		## add accession line ##
 		if self.gbfile['accession'] != None:
 			line = 'ACCESSION' + ' '*(12-len('ACCESSION')) + self.gbfile['accession']
@@ -1877,16 +1909,19 @@ indeces >-1 are feature indeces'''
 		## add dblink ##
 		if self.gbfile['dblink'] != None:
 			line = 'DBLINK' + ' '*(12-len('DBLINK')) + self.gbfile['dblink']
+			line = self.check_line(line, 'header')
 			output.append(line)
 		
 		## add keywords line ##
 		if self.gbfile['keywords'] != None:
 			line = 'KEYWORDS' + ' '*(12-len('KEYWORDS')) + self.gbfile['keywords']
+			line = self.check_line(line, 'header')
 			output.append(line)
 		
 		## add segment line ##
 		if self.gbfile['segment'] != None:
 			line = 'SEGMENT' + ' '*(12-len('SEGMENT')) + self.gbfile['segment']
+			line = self.check_line(line, 'header')
 			output.append(line)
 		
 		## add source line ##		
@@ -1904,6 +1939,7 @@ indeces >-1 are feature indeces'''
 					line += entry + '; '
 				else:
 					line += entry + '.'
+			line = self.check_line(line, 'header')
 			output.append(line)
 		
 		## add references ##
@@ -1915,51 +1951,62 @@ indeces >-1 are feature indeces'''
 				line = 'REFERENCE' + ' '*(12-len('REFERENCE'))
 				if reference['reference'] != None:
 					line += reference['reference']
+				line = self.check_line(line, 'header')
 				output.append(line)
 						
 				if reference['authors'] != None:
 					line = '  AUTHORS' + ' '*(12-len('  AUTHORS')) + reference['authors']
+				line = self.check_line(line, 'header')
 				output.append(line)
 				
 				if reference['consrtm'] != None: #optional
 					line = '  CONSRTM' + ' '*(12-len('  CONSRTM')) + reference['consrtm']
+					line = self.check_line(line, 'header')
 					output.append(line)
 				
 				if reference['title'] != None: #optional
 					line = '  TITLE' + ' '*(12-len('  TITLE')) + reference['title']
+					line = self.check_line(line, 'header')
 					output.append(line)
 					
 				line = '  JOURNAL' + ' '*(12-len('  JOURNAL'))
 				if reference['journal'] != None:
 					line += reference['journal']
+					line = self.check_line(line, 'header')
 					output.append(line)
 					
 				if reference['medline'] != None: #optional
 					line = '   MEDLINE' + ' '*(12-len('   MEDLINE')) + reference['medline']
+					line = self.check_line(line, 'header')
 					output.append(line)
 					
 				if reference['pubmed'] != None: #optional
 					line = '   PUBMED' + ' '*(12-len('   PUBMED')) + reference['pubmed']
+					line = self.check_line(line, 'header')
 					output.append(line)
 					
 				if reference['remark'] != None: #optional
 					line = '  REMARK' + ' '*(12-len('  REMARK')) + reference['remark']
+					line = self.check_line(line, 'header')
 					output.append(line)
 		
 		## add comments ##
 		if self.gbfile['comments'] != None:
 			for comment in self.gbfile['comments']:
 				line = 'COMMENT' + ' '*(12-len('COMMENT')) + comment
+				line = self.check_line(line, 'header')
 				output.append(line)
 		
 		## add dbsource ##
 		if self.gbfile['dbsource'] != None:
 			line = 'DBSOURCE' + ' '*(12-len('DBSOURCE')) + self.gbfile['dbsource']
+			line = self.check_line(line, 'header')
 			output.append(line)
 		
 		## add primary ##
 		if self.gbfile['primary'] != None:
 			line = 'PRIMARY' + ' '*(12-len('PRIMARY')) + self.gbfile['primary']
+			line = self.check_line(line, 'header')
 			output.append(line)	
 		
 		## add features ##
@@ -2025,14 +2072,18 @@ indeces >-1 are feature indeces'''
 		
 	def Save(self, filepath=None):
 		"""Function writes data stored in header, feature list and dna to a .gb file"""
-		if filepath==None:
+		if filepath==None: #if no path is provided, attemt to get one stored in the gb data format
 			filepath = self.GetFilepath()
-
-		#need to add conditions in case header and features are empty
-		string = self.make_gbstring()
-		a = open(filepath, 'w')
-		a.write(string)
-		a.close()
+		
+		if filepath == None: #if it's still none
+			return False
+		else:
+			#need to add conditions in case header and features are empty
+			string = self.make_gbstring()
+			a = open(filepath, 'w')
+			a.write(string)
+			a.close()
+			return True
 
 
 

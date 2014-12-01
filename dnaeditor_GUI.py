@@ -119,64 +119,67 @@ class DNALexer(BaseLexer):
 		stc = event.GetEventObject()
 
 		featurelist = genbank.gb.get_all_feature_positions()
-		for entry in featurelist:
+		if featurelist == None: #no features
+			pass
+		else:
+			for entry in featurelist:
 
-			featuretype, complement, start, finish, name, index = entry
-			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
-			featuretype = featuretype.replace("5'", "a5") #for 5' features
-			featuretype = featuretype.replace("3'", "a3") #for 5' features
-			color = eval(featuretype)['color'] #get the color of feature (as string)
-			assert type(color) == str
+				featuretype, complement, start, finish, name, index = entry
+				featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
+				featuretype = featuretype.replace("5'", "a5") #for 5' features
+				featuretype = featuretype.replace("3'", "a3") #for 5' features
+				color = eval(featuretype)['color'] #get the color of feature (as string)
+				assert type(color) == str
 
-			if color == 'red' and complement == False: 
-				style = DNALexer.STC_STYLE_RED_FW
-			elif color == 'red' and complement == True: 
-				style = DNALexer.STC_STYLE_RED_RV
-			elif color == 'orange' and complement == False:
-				style = DNALexer.STC_STYLE_ORANGE_FW
-			elif color == 'orange' and complement == True:
-				style = DNALexer.STC_STYLE_ORANGE_RV
-			elif color == 'yellow' and complement == False:
-				style = DNALexer.STC_STYLE_YELLOW_FW
-			elif color == 'yellow' and complement == True:
-				style = DNALexer.STC_STYLE_YELLOW_RV
-			elif color == 'green' and complement == False:
-				style = DNALexer.STC_STYLE_GREEN_FW
-			elif color == 'green' and complement == True:
-				style = DNALexer.STC_STYLE_GREEN_RV
-			elif color == 'cyan' and complement == False:
-				style = DNALexer.STC_STYLE_CYAN_FW
-			elif color == 'cyan' and complement == True:
-				style = DNALexer.STC_STYLE_CYAN_RV
-			elif color == 'blue' and complement == False:
-				style = DNALexer.STC_STYLE_BLUE_FW
-			elif color == 'blue' and complement == True:
-				style = DNALexer.STC_STYLE_BLUE_RV
-			elif color == 'purple' and complement == False:
-				style = DNALexer.STC_STYLE_PURPLE_FW
-			elif color == 'purple' and complement == True:
-				style = DNALexer.STC_STYLE_PURPLE_RV
-			elif color == 'magenta' and complement == False:
-				style = DNALexer.STC_STYLE_MAGENTA_FW
-			elif color == 'magenta' and complement == True:
-				style = DNALexer.STC_STYLE_MAGENTA_RV
-			elif color == 'burgundy' and complement == False:
-				style = DNALexer.STC_STYLE_BURGUNDY_FW
-			elif color == 'burgundy' and complement == True:
-				style = DNALexer.STC_STYLE_BURGUNDY_RV
-			elif color == 'grey' and complement == False:
-				style = DNALexer.STC_STYLE_GREY_FW
-			elif color == 'grey' and complement == True:
-				style = DNALexer.STC_STYLE_GREY_RV
-			else: 
-				style = DNALexer.STC_STYLE_DEFAULT
-			start -= 1
-			stc.StartStyling(start, 0x1f)
-			length = finish-start
-			if length == 0:
-				stc.StartStyling(start-1, 0x1f)
-				length = 1
-			stc.SetStyling(length, style)
+				if color == 'red' and complement == False: 
+					style = DNALexer.STC_STYLE_RED_FW
+				elif color == 'red' and complement == True: 
+					style = DNALexer.STC_STYLE_RED_RV
+				elif color == 'orange' and complement == False:
+					style = DNALexer.STC_STYLE_ORANGE_FW
+				elif color == 'orange' and complement == True:
+					style = DNALexer.STC_STYLE_ORANGE_RV
+				elif color == 'yellow' and complement == False:
+					style = DNALexer.STC_STYLE_YELLOW_FW
+				elif color == 'yellow' and complement == True:
+					style = DNALexer.STC_STYLE_YELLOW_RV
+				elif color == 'green' and complement == False:
+					style = DNALexer.STC_STYLE_GREEN_FW
+				elif color == 'green' and complement == True:
+					style = DNALexer.STC_STYLE_GREEN_RV
+				elif color == 'cyan' and complement == False:
+					style = DNALexer.STC_STYLE_CYAN_FW
+				elif color == 'cyan' and complement == True:
+					style = DNALexer.STC_STYLE_CYAN_RV
+				elif color == 'blue' and complement == False:
+					style = DNALexer.STC_STYLE_BLUE_FW
+				elif color == 'blue' and complement == True:
+					style = DNALexer.STC_STYLE_BLUE_RV
+				elif color == 'purple' and complement == False:
+					style = DNALexer.STC_STYLE_PURPLE_FW
+				elif color == 'purple' and complement == True:
+					style = DNALexer.STC_STYLE_PURPLE_RV
+				elif color == 'magenta' and complement == False:
+					style = DNALexer.STC_STYLE_MAGENTA_FW
+				elif color == 'magenta' and complement == True:
+					style = DNALexer.STC_STYLE_MAGENTA_RV
+				elif color == 'burgundy' and complement == False:
+					style = DNALexer.STC_STYLE_BURGUNDY_FW
+				elif color == 'burgundy' and complement == True:
+					style = DNALexer.STC_STYLE_BURGUNDY_RV
+				elif color == 'grey' and complement == False:
+					style = DNALexer.STC_STYLE_GREY_FW
+				elif color == 'grey' and complement == True:
+					style = DNALexer.STC_STYLE_GREY_RV
+				else: 
+					style = DNALexer.STC_STYLE_DEFAULT
+				start -= 1
+				stc.StartStyling(start, 0x1f)
+				length = finish-start
+				if length == 0:
+					stc.StartStyling(start-1, 0x1f)
+					length = 1
+				stc.SetStyling(length, style)
 
 		
 		if genbank.search_hits != None:

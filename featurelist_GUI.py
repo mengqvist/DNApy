@@ -260,7 +260,8 @@ class FeatureList(DNApyBaseClass):
 		'''Edit a feature that is already present'''
 		dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
 		dlg.ShowModal()
-		dlg.Center()		
+		dlg.Center()
+		self.self.GetParent().GetParent().update_globalUI()
 
 	def focus_feature_selection(self):
 		index = copy.copy(genbank.feature_selection)

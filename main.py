@@ -31,6 +31,8 @@
 from copy import deepcopy
 import string
 from os import access,listdir
+import inspect
+
 import sys, os
 import re
 import wx
@@ -248,6 +250,7 @@ class MyFrame(wx.Frame):
 	def open_file(self, evt):
 		'''Function for opening file'''
 		self.dir_to_open = default_filepath
+		#self.dir_to_open = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) #current script directory
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
 		dlg.ShowModal()
 		genbank.gb.fileName = dlg.GetFilename()
@@ -290,15 +293,18 @@ class MyFrame(wx.Frame):
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
-		genbank.gb.Save()
-
+		result = genbank.gb.Save()
+		if result is True:
+			pass
+		elif result is False:
+			self.save_as_file(None)
 
 	def save_as_file(self, evt):
 		'''Function for saving file as'''
 		filepath = genbank.gb.GetFilepath()
 		if filepath is not None:
 			for i in range(len(filepath)): #get directory for file
-				if filepath[i] == '/':
+				if filepath[i] in '//\\':
 					dire = filepath[0:i+1]
 		else:
 			dire = default_filepath
