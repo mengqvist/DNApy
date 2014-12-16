@@ -53,6 +53,7 @@ import featureedit_GUI
 import featurelist_GUI
 import plasmid_GUI
 import genbank_GUI
+import enzyme_GUI
 #import mixed_base_codons_GUI
 
 
@@ -61,7 +62,6 @@ import genbank_GUI
 
 
 #TODO
-#un-break things
 #make rightklick menus
 
 
@@ -646,6 +646,28 @@ Put Table here
 		self.update_globalUI()
 
 ######################################
+
+
+	def SelectEnzymes(self, evt):
+		'''
+		Make a popup with the enzyme selection window.
+		'''
+		#launch the dialog
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector')
+		dlg.Center()
+		dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
+		
+		#get info from the dialog
+		selection = dlg.GetSelection()
+		print(selection)
+		
+		#kill it
+		dlg.Destroy()
+
+		
+
+		
+##########################################
 	def listen_to_updateUI(self, msg):
 		self.update_ownUI()
 
@@ -759,6 +781,14 @@ Put Table here
    		self.frame_1_toolbar.AddCheckTool(512, wx.Bitmap(files['default_dir']+"/icon/mutate.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Mutate', 'Mutate')
    		wx.EVT_TOOL(self, 512, self.toggle_searchandmutate_toolbar)
 
+		
+		#enzyme selector
+   		self.frame_1_toolbar.AddLabelTool(515, "Restriction Enzymes", wx.Bitmap(files['default_dir']+"/icon/E.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Restriction Enzymes', 'Restriction Enzymes')
+   		wx.EVT_TOOL(self, 515, self.SelectEnzymes)		
+		
+		
+		
+		
 		
 		self.frame_1_toolbar.Realize()
 		

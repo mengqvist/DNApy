@@ -210,8 +210,9 @@ class FeatureList(DNApyBaseClass):
 		genbank.feature_selection = copy.copy(len(genbank.gb.get_all_features())-1)
 
 		dlg = featureedit_GUI.FeatureEditDialog(None, 'New Feature') # creation of a dialog with a title
-		dlg.ShowModal()
 		dlg.Center()
+		dlg.ShowModal()
+		
 		
 
 	def OnDelete(self, event):

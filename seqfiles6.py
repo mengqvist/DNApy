@@ -641,7 +641,7 @@ class SeqAnalysis:
 		return {'seq1':seq1aln, 'seq2':seq2aln, 'score':score} 
 
 	def generate_output(self, path):
-		with open('%s/outputs/%s_output.txt' % (path, self.getName()), 'w') as f:
+		with open('%s/%s_output.txt' % (path, self.getName()), 'w') as f:
 			f.write('>%s\n' % self.getName())
 			f.write(self.getContig())
 
