@@ -112,6 +112,7 @@ class MyFrame(wx.Frame):
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
 		genbank.gb.fileName = ''
+		genbank.restriction_sites = [] # variable to store who cuty where and also selected enzymes only
 
 		self.generate_dnaedit_tab("")
 		self.generate_plasmidview_tab("")
@@ -122,7 +123,7 @@ class MyFrame(wx.Frame):
 		self.Centre()
 		
 		# save the selected restriktion enzymes
-		self.RestriktioEnzymeSelection = []
+		self.RestriktioEnzymeSelection = [] 
 	
 		
 
@@ -660,15 +661,17 @@ Put Table here
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
-		# get the selected enzymes and save them
+		# get the selected enzymes and restriction sites and save 
+
 		if res == wx.ID_OK:
 			self.RestriktioEnzymeSelection = dlg.GetSelection()
 		
-		print "Siii"
-		for i in self.RestriktioEnzymeSelection:
-			dlg.drawRestriction(i)
-
-		print(self.RestriktioEnzymeSelection)
+		# get the info who cuts where:
+		# the gui can then use this variable
+		genbank.restriction_sites = dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		print genbank.restriction_sites
+		# debug only
+		# print(self.RestriktioEnzymeSelection)
 		
 
 		#kill it

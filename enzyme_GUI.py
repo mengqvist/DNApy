@@ -232,27 +232,41 @@ class EnzymeSelector(DNApyBaseClass):
 		return self.lb2.GetItems() 
 
 
-	def findRestrictionSites(self, enzyme):
+	def findRestrictionSites(self, selectedEnzymes):
+
+		restrictionsitesList = [] # variable to return the restriction sites
+					  # syntax:
+					  # [[name, start, stop, cut 1, cut 2, sequence],[...]]
 		dnaseq      = genbank.gb.gbfile["dna"]
 		# if circular extend dna to simulate a circle
 		# missing feature!
 		#print dnaseq
 
-		# load the regexp of the enzyme
-		r           = self.enzymes[enzyme]["regexp"]
-		# get the cut position
-		offset1     = self.enzymes[enzyme]["cut5_1"]
-		offset2     = self.enzymes[enzyme]["cut5_2"] 	# offset 2 not yet implimented
+		# loop all the selected enzymes
+		for enzyme in selectedEnzymes:
+			newEnz = []
+			# load the regexp of the enzyme
+			r           = self.enzymes[enzyme]["regexp"]
+			# get the cut position
+			offset1     = self.enzymes[enzyme]["cut5_1"]
+			offset2     = self.enzymes[enzyme]["cut5_2"] 	# offset 2 not yet implimented
 
-		# handle the cuts
-		iterator    = r.finditer(dnaseq)
-		for match in iterator:
-			# add offset to match position
-			cutposition = match.start() + offset1
-			print enzyme
-			print cutposition
-			self.handleCut(enzyme,cutposition)
-		return True
+			# handle the cuts
+			iterator    = r.finditer(dnaseq)
+			for match in iterator:
+				# add offset to match position
+				newEnz.append(str(enzyme))
+				newEnz.append(match.start())
+				newEnz.append(match.end())
+				newEnz.append(match.start() + offset1)
+				if offset2 == 0: # if it just cuts once, we'll say None to the second cut
+					newEnz.append(None)
+				else:
+					newEnz.append(match.start() + offset2)
+				newEnz.append(dnaseq[match.start():match.end()])
+				# save the new Enzyme 
+				restrictionsitesList.append(newEnz)
+		return restrictionsitesList
 	
 	def handleCut(self, enzyme, n):
 		return True
@@ -311,7 +325,7 @@ class EnzymeSelectorDialog(wx.Dialog):
 
 	# this function is also called by the main.py
 	# it returns the cutting position of the enzyme
-	def drawRestriction(self, i):
-		self.content.findRestrictionSites(i)
+	def drawRestriction(self, enzymes):
+		return self.content.findRestrictionSites(enzymes)
 		
 
