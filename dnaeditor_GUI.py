@@ -183,15 +183,26 @@ class DNALexer(BaseLexer):
 
 		#color restriction sites
 		for enzyme in genbank.restriction_sites:
-			start = enzyme[1]
+			start  = enzyme[1]
 			finish = enzyme[2]
 			style = DNALexer.STC_STYLE_ENZYMES
-			stc.StartStyling(start-1, 0x1f)
-			length = finish-(start-1)
-			if length == 0:
+			if start < finish:  # enzyme cuts in the strain
 				stc.StartStyling(start-1, 0x1f)
-				length = 1
-			stc.SetStyling(length, style)
+				length = finish-(start-1)
+				if length == 0:
+					stc.StartStyling(start-1, 0x1f)
+					length = 1
+				stc.SetStyling(length, style)
+			else: # enzyme is exactly throughout the 0
+				# the beginning:
+				stc.StartStyling(0, 0x1f)
+				length = finish
+				stc.SetStyling(length, style)
+
+				# and the end:
+				stc.StartStyling(start-1, 0x1f)
+				length = len(genbank.gb.gbfile['dna']) - finish
+				stc.SetStyling(length, style)
 
 
 		#color search hits
