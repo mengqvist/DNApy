@@ -256,7 +256,7 @@ class EnzymeSelector(DNApyBaseClass):
 			for match in iterator:
 				# add offset to match position
 				newEnz.append(str(enzyme))
-				newEnz.append(match.start())
+				newEnz.append(match.start()+1) #the DNA counting is inclusive. For instance a selection of 1812, 1818 is actually 7 nucleotides long. We don't want that.
 				newEnz.append(match.end())
 				newEnz.append(match.start() + offset1)
 				if offset2 == 0: # if it just cuts once, we'll say None to the second cut
