@@ -181,7 +181,20 @@ class DNALexer(BaseLexer):
 					length = 1
 				stc.SetStyling(length, style)
 
-		
+		#color restriction sites
+		for enzyme in genbank.restriction_sites:
+			start = enzyme[1]
+			finish = enzyme[2]
+			style = DNALexer.STC_STYLE_ENZYMES
+			stc.StartStyling(start-1, 0x1f)
+			length = finish-(start-1)
+			if length == 0:
+				stc.StartStyling(start-1, 0x1f)
+				length = 1
+			stc.SetStyling(length, style)
+
+
+		#color search hits
 		if genbank.search_hits != None:
 			for hit in genbank.search_hits:
 				##add logic here for hits that are broken up
@@ -194,8 +207,7 @@ class DNALexer(BaseLexer):
 					length = 1
 				stc.SetStyling(length, style)
 
-#		for enzyme in genbank.highlighted_enzymes:
-#			style = DNALexer.STC_STYLE_ENZYMES
+
 
 #		stc.IndicatorSetStyle(2, wx.stc.STC_INDIC_PLAIN)
 #		stc.IndicatorSetForeground(0, wx.RED)
