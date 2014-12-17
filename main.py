@@ -659,13 +659,18 @@ Put Table here
 		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
+		
+		# get the selected enzymes and save them
 		if res == wx.ID_OK:
 			self.RestriktioEnzymeSelection = dlg.GetSelection()
 		
-		#get info from the dialog
-		#self.RestriktioEnzymeSelection = dlg.GetSelection()
+		print "Siii"
+		for i in self.RestriktioEnzymeSelection:
+			dlg.drawRestriction(i)
+
 		print(self.RestriktioEnzymeSelection)
 		
+
 		#kill it
 		dlg.Destroy()
 

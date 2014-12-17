@@ -1,9 +1,39 @@
+#!/usr/bin/python
 
+
+#DNApy is a DNA editor written purely in python. 
+#The program is intended to be an intuitive, fully featured, 
+#extendable, editor for molecular and synthetic biology.  
+#Enjoy!
+#
+#copyright (C) 2014  Martin Engqvist 
+#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#LICENSE:
+#
+#DNApy is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 3 of the License, or
+#(at your option) any later version.
+# 
+#DNApy is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU Library General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program; if not, write to the Free Software Foundation,
+#Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#Get source code at: https://github.com/0b0bby0/DNApy
+#
 
 from base_class import DNApyBaseClass
 import wx
 import re
 import string
+import genbank
 
 class EnzymeSelector(DNApyBaseClass):
 	"""
@@ -38,9 +68,10 @@ class EnzymeSelector(DNApyBaseClass):
 
 		
 		# button to cancel or finish editing:
-		self.cancel   = wx.Button(self,wx.ID_CANCEL	)
+		self.cancel   = wx.Button(self,wx.ID_CANCEL)
 		self.ok       = wx.Button(self,wx.ID_OK)
 		
+
 
 
 
@@ -84,12 +115,13 @@ class EnzymeSelector(DNApyBaseClass):
 
 	# adds one item on buttonclick
 	def addOne(self, event):
-		#print self.lb.GetSelection()
-		item = self.lb.GetStringSelection()
-		allItems=self.lb2.GetItems()
+		item     = self.lb.GetStringSelection()
+		allItems = self.lb2.GetItems()
+		# just add the item, if its not already in there
 		if item not in allItems:
 			self.lb2.Append(item)
 			self.resort2list()
+
 
 	# remove selected item from list
 	def removeOne(self, event):
@@ -199,7 +231,32 @@ class EnzymeSelector(DNApyBaseClass):
 	def getSelection(self):
 		return self.lb2.GetItems() 
 
+
+	def findRestrictionSites(self, enzyme):
+		dnaseq      = genbank.gb.gbfile["dna"]
+		# if circular extend dna to simulate a circle
+		# missing feature!
+		#print dnaseq
+
+		# load the regexp of the enzyme
+		r           = self.enzymes[enzyme]["regexp"]
+		# get the cut position
+		offset1     = self.enzymes[enzyme]["cut5_1"]
+		offset2     = self.enzymes[enzyme]["cut5_2"] 	# offset 2 not yet implimented
+
+		# handle the cuts
+		iterator    = r.finditer(dnaseq)
+		for match in iterator:
+			# add offset to match position
+			cutposition = match.start() + offset1
+			print enzyme
+			print cutposition
+			self.handleCut(enzyme,cutposition)
+		return True
 	
+	def handleCut(self, enzyme, n):
+		return True
+
 	def update_globalUI(self):
 		'''
 		Method should be modified as to update other panels in response to changes in own panel.
@@ -244,12 +301,17 @@ class EnzymeSelectorDialog(wx.Dialog):
 
 		
 
-		
+	# this function is called to retrive the selected enzymes
 	def GetSelection(self):
 		'''
 		Get the enzyme selection.
 		Used to actually extract info from the dialog.
 		'''
 		return self.content.getSelection()
+
+	# this function is also called by the main.py
+	# it returns the cutting position of the enzyme
+	def drawRestriction(self, i):
+		self.content.findRestrictionSites(i)
 		
 
