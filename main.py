@@ -120,6 +120,9 @@ class MyFrame(wx.Frame):
 		
 		self.do_layout()
 		self.Centre()
+		
+		# save the selected restriktion enzymes
+		self.RestriktioEnzymeSelection = []
 	
 		
 
@@ -653,14 +656,21 @@ Put Table here
 		Make a popup with the enzyme selection window.
 		'''
 		#launch the dialog
-		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector')
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection)
 		dlg.Center()
-		dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
+		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
-		#get info from the dialog
-		selection = dlg.GetSelection()
-		print(selection)
+		# get the selected enzymes and save them
+		if res == wx.ID_OK:
+			self.RestriktioEnzymeSelection = dlg.GetSelection()
 		
+		print "Siii"
+		for i in self.RestriktioEnzymeSelection:
+			dlg.drawRestriction(i)
+
+		print(self.RestriktioEnzymeSelection)
+		
+
 		#kill it
 		dlg.Destroy()
 
