@@ -265,13 +265,13 @@ class EnzymeSelector(DNApyBaseClass):
 			iterator    = r.finditer(wholeDNA2Inspect)      # find in dnaseq and circularDnaHelper
 			for match in iterator:
 				newEnz = []
-				print "new match"
 				modulo = len(dnaseq)		# all positions are modulo len(dnaseq)
 				# add offset to match position
 				newEnz.append(str(enzyme))
 				newEnz.append((match.start()+1) % modulo)
 				newEnz.append(match.end() % modulo)
 				newEnz.append((match.start() + offset1) % modulo)
+
 				if offset2 == 0: # if it just cuts once, we'll say None to the second cut
 					newEnz.append(None)
 				else:

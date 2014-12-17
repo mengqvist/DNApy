@@ -112,7 +112,7 @@ class MyFrame(wx.Frame):
 		genbank.feature_selection = False #variable for storing current feature selection
 		genbank.search_hits = []
 		genbank.gb.fileName = ''
-		genbank.restriction_sites = [] # variable to store who cuty where and also selected enzymes only
+		genbank.restriction_sites = [] # variable for storing info about selected restriction enzymes
 
 		self.generate_dnaedit_tab("")
 		self.generate_plasmidview_tab("")
@@ -669,14 +669,17 @@ Put Table here
 		# get the info who cuts where:
 		# the gui can then use this variable
 		genbank.restriction_sites = dlg.drawRestriction(self.RestriktioEnzymeSelection)
-		print genbank.restriction_sites
+		
 		# debug only
+		#print genbank.restriction_sites
 		# print(self.RestriktioEnzymeSelection)
 		
 
 		#kill it
 		dlg.Destroy()
 
+		#update the GUI to display the position of chosen restriction enzymes
+		self.update_globalUI()
 		
 
 		
