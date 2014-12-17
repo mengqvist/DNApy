@@ -231,6 +231,8 @@ class gbobject(object):
 
 		line_list = [] #for collecting the dna
 		for line in infile:
+			line = line.replace('\r', '') #important for removing linux \r newline character
+
 			if re.match('^[ \t\n]+$', line): #get rid of blank lines
 				pass
 
