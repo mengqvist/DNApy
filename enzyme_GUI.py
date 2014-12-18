@@ -48,34 +48,59 @@ class EnzymeSelector(DNApyBaseClass):
 		
 						
 		# enzyme selector GUI
+		# we have three columns, each is in a flexGrid
+		
+		# first column:
+		firstColumn      = wx.BoxSizer(wx.VERTICAL)
 		self.labellb     = wx.StaticText(self, -1, 'enzymes available')
 		font             = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.BOLD)
 		self.labellb.SetFont(font)
 		self.lb          = wx.ListBox(self,
 		                              size=(180, 300))
-		self.oneadd      = wx.Button(self,-1, "add")
-		#self.multiadd = wx.Button(self, -1,"add all",pos=(10, 345))
-		self.remove      = wx.Button(self,-1, "remove")
-		self.removeAllB   = wx.Button(self,-1, "remove all")
+		self.lb.Bind(wx.EVT_LISTBOX, self.onSelect)
 		
-
-
-		# restriction enzymes of first list added to second:
+		# textfield for automatet text input
+		self.txt = wx.TextCtrl(self, -1, size=(180,-1),style=wx.TE_PROCESS_ENTER)
+		self.txt.Bind(wx.EVT_TEXT_ENTER, self.selectEnter)
+		self.txt.Bind(wx.EVT_TEXT, self.keystroke)
+		self.txt.SetFocus()
+		
+		# add items to sizer "firstColumn"
+		firstColumn.Add(item=self.labellb)
+		firstColumn.Add(item=self.lb)
+		firstColumn.Add(item=self.txt)
+		
+		
+		# second column 
+		secondColumn     = wx.BoxSizer(wx.VERTICAL)
+		self.oneadd      = wx.Button(self,-1, "add")		# add enzyme
 		self.oneadd.Bind(wx.EVT_BUTTON, self.addOne)
 		self.lb.Bind(wx.EVT_LISTBOX_DCLICK, self.addOne)
+		
+		self.remove      = wx.Button(self,-1, "remove")		# remove enzyme
+		self.remove.Bind(wx.EVT_BUTTON, self.removeOne)
 
-		# second list
+		
+		self.removeAllB   = wx.Button(self,-1, "remove all")	# remove all
+		self.removeAllB.Bind(wx.EVT_BUTTON,self.removeAll)
+		
+		# add buttons to sizer "secondColumn"
+		secondColumn.Add(item=self.oneadd)
+		secondColumn.Add(item=self.remove)
+		secondColumn.Add(item=self.removeAllB)
+		
+
+		# thirt column
+		thirdColumn      = wx.BoxSizer(wx.VERTICAL)
 		self.labellb2     = wx.StaticText(self, -1, 'selected enzymes')
 		self.labellb2.SetFont(font)
 		self.lb2 = wx.ListBox(self,
 		        	 size=(180, 300))
-
-		# remove enzymes from second by doubleclick
-		self.remove.Bind(wx.EVT_BUTTON, self.removeOne)
 		self.lb2.Bind(wx.EVT_LISTBOX_DCLICK, self.removeOne)
-		self.removeAllB.Bind(wx.EVT_BUTTON,self.removeAll)
-	 
-		self.lb.Bind(wx.EVT_LISTBOX, self.onSelect)
+
+
+		thirdColumn.Add(item=self.labellb2)
+		thirdColumn.Add(item=self.lb2)
 
 		
 		# button to cancel or finish editing:
@@ -83,55 +108,27 @@ class EnzymeSelector(DNApyBaseClass):
 		self.ok       = wx.Button(self,wx.ID_OK)
 		
 
-		# textfield for automatet text input
-		self.txt = wx.TextCtrl(self, -1, size=(180,-1),style=wx.TE_PROCESS_ENTER)
-		self.txt.Bind(wx.EVT_TEXT_ENTER, self.selectEnter)
-		self.txt.Bind(wx.EVT_TEXT, self.keystroke)
-		self.txt.SetFocus()
-
-
-
+		# every column now has to be added to the grid
 		#Use sizers add content in the correct arrangement
-		sizer1      = wx.BoxSizer(wx.VERTICAL)
 		sizerClose  = wx.BoxSizer(wx.HORIZONTAL)
-		
-		# add and remove
-		sizer1.Add(item=self.oneadd)
-		sizer1.Add(item=self.remove)
-		sizer1.Add(item=self.removeAllB)
-		
-		# sizer for lb and textfield
-		sizerleft      = wx.BoxSizer(wx.VERTICAL)
-		sizerleft.Add(item=self.labellb)
-		sizerleft.Add(item=self.lb)
-		sizerleft.Add(item=self.txt)
-		
-		# sizer for lb2 and label
-		sizerright      = wx.BoxSizer(wx.VERTICAL)
-		sizerright.Add(item=self.labellb2)
-		sizerright.Add(item=self.lb2)
-
-
 		sizerClose.Add(item=self.ok)		
 		sizerClose.Add(item=self.cancel)
 		
-
+		# grid settings
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
 		gridsizer = wx.FlexGridSizer(rows=2, cols=3, vgap=3, hgap=10)
-		gridsizer.AddGrowableCol(0)
-		gridsizer.AddGrowableCol(1)
-		gridsizer.AddGrowableCol(2)
+		gridsizer.AddGrowableCol(0)					# make cols growable
+		gridsizer.AddGrowableCol(1)					# make cols growable
+		gridsizer.AddGrowableCol(2)					# make cols growable
 		hbox.Add(gridsizer, 1, wx.EXPAND|wx.ALL, 15)
-		#gridsizer.SetFlexibleDirection( wx.BOTH )
-		
 		
 		# add the elements to the grid for flexible display
-		gridsizer.Add(item=sizerleft)      # row 1, col 1
-		gridsizer.Add(sizer1, 0, wx.ALIGN_CENTER_VERTICAL)       # row 1, col 2
-		gridsizer.Add(sizerright)     # row 1, col 3
-		gridsizer.AddSpacer(1) 			 # row 2, col 1
-		gridsizer.AddSpacer(1) 			 # row 2, col 2
-		gridsizer.Add(item=sizerClose)   # row 2, col 3
+		gridsizer.Add(firstColumn)      				# row 1, col 1
+		gridsizer.Add(secondColumn, 0, wx.ALIGN_CENTER_VERTICAL) 	# row 1, col 2
+		gridsizer.Add(thirdColumn)     					# row 1, col 3
+		gridsizer.AddSpacer(1) 			 			# row 2, col 1
+		gridsizer.AddSpacer(1) 						# row 2, col 2
+		gridsizer.Add(item=sizerClose)   				# row 2, col 3
 		
 		#set sizer
 		self.SetSizer(hbox)
