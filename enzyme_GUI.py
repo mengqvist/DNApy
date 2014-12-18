@@ -48,11 +48,16 @@ class EnzymeSelector(DNApyBaseClass):
 		
 						
 		# enzyme selector GUI
-		self.lb       = wx.ListBox(self,
-		                size=(180, 300))
-		self.oneadd   = wx.Button(self,-1, "add")
+		self.labellb     = wx.StaticText(self, -1, 'enzymes available')
+		font             = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+		self.labellb.SetFont(font)
+		self.lb          = wx.ListBox(self,
+		                              size=(180, 300))
+		self.oneadd      = wx.Button(self,-1, "add")
 		#self.multiadd = wx.Button(self, -1,"add all",pos=(10, 345))
-		self.remove   = wx.Button(self,-1, "remove")
+		self.remove      = wx.Button(self,-1, "remove")
+		self.removeAllB   = wx.Button(self,-1, "remove all")
+		
 
 
 		# restriction enzymes of first list added to second:
@@ -60,12 +65,15 @@ class EnzymeSelector(DNApyBaseClass):
 		self.lb.Bind(wx.EVT_LISTBOX_DCLICK, self.addOne)
 
 		# second list
+		self.labellb2     = wx.StaticText(self, -1, 'selected enzymes')
+		self.labellb2.SetFont(font)
 		self.lb2 = wx.ListBox(self,
 		        	 size=(180, 300))
 
 		# remove enzymes from second by doubleclick
 		self.remove.Bind(wx.EVT_BUTTON, self.removeOne)
 		self.lb2.Bind(wx.EVT_LISTBOX_DCLICK, self.removeOne)
+		self.removeAllB.Bind(wx.EVT_BUTTON,self.removeAll)
 	 
 		self.lb.Bind(wx.EVT_LISTBOX, self.onSelect)
 
@@ -75,31 +83,52 @@ class EnzymeSelector(DNApyBaseClass):
 		self.ok       = wx.Button(self,wx.ID_OK)
 		
 
+		# textfield for automatet text input
+		self.txt = wx.TextCtrl(self, -1, size=(180,-1),style=wx.TE_PROCESS_ENTER)
+		self.txt.Bind(wx.EVT_TEXT_ENTER, self.selectEnter)
+		self.txt.Bind(wx.EVT_TEXT, self.keystroke)
+		self.txt.SetFocus()
 
 
 
 		#Use sizers add content in the correct arrangement
 		sizer1      = wx.BoxSizer(wx.VERTICAL)
-		sizerClose  = wx.BoxSizer(wx.VERTICAL)
+		sizerClose  = wx.BoxSizer(wx.HORIZONTAL)
 		
 		# add and remove
 		sizer1.Add(item=self.oneadd)
 		sizer1.Add(item=self.remove)
+		sizer1.Add(item=self.removeAllB)
+		
+		# sizer for lb and textfield
+		sizerleft      = wx.BoxSizer(wx.VERTICAL)
+		sizerleft.Add(item=self.labellb)
+		sizerleft.Add(item=self.lb)
+		sizerleft.Add(item=self.txt)
+		
+		# sizer for lb2 and label
+		sizerright      = wx.BoxSizer(wx.VERTICAL)
+		sizerright.Add(item=self.labellb2)
+		sizerright.Add(item=self.lb2)
+
 
 		sizerClose.Add(item=self.ok)		
 		sizerClose.Add(item=self.cancel)
 		
 
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
-		gridsizer = wx.FlexGridSizer(rows=2, cols=3, vgap=3)
-		hbox.Add(gridsizer, proportion=1, flag=wx.ALL|wx.EXPAND, border=15)
+		gridsizer = wx.FlexGridSizer(rows=2, cols=3, vgap=3, hgap=10)
+		gridsizer.AddGrowableCol(0)
+		gridsizer.AddGrowableCol(1)
+		gridsizer.AddGrowableCol(2)
+		hbox.Add(gridsizer, 1, wx.EXPAND|wx.ALL, 15)
 		#gridsizer.SetFlexibleDirection( wx.BOTH )
 		
 		
 		# add the elements to the grid for flexible display
-		gridsizer.Add(item=self.lb)      # row 1, col 1
-		gridsizer.Add(item=sizer1)       # row 1, col 2
-		gridsizer.Add(item=self.lb2)     # row 1, col 3
+		gridsizer.Add(item=sizerleft)      # row 1, col 1
+		gridsizer.Add(sizer1, 0, wx.ALIGN_CENTER_VERTICAL)       # row 1, col 2
+		gridsizer.Add(sizerright)     # row 1, col 3
 		gridsizer.AddSpacer(1) 			 # row 2, col 1
 		gridsizer.AddSpacer(1) 			 # row 2, col 2
 		gridsizer.Add(item=sizerClose)   # row 2, col 3
@@ -110,6 +139,22 @@ class EnzymeSelector(DNApyBaseClass):
 		# load the enzymes from emboss
 		self.loadEnzymes()
 	
+	def keystroke(self, e):
+		c = "^%s" % self.txt.GetValue()
+		#n = chr(e.GetKeyCode())
+		#self.txt.SetValue(("%s%s" %(c,n)))
+		# serach for hits using regexp:
+		regex = re.compile(c, re.IGNORECASE)
+		allItems = self.lb.GetItems()
+		for x in allItems:
+			if re.search(regex, x):
+				break
+		if allItems.index(x) + 1 < len(allItems):
+			self.lb.SetSelection(allItems.index(x))
+	
+	def selectEnter(self, e):
+		self.addOne(e)
+		self.txt.SetValue('')
 	
 	# on select nothing happens
 	def onSelect(self, event):
@@ -124,7 +169,13 @@ class EnzymeSelector(DNApyBaseClass):
 		if item not in allItems:
 			self.lb2.Append(item)
 			self.resort2list()
-
+	
+	# removes all items from 2
+	def removeAll(self, event):
+		self.lb2.Clear()
+		return True
+		
+		
 
 	# remove selected item from list
 	def removeOne(self, event):
@@ -313,7 +364,7 @@ class EnzymeSelector(DNApyBaseClass):
 class EnzymeSelectorDialog(wx.Dialog):
 	'''A class that puts the Enzyme Selector capabilities in a dialog.'''
 	def __init__(self, parent, title, oldSelection):
-		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(600, 400)) 		
+		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(600, 420)) 		
 
 		#add the panel (containing all the buttons/lists/interactive elements
 		self.content = EnzymeSelector(self, id=wx.ID_ANY)	#get the feature edit panel
