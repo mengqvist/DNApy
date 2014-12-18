@@ -201,7 +201,7 @@ class DNALexer(BaseLexer):
 
 				# and the end:
 				stc.StartStyling(start-1, 0x1f)
-				length = len(genbank.gb.gbfile['dna']) - finish
+				length = len(genbank.gb.gbfile['dna']) - start + 1
 				stc.SetStyling(length, style)
 
 
