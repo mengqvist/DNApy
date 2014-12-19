@@ -49,11 +49,34 @@ class EnzymeSelector(DNApyBaseClass):
 						
 		# enzyme selector GUI
 		# we have three columns, each is in a flexGrid
+		font             = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+		# veryfirst column - came after nameing the first first
+		veryfirstColumn      = wx.BoxSizer(wx.VERTICAL)
+		self.txt1     = wx.StaticText(self, -1, 'choose enzymeset to display')
+		self.txt1.SetFont(font)
+		
+		self.radio1      = wx.RadioButton(self,id=-1,label="all")
+		self.radio2      = wx.RadioButton(self,id=-1,label="singlecutters")
+		self.radio3      = wx.RadioButton(self,id=-1,label="doublecutters")
+		self.radio4      = wx.RadioButton(self,id=-1,label="commercial selection")
+		
+		self.radio1.Bind(wx.EVT_RADIOBUTTON,lambda event: self.showOnly(event, "all"))
+		self.radio2.Bind(wx.EVT_RADIOBUTTON,lambda event:self.showOnly(event, 1))
+		self.radio3.Bind(wx.EVT_RADIOBUTTON,lambda event: self.showOnly(event, 2))	
+		self.radio4.Bind(wx.EVT_RADIOBUTTON,lambda event: self.showOnly(event, "commercial"))	
+	
+		veryfirstColumn.Add(item=self.txt1)
+		veryfirstColumn.Add(item=self.radio1)
+		veryfirstColumn.Add(item=self.radio4)
+		veryfirstColumn.Add(item=self.radio2)
+		veryfirstColumn.Add(item=self.radio3)
+
+		
+
 		
 		# first column:
 		firstColumn      = wx.BoxSizer(wx.VERTICAL)
-		self.labellb     = wx.StaticText(self, -1, 'enzymes available')
-		font             = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+		self.labellb     = wx.StaticText(self, -1, '')
 		self.labellb.SetFont(font)
 		self.lb          = wx.ListBox(self,
 		                              size=(180, 300))
@@ -116,17 +139,20 @@ class EnzymeSelector(DNApyBaseClass):
 		
 		# grid settings
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
-		gridsizer = wx.FlexGridSizer(rows=2, cols=3, vgap=3, hgap=10)
+		gridsizer = wx.FlexGridSizer(rows=2, cols=4, vgap=3, hgap=10)
 		gridsizer.AddGrowableCol(0)					# make cols growable
 		gridsizer.AddGrowableCol(1)					# make cols growable
 		gridsizer.AddGrowableCol(2)					# make cols growable
+		gridsizer.AddGrowableCol(3)					# make cols growable
 		hbox.Add(gridsizer, 1, wx.EXPAND|wx.ALL, 15)
 		
 		# add the elements to the grid for flexible display
+		gridsizer.Add(veryfirstColumn)      				# row 1, col 1
 		gridsizer.Add(firstColumn)      				# row 1, col 1
 		gridsizer.Add(secondColumn, 0, wx.ALIGN_CENTER_VERTICAL) 	# row 1, col 2
 		gridsizer.Add(thirdColumn)     					# row 1, col 3
 		gridsizer.AddSpacer(1) 			 			# row 2, col 1
+		gridsizer.AddSpacer(1) 						# row 2, col 2
 		gridsizer.AddSpacer(1) 						# row 2, col 2
 		gridsizer.Add(item=sizerClose)   				# row 2, col 3
 		
@@ -135,6 +161,79 @@ class EnzymeSelector(DNApyBaseClass):
 
 		# load the enzymes from emboss
 		self.loadEnzymes()
+	
+	def onButton(self, event):
+		"""
+		This method is fired when its corresponding button is pressed
+		"""
+		btn = event.GetEventObject()
+		btn.Select()
+		label = btn.GetLabel()
+		message = "You just selected %s" % label
+		dlg = wx.MessageDialog(None, message, 'Message', 
+		                       wx.OK|wx.ICON_EXCLAMATION)
+		dlg.ShowModal()
+		dlg.Destroy()
+		
+	def showOnly(self, e, n):
+	
+
+		enzymes2show = []
+		
+		if n == "all":
+			# show all
+			enzymes2show = self.enzymes["names"]
+		elif n == 1:
+			# show singlecutters
+			enzymes2show = self.findCutters(1)
+		elif n == 2:
+			# show doublecutters
+			enzymes2show = self.findCutters(2)
+		elif n == "commercial":
+			# show commercial
+			with open ("resources/commercialEnzymes.lst", "r") as myfile:
+				data=myfile.read().splitlines()
+				#enzymes2show = data
+				# check if we know this enzyme
+				for e in data:
+					if e in self.enzymes["names"]:
+						enzymes2show.append(e)
+		else:
+			print "hjat"
+	
+		# clear list first
+		self.lb.Clear()	
+	
+		# add the enzymes:
+		for e in enzymes2show:
+			self.AddRestrictionEnzyme(e, 1)		
+		
+
+
+		#for i in data:
+		#	print i
+
+		return True
+	
+	####################################################
+	# function to find singlecutters or similar
+	def findCutters(self, n):
+		cutter = []
+		dnaseq      = genbank.gb.gbfile["dna"]
+		if dnaseq:
+			# this function finds all cutters (single, double..) and saves them
+			for enzyme in self.enzymes["names"]:
+				r         = self.enzymes[enzyme]["regexp"]
+				occurence = r.findall(dnaseq)
+
+				# compare length of hits to the given number
+				if len(occurence) == n:
+					cutter.append(enzyme)
+		else:
+			print "no file loaded"
+
+		return cutter
+	
 	
 	def keystroke(self, e):
 		c = "^%s" % self.txt.GetValue()
@@ -326,13 +425,12 @@ class EnzymeSelector(DNApyBaseClass):
 					newEnz.append((match.start() + offset2) % modulo)
 
 				newEnz.append(wholeDNA2Inspect[match.start():match.end()])
-				print newEnz
+				
 				# save the new Enzyme if its new
 				if newEnz not in restrictionsitesList:
 					restrictionsitesList.append(newEnz)
 			
 			
-
 		return restrictionsitesList
 	
 
@@ -361,7 +459,7 @@ class EnzymeSelector(DNApyBaseClass):
 class EnzymeSelectorDialog(wx.Dialog):
 	'''A class that puts the Enzyme Selector capabilities in a dialog.'''
 	def __init__(self, parent, title, oldSelection):
-		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(600, 420)) 		
+		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(750, 430)) 		
 
 		#add the panel (containing all the buttons/lists/interactive elements
 		self.content = EnzymeSelector(self, id=wx.ID_ANY)	#get the feature edit panel
