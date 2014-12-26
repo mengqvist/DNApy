@@ -670,8 +670,8 @@ class EnzymeDigestion(DNApyBaseClass):
 			positionLarge = 30
 			
 			# get the largest and smalles dna fragment
-			largestDNA  = len(fragement[0])
-			smallestDNA = len(fragement[0])
+			largestDNA  = len(lines[0][0])
+			smallestDNA = len(lines[0][0])
 			for fragement in lines:
 				l = len(fragement[0])
 				if l < smallestDNA:
