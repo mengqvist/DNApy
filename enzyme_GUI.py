@@ -576,7 +576,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		
 		
 		# box for drawing the gel
-		self.drawingSpace = wx.Panel(self, -1,size=(280,height-50))
+		self.drawingSpace = wx.ScrolledWindow(self, -1,size=(280,height-50))
 		drawingbox        = wx.BoxSizer(wx.VERTICAL)
 		
 		self.txtAg        = wx.StaticText(self, -1, 'agarose gel preview')
@@ -639,6 +639,14 @@ class EnzymeDigestion(DNApyBaseClass):
 		self.highlight      = None				# not even shortly based on movement 
 		self.drawingSpace.Bind(wx.EVT_MOTION, self.OnMotion)
 		self.drawingSpace.Bind(wx.EVT_LEFT_UP, self.OnClick)
+		
+		# catch scrolling
+		self.drawingSpace.Bind(wx.EVT_MOUSEWHEEL, self.OnScroll)
+		self.drawingSpace.Bind(wx.EVT_SCROLLWIN, self.OnDragScroll)
+		self.zoom = 0
+		self.drawingSpace.init_pos_x = 0
+		self.drawingSpace.init_pos_y = 0
+		self.scroll_y                = 0
 
 	
 
@@ -648,8 +656,23 @@ class EnzymeDigestion(DNApyBaseClass):
 	
 	# paints the agarose gel
 	def drawLines(self, event, wantedLadder=None, MoveHighlight=None):
+		
+
+
 		width, height = self.drawingSpace.GetClientSize()		# height and width of the parent
 		lines = sorted(self.fragments)					# sort the fragments if not ordered yet
+		
+		# zoom the image
+		zoom = 1 + (0.1 * self.zoom)
+		self.drawingSpace.SetVirtualSize((width,height*zoom))
+		self.drawingSpace.SetScrollRate(0,1)
+		self.drawingSpace.Scroll(100, self.scroll_y)
+		#print "scroll: ",self.scroll_y
+		
+		#print "zoom: ", zoom
+		#print "old: ", height
+		width, height = self.drawingSpace.GetVirtualSize()
+		#print "new: ", height
 		
 		self.dc = wx.PaintDC(self.drawingSpace)				# initialise drawing space
 		self.dc.Clear()							# clear
@@ -699,6 +722,7 @@ class EnzymeDigestion(DNApyBaseClass):
 			for l in ladder:
 				text = "%d bp" % l
 				position = m * math.log10(l) + n							# position of the line
+				unimport, position = self.drawingSpace.CalcScrolledPosition(0,position)
 				self.gcdc.DrawLine(laneSpacer/2 + 55, position, (width-laneSpacer)/2 , position)	# actual line
 				self.gcdc.DrawText(text, 10,position-7) 
 
@@ -712,6 +736,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		
 				text     = "%d bp" % length
 				position = m * math.log10(length) + n
+				unimport, position = self.drawingSpace.CalcScrolledPosition(0,position) # scrolling only
 				
 				# check if something needs highlighting
 				if (MoveHighlight != None and MoveHighlight.length == length) or (self.ClickHighlight != None and self.ClickHighlight.length == length):
@@ -728,8 +753,49 @@ class EnzymeDigestion(DNApyBaseClass):
 				self.gcdc.DrawLine((width+laneSpacer)/2 + 55, position, width-laneSpacer/2, position)
 				self.gcdc.DrawText(text, (width+laneSpacer)/2 + laneSpacer/2  ,position-7) 
 				
+
+			
+				
 		return True
 	
+	
+	# two functions to enable vertical scrolling
+	def OnScroll(self, event):
+		
+		# if wheel is spinned
+		if event.GetWheelRotation() > 0:
+			self.zoom = self.zoom + 1
+		elif event.GetWheelRotation() < 0 and self.zoom >= 1:
+			self.zoom = self.zoom - 1
+		
+		self.drawingSpace.prev_pos_y = self.drawingSpace.init_pos_y
+	
+		x, y = self.drawingSpace.ScreenToClient(wx.GetMousePosition())
+	
+		self.drawingSpace.init_pos_x, self.drawingSpace.init_pos_y = self.drawingSpace.GetViewStart()
+	
+		# now we make some calculation:
+		width, height = self.drawingSpace.GetClientSize()
+		xunit, yunit  = self.drawingSpace.GetScrollPixelsPerUnit()
+		
+		self.LastScroll_y = self.scroll_y
+		addScroll_y       = (float(y)/float(height))*0.1*height  # add pixels per zoom
+		#print x,y, height,addScroll_y
+		if event.GetWheelRotation() > 0:
+			self.scroll_y     = self.LastScroll_y + addScroll_y 
+		elif self.LastScroll_y >= addScroll_y:
+			self.scroll_y     = self.LastScroll_y - addScroll_y
+		else:
+			self.scroll_y     = 0
+
+	
+		self.drawLines(event, self.LadderSelect.GetStringSelection())
+		return True 
+	
+	def OnDragScroll(self, event):
+		self.scroll_y = event.GetPosition()
+		self.drawLines(event, self.LadderSelect.GetStringSelection())
+		return True
 	
 	
 	# uses the EnzymeSelector class to return cut positions
@@ -902,8 +968,8 @@ class EnzymeDigestion(DNApyBaseClass):
 	# method to determine if a movement or a click hits an fragment
 	def HitTest(self):
 		'''Tests whether the mouse is over any fragment'''
-		dc = wx.ClientDC(self.drawingSpace) #get the client dc
-		x, y = self.drawingSpace.ScreenToClient(wx.GetMousePosition()) #get coordinate of mouse event
+		dc    = wx.ClientDC(self.drawingSpace) #get the client dc
+		x, y  = self.drawingSpace.ScreenToClient(wx.GetMousePosition()) #get coordinate of mouse event
 		pixel = dc.GetPixel(x,y)
 		hit   = None
 		# if not white
