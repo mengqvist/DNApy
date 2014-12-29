@@ -1067,27 +1067,27 @@ Put Table here
 		self.edit.AppendSeparator() #________________________devider
 
 		#cut
-		self.edit.Append(11, "cut\tCtrl+X", "cut selected DNA")
+		self.edit.Append(11, "Cut\tCtrl+X", "cut selected DNA")
 		wx.EVT_MENU(self,11, self.cut)
 
 		#copy
-		self.edit.Append(12, "copy\tCtrl+C", "copy selected DNA")
+		self.edit.Append(12, "Copy\tCtrl+C", "copy selected DNA")
 		wx.EVT_MENU(self, 12, self.copy)
 
 		#paste
-		self.edit.Append(13, "paste\tCtrl+V", "paste DNA")
+		self.edit.Append(13, "Paste\tCtrl+V", "paste DNA")
 		wx.EVT_MENU(self, 13, self.paste)
 		
 		#cut reverse complement
-		self.edit.Append(111, "cut Rev-Comp\tCtrl+Shift+X", "cut reverse-complement of selected DNA")
+		self.edit.Append(111, "Cut Rev-Comp\tCtrl+Shift+X", "cut reverse-complement of selected DNA")
 		wx.EVT_MENU(self,111, self.cut_reverse_complement)
 
 		#copy reverse complement
-		self.edit.Append(121, "copy Rev-Comp\tCtrl+Shift+C", "copy reverse-complement of selected DNA")
+		self.edit.Append(121, "Copy Rev-Comp\tCtrl+Shift+C", "copy reverse-complement of selected DNA")
 		wx.EVT_MENU(self, 121, self.copy_reverse_complement)		
 		
 		#paste reverse complement
-		self.edit.Append(131, "paste Rev-Comp\tCtrl+Shift+V", "paste reverse-complement of DNA")
+		self.edit.Append(131, "Paste Rev-Comp\tCtrl+Shift+V", "paste reverse-complement of DNA")
 		wx.EVT_MENU(self, 131, self.paste_reverse_complement)
 
 		#reverse-complement selection
@@ -1101,11 +1101,11 @@ Put Table here
 		self.edit.AppendSeparator() #________________________devider
 
 		#uppercase
-		self.edit.Append(34, "uppercase\tCtrl+W", "Convert selected text to uppercase")
+		self.edit.Append(34, "Uppercase\tCtrl+U", "Convert selected text to uppercase")
 		wx.EVT_MENU(self, 34, self.uppercase)
 
 		#lowercase
-		self.edit.Append(35, "lowercase\tCtrl+E", "Convert selected text to lowercase")
+		self.edit.Append(35, "Lowercase\tCtrl+L", "Convert selected text to lowercase")
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
@@ -1135,11 +1135,10 @@ Put Table here
 		######## enzymes menu item ########
 		self.enzymes = wx.Menu()
 		
-		# id like to have ctrl+E as shortcut for this menu item instead of #lowercase
-		#self.enzymes.Append(50, "select restriction enzymes\tCtrl+E", "select restriction enzymes")
-		self.enzymes.Append(50, "select restriction enzymes", "select restriction enzymes")
+		self.enzymes.Append(50, "Select restriction enzymes\tCtrl+E", "select restriction enzymes")
 		wx.EVT_MENU(self,50,  self.SelectEnzymes)		
-		self.enzymes.Append(51, "digest\tCtrl+D", "digest dna with selected enzymes")
+
+		self.enzymes.Append(51, "Digest\tCtrl+D", "digest dna with selected enzymes")
 		wx.EVT_MENU(self,51,  self.digestDna)		
 
 		
