@@ -670,18 +670,26 @@ Put Table here
 		# the gui can then use this variable
 		genbank.restriction_sites = dlg.drawRestriction(self.RestriktioEnzymeSelection)
 		
-		# debug only
-		#print genbank.restriction_sites
-		# print(self.RestriktioEnzymeSelection)
-		
-
 		#kill it
 		dlg.Destroy()
 
 		#update the GUI to display the position of chosen restriction enzymes
 		self.update_globalUI()
+	
+	def digestDna(self, evt):
+		'''
+		Make a popup width the digested dna as a ladder
+		'''
+		if genbank.gb.gbfile["dna"]:
+			#launch the dialog
+			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection)
+			dlg.Center()
+			res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
-
+			#kill it
+			dlg.Destroy()
+		
+		
 		
 ##########################################
 	def listen_to_updateUI(self, msg):
@@ -799,7 +807,7 @@ Put Table here
 
 		
 		#enzyme selector
-   		self.frame_1_toolbar.AddLabelTool(515, "Restriction Enzymes", wx.Bitmap(files['default_dir']+"/icon/E.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Restriction Enzymes', 'Restriction Enzymes')
+   		self.frame_1_toolbar.AddLabelTool(515, "Restriction Enzymes", wx.Bitmap(files['default_dir']+"/icon/restrictionEnzyme.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Restriction Enzymes', 'Restriction Enzymes')
    		wx.EVT_TOOL(self, 515, self.SelectEnzymes)		
 		
 		
@@ -1122,6 +1130,20 @@ Put Table here
 #		wx.EVT_MENU(self,41, self.edit_features)		
 		
 		self.menubar.Append(self.features, "Features")
+		
+
+		######## enzymes menu item ########
+		self.enzymes = wx.Menu()
+		
+		# id like to have ctrl+E as shortcut for this menu item instead of #lowercase
+		#self.enzymes.Append(50, "select restriction enzymes\tCtrl+E", "select restriction enzymes")
+		self.enzymes.Append(50, "select restriction enzymes", "select restriction enzymes")
+		wx.EVT_MENU(self,50,  self.SelectEnzymes)		
+		self.enzymes.Append(51, "digest\tCtrl+D", "digest dna with selected enzymes")
+		wx.EVT_MENU(self,51,  self.digestDna)		
+
+		
+		self.menubar.Append(self.enzymes, "Enzymes")
 		
 
 
