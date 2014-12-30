@@ -592,7 +592,8 @@ class TextEdit(DNApyBaseClass):
 			pass
 		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
-		genbank.gb.Paste(start)
+		#genbank.gb.Paste(start)
+		genbank.gb.RichPaste(start)
 		self.update_ownUI() 
 		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
@@ -615,7 +616,10 @@ class TextEdit(DNApyBaseClass):
 		if finish == -1:
 			raise ValueError, 'Cannot copy an empty selection'
 		else:
-			genbank.gb.Copy(start, finish)
+			#genbank.gb.Copy(start, finish)
+		
+			# try the new copy:
+			genbank.gb.RichCopy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
