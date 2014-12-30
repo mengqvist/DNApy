@@ -132,9 +132,9 @@ class EnzymeSelector(DNApyBaseClass):
 		# every column now has to be added to the grid
 		#Use sizers add content in the correct arrangement
 		sizerClose  = wx.BoxSizer(wx.HORIZONTAL)
-		sizerClose.Add(item=self.ok)		
 		sizerClose.Add(item=self.cancel)
-		
+		sizerClose.Add(item=self.ok)	
+					
 		# grid settings
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
 		gridsizer = wx.FlexGridSizer(rows=2, cols=4, vgap=3, hgap=10)
