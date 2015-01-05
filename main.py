@@ -46,6 +46,7 @@ import subprocess
 import dna
 import genbank
 import output
+import enzyme
 
 #GUI components
 import dnaeditor_GUI
@@ -122,8 +123,10 @@ class MyFrame(wx.Frame):
 		self.do_layout()
 		self.Centre()
 		
+		# initialise the retriction enzyme:
+		self.restrictionEnzymes 		= enzyme.initRestriction()
 		# save the selected restriktion enzymes
-		self.RestriktioEnzymeSelection = [] 
+		self.RestriktioEnzymeSelection 	= [] 
 	
 		
 
@@ -294,6 +297,8 @@ class MyFrame(wx.Frame):
 
 		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 
+		# update gui to find eestriction sites etc
+		self.update_globalUI()
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
@@ -471,6 +476,8 @@ class MyFrame(wx.Frame):
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
 		elif control == self.dnaedit.dnaview.stc: #the main dna window	
 			self.dnaedit.dnaview.cut()
+		
+		self.update_globalUI()
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
@@ -478,7 +485,8 @@ class MyFrame(wx.Frame):
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
 		elif control == self.dnaedit.dnaview.stc: #the main dna window
-			self.dnaedit.dnaview.paste()		
+			self.dnaedit.dnaview.paste()
+		self.update_globalUI()		
 
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
@@ -657,7 +665,7 @@ Put Table here
 		Make a popup with the enzyme selection window.
 		'''
 		#launch the dialog
-		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection)
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection,self.restrictionEnzymes)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
@@ -668,7 +676,8 @@ Put Table here
 		
 		# get the info who cuts where:
 		# the gui can then use this variable
-		genbank.restriction_sites = dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		genbank.restriction_sites = self.RestriktioEnzymeSelection#dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		
 		
 		#kill it
 		dlg.Destroy()
@@ -682,7 +691,7 @@ Put Table here
 		'''
 		if genbank.gb.gbfile["dna"]:
 			#launch the dialog
-			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection)
+			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection, self.restrictionEnzymes)
 			dlg.Center()
 			res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
@@ -711,6 +720,7 @@ Put Table here
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
+			
 
 		#update whatever tab is currently active
 		
@@ -723,6 +733,13 @@ Put Table here
 		self.Refresh()
 		self.current_tab=self.DNApy.GetSelection()
 		self.tab_list[self.current_tab].update_ownUI()
+		
+		# reload the enzymes maybe?
+		self.restrictionEnzymes.reloadEnzymes()
+		print "reload enzymes"
+
+		
+
 
 ######################################
 
@@ -1105,7 +1122,7 @@ Put Table here
 		wx.EVT_MENU(self, 34, self.uppercase)
 
 		#lowercase
-		self.edit.Append(35, "lowercase\tCtrl+E", "Convert selected text to lowercase")
+		self.edit.Append(35, "lowercase", "Convert selected text to lowercase")
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
@@ -1137,7 +1154,7 @@ Put Table here
 		
 		# id like to have ctrl+E as shortcut for this menu item instead of #lowercase
 		#self.enzymes.Append(50, "select restriction enzymes\tCtrl+E", "select restriction enzymes")
-		self.enzymes.Append(50, "select restriction enzymes", "select restriction enzymes")
+		self.enzymes.Append(50, "select restriction enzymes\tCtrl+E", "select restriction enzymes")
 		wx.EVT_MENU(self,50,  self.SelectEnzymes)		
 		self.enzymes.Append(51, "digest\tCtrl+D", "digest dna with selected enzymes")
 		wx.EVT_MENU(self,51,  self.digestDna)		
