@@ -36,7 +36,7 @@ import string
 import genbank
 import math
 import collections
-import pprint
+
 
 
 class EnzymeSelector(DNApyBaseClass):
@@ -416,10 +416,10 @@ class EnzymeSelectorDialog(wx.Dialog):
 		#add the panel (containing all the buttons/lists/interactive elements
 		self.content = EnzymeSelector(self, enzymeClass,id=wx.ID_ANY,)	#get the feature edit panel
 		
-		pprint.pprint(oldSelection)
+
 		# add the old selection:
 		for item in oldSelection:
-			print item
+
 			self.content.AddRestrictionEnzyme(enzymeClass.enzymeObj[item],2)
 
 		
