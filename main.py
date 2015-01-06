@@ -676,7 +676,12 @@ Put Table here
 		
 		# get the info who cuts where:
 		# the gui can then use this variable
-		genbank.restriction_sites = self.RestriktioEnzymeSelection#dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		genbank.restriction_sites = self.RestriktioEnzymeSelection
+		
+
+		
+		
+		#dlg.drawRestriction(self.RestriktioEnzymeSelection)
 		
 		
 		#kill it
@@ -684,6 +689,7 @@ Put Table here
 
 		#update the GUI to display the position of chosen restriction enzymes
 		self.update_globalUI()
+		
 	
 	def digestDna(self, evt):
 		'''

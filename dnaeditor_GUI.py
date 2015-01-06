@@ -183,8 +183,9 @@ class DNALexer(BaseLexer):
 
 		#color restriction sites
 		for enzyme in genbank.restriction_sites:
-			print enzyme
+
 			sites = genbank.restriction_sites[enzyme].restrictionSites
+
 			if len(sites) > 0:
 				for site in sites:
 					start  = site[1]

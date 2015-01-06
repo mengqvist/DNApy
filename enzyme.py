@@ -28,6 +28,18 @@
 #
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
+#
+
+#
+# This file should contain classes to enable enzyme functions
+# as of now it contains the following classes:
+# 
+# restrictionEnzyme()		store info about an restriction enzyme type II
+# initRestriction()			class to store and update all avialible restriction enzymes
+#
+
+
+
 
 from base_class import DNApyBaseClass
 import wx
@@ -49,6 +61,10 @@ import collections
 # c3 = Second 5' cut
 # c4 = Second 3' cut
 
+
+
+##########################################################################
+# Class restrictionEnzyme()
 class restrictionEnzyme():
 	def __init__(self, name, pattern, length, ncuts,blunt,c51,c31,c52,c32,regex):
 		self.name 		= str(name)
@@ -67,10 +83,16 @@ class restrictionEnzyme():
 		
 	def addRestrictionSite(self,start,end,cut51,cut52,dnaMatch):
 		self.restrictionSites.append([self.name,start,end,cut51,cut52,dnaMatch])
+# End of Class restrictionEnzyme()
+##########################################################################
 
 
 
-
+##########################################################################
+# Class initRestriction()
+# 
+# store and update info about restriction enzymes
+#
 class initRestriction():
 	def __init__(self):
 		'''Class to be loaded at every file change. It then evaluates the restrictionsites
@@ -233,5 +255,7 @@ class initRestriction():
 			
 			
 			return restrictionsitesList
+# End of Class initRestriction()
+##########################################################################
 
 

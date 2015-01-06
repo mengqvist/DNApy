@@ -329,8 +329,9 @@ class EnzymeSelector(DNApyBaseClass):
 		items 		=  self.lb2.GetItems()
 		n = 0
 		for i in items:
-			allItems[i] = self.lb.GetClientData(n)
+			allItems[i] = self.lb2.GetClientData(n)
 			n = n +1
+
 		return allItems
 
 
@@ -502,7 +503,10 @@ class EnzymeDigestion(DNApyBaseClass):
 		
 		# find the cut positions
 		self.cutpositions = self.findCutPositons(Enzymes, genbank.gb.gbfile["dna"])
-
+		# we already know the cut positions! They are now always there
+		
+		print self.cutpositions
+		
 		# calculate the fragments, new and old style
 		self.fragments, self.fragmentsObj     = self.calculateFragments(self.cutpositions, genbank.gb.gbfile['locus']['topology'])
 		
@@ -744,9 +748,9 @@ class EnzymeDigestion(DNApyBaseClass):
 		self.cutpositions = []							# get the cuts positions
 
 		for c in cuts:
-
-			self.cutpositions.append(c[3])					# get the first 5' cut
-			if c[4] != None:
+			if c[3] not in self.cutpositions:
+				self.cutpositions.append(c[3])					# get the first 5' cut
+			if c[4] != None and c[4] not in self.cutpositions:
 				self.cutpositions.append(c[4])				# only if there is, add the second cut
 
 		self.cutpositions = sorted(self.cutpositions)				# sort the positions
