@@ -180,7 +180,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		#
 		# plasmid settings:
 		# 
-		radius = 31
+		radius = 26
+		self.radius = radius
 		
 
 		# draw the plasmid
@@ -209,7 +210,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 
-	def radial2cartesian(self,radius, angle, cx=0,cy=0,width=1, height=1):
+	def radial2cartesian(self,radius, angle, cx=0,cy=0):
+		radius = float(radius)
+		angle  = float(angle)
 		x = radius * math.cos(angle) + cx
 		y = radius * math.sin(angle) + cy
 		
@@ -227,7 +230,10 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.drawn_fw_locations = [] 		# for location tracing foreward
 		self.drawn_rv_locations = [] 		# for location tracing reverse
 		drawHightlight 			= False		
-		highPath       			= False		
+		highPath       			= False	
+		
+		self.labelHelper		= {}
+		
 		
 		#####################
 		# Settings
@@ -256,6 +262,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 			# variable to save as a hittest
 			hittestName = "%s%s%s" % (name, index, start)		# random pattern
 			self.hittest[hittestName] = []						# initialise list to store arrow and label of a feature as paths
+			self.labelHelper[hittestName] = []					# save radius of arrow
+
 			
 			# highlitght this element?
 			if self.Highlight == hittestName:
@@ -271,7 +279,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 			if arrowResult != False:
 				highPath  = arrowResult
 				highColor = arrowResult2
-				
+		
+			
 		# now draw the highlitgh arrow, so its on top:
 		# it is then drawn twice at the same position!
 		if highPath != False:
@@ -287,6 +296,22 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.ctx.stroke()
 			
 			
+		
+		# loop through all features to draw the labels
+		for i in range(0,len(featurelist)):	
+			# load all the feature infos
+			featuretype, complement, start, finish, name, index = featurelist[i]
+			feature     = featurelist[i]
+		
+			# variable to save as a hittest
+			hittestName = "%s%s%s" % (name, index, start)		# random pattern
+			
+			# get highest level ov labels, then calculate the radius and use that as the radius to place all labels
+			# --> might work
+			
+			# draw the label and the line connecting them
+			labelresult = self.drawCairoLabel(feature, hittestName)
+		
 		return True
 	
 	
@@ -316,6 +341,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 			f_rad_wo_head  		= ((f_deg-arrow_head_length) * math.pi/180) - math.pi/2 
 			f_rad_wo_head_help 	= ((f_deg-2*arrow_head_length) * math.pi/180) - math.pi/2 
 			
+
+			
 			# weather to draw a head or not, only if feature is large enough
 			drawHead = True
 			if f_rad_wo_head_help < s_rad:
@@ -323,9 +350,10 @@ class PlasmidView(DNApyBaseDrawingClass):
 				drawHead 		= False
 
 				
-			arrow_head_x, arrow_head_y  = self.radial2cartesian(radius+level, f_rad)
-			arrow_head_x1, arrow_head_y1  = self.radial2cartesian(radius+level+radius_change+0.5, f_rad_wo_head)
-			arrow_head_x2, arrow_head_y2  = self.radial2cartesian(radius+level-radius_change-0.5, f_rad_wo_head)
+			arrow_head_x, arrow_head_y  	= self.radial2cartesian(radius+level, f_rad)
+			arrow_head_x1, arrow_head_y1  	= self.radial2cartesian(radius+level+radius_change+0.5, f_rad_wo_head)
+			arrow_head_x2, arrow_head_y2  	= self.radial2cartesian(radius+level-radius_change-0.5, f_rad_wo_head)
+
 
 			# get the color:
 			color = eval(featuretype)['fw'] #get the color of feature (as string)
@@ -335,8 +363,10 @@ class PlasmidView(DNApyBaseDrawingClass):
 			x_start, y_start = self.radial2cartesian(radius+level+radius_change, s_rad)
 			self.ctx.move_to(x_start, y_start)
 			
+			self.labelHelper[hittestName].append(radius+level-radius_change)	# inner radius
 			# the actual drawing:
 			self.ctx.arc(0, 0, radius+level+radius_change,s_rad, f_rad_wo_head);
+
 			if drawHead:
 				ctx.line_to(arrow_head_x1,arrow_head_y1)
 				ctx.line_to(arrow_head_x,arrow_head_y)
@@ -372,12 +402,14 @@ class PlasmidView(DNApyBaseDrawingClass):
 			arrow_head_x2, arrow_head_y2  = self.radial2cartesian(radius-level+radius_change+0.5, f_rad_wo_head)
 
 			# get the color:
-			color = eval(featuretype)['fw'] #get the color of feature (as string)
+			color = eval(featuretype)['rv'] #get the color of feature (as string)
 			assert type(color) == str
 
 			# move to start
 			x_start, y_start = self.radial2cartesian(radius-level-radius_change, s_rad)
 			self.ctx.move_to(x_start, y_start)
+			
+			self.labelHelper[hittestName].append(radius-level-radius_change)	# smallest radius
 			
 			# the actual drawing:
 			self.ctx.arc_negative(0, 0, radius-level-radius_change,s_rad, f_rad_wo_head);
@@ -416,6 +448,152 @@ class PlasmidView(DNApyBaseDrawingClass):
 			return False, False
 	
 	
+	def drawCairoLabel(self, f, hittestName):
+		featuretype, complement, start, finish, name, index = f
+		
+
+			
+	
+		arrowRadius = float(self.labelHelper[hittestName][0]) + 0.5
+		back_rad = 0
+	
+		# calculate length of coresponding arrow, ignoring the level!
+		length         		= float(len(genbank.gb.GetDNA()))
+		degreeMult     	  	= float(360/length)
+		s_deg				= float(start)  * degreeMult			# in degree
+		f_deg 				= float(finish) * degreeMult
+		middle_deg			= f_deg - ((f_deg-s_deg)/2)				# the center of the arrow
+		s_rad 				= (s_deg * math.pi/180)  - math.pi/2 
+		f_rad   			= (f_deg * math.pi/180)  - math.pi/2 
+	
+		ar_l = 2 * math.pi * (arrowRadius-3.2) * (f_deg - s_deg)/360 # 3.2 is arrow head
+	
+		dist2rad			= (f_rad - s_rad)/ar_l
+	
+	
+	
+		# calculate length of written text
+		# remove any '"' in front or at the end 
+		if name[0:1] == '"':
+			name = name[1:]
+			lengthName = len(name)
+			if name[-1:] == '"':
+				name = name[:-1]
+			
+	
+		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+		self.ctx.set_font_size(2);
+		self.ctx.set_source_rgb (1,1,1)
+		xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)
+	
+		# we want some spacer:
+		spacer 		= 0.1 * TextWidth
+		ar_l_spacer = ar_l - spacer
+	
+		# check if text would fix into arrow if round
+		if TextWidth < ar_l_spacer:
+		
+			
+			# if yes we have to draw every symbole one for one
+			startspacer = (ar_l - TextWidth)/2
+			
+			# draw foreward and upper labels here:
+			if complement == False and (middle_deg <= 90 or middle_deg >= 270)  :
+
+				start_rad	= s_rad + (startspacer * dist2rad)
+		
+				back_rad 	=  0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius, -0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad + new_rad
+					self.ctx.rotate(new_rad)
+			elif complement == False and (middle_deg > 90 or middle_deg < 270) :
+
+				start_rad	= f_rad - (startspacer * dist2rad) # f_rad because we write from head to start
+		
+				back_rad 	=  - 0.5* math.pi + start_rad  # sum of rotations to later rotate back
+
+				# rotate context so the drawing position is down:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius+1.3, 0.5* math.pi )
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad - new_rad
+					self.ctx.rotate(-new_rad)
+			elif complement == True and (middle_deg < 90 or middle_deg > 270) :
+
+				start_rad	= s_rad + (startspacer * dist2rad)
+		
+				back_rad 	=  0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius, -0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad + new_rad
+					self.ctx.rotate(+new_rad)
+			elif complement == True and (middle_deg > 90 or middle_deg < 270) :
+
+				start_rad	= f_rad - (startspacer * dist2rad)
+		
+				back_rad 	=  -0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius+1.3, 0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad - new_rad
+					self.ctx.rotate(-new_rad)
+			
+		self.ctx.rotate(-back_rad)
+
+		return False
+
 	
 	def drawCairoPlasmidName(self, ctx):
 		'''Draw the plasmid name and basepairs in the middle'''
@@ -436,11 +614,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.ctx.move_to(-TextWidth/2, 0);  
 		
 		# save feature to hittest:
-		#self.hitpath = self.ctx.copy_path()
-		#self.hittest['plasmidname'].append(self.hitpath)
+		self.hitpath = self.ctx.copy_path()
+		self.hittest['plasmidname'].append(self.hitpath)
 	
 		
-		self.ctx.show_text(name);
+		self.ctx.show_text(name)
 		
 
 		
@@ -497,7 +675,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 		
 		# get the mouse positions
 		x2, y2 = self.ctx.device_to_user(x,y)
-		
+
 	
 		
 		for path in self.hittest:
