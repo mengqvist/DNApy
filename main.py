@@ -36,6 +36,8 @@ import inspect
 import sys, os
 import re
 import wx
+from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
+ 	                                  #See documentation for more detail
 from wx.lib.pubsub import pub
 
 import pyperclip
@@ -46,6 +48,8 @@ import subprocess
 import dna
 import genbank
 import output
+
+from base_class import DNApyBaseClass
 
 #GUI components
 import dnaeditor_GUI
@@ -77,6 +81,66 @@ execfile(variables) #gets all the pre-assigned variables
 execfile(settings) #gets all the pre-assigned settings
 
 
+
+
+class DNAedit(DNApyBaseClass):
+	'''
+	This class is intended to glue together the dnaedit, featurelist and plasmid view panels to one UI.
+	It also sets the relevant update methods.
+	'''
+	def __init__(self, parent, id):
+		wx.Panel.__init__(self, parent)
+		splitter0 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
+		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)	
+
+		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
+		self.dnaview = dnaeditor_GUI.TextEdit(splitter1, id=wx.ID_ANY)
+		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
+
+
+		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
+		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))	
+
+		sizer = wx.BoxSizer(wx.HORIZONTAL)
+		sizer.Add(item=splitter0, proportion=-1, flag=wx.EXPAND)
+		self.SetSizer(sizer)
+
+		# Setup the publisher listeners for use with UI updates
+		MSG_CHANGE_TEXT = "change.text" #This message requires the argument "text"
+		pub.subscribe(self.onChangeText, MSG_CHANGE_TEXT)
+
+
+		self.update_ownUI()
+
+	#### Need to define update methods inherited from DNApyBaseClass #####
+
+
+	def update_ownUI(self):
+		'''
+		Update all UI panels.
+		'''
+		self.feature_list.update_ownUI()
+		self.dnaview.update_ownUI()
+		self.plasmidview.update_ownUI()
+
+
+	def onChangeText(self, text):
+		'''
+		When message is sent through the publisher system,
+		check who sent it and then update accordingly.
+		'''
+		#print(text) 	#debug only
+		if text == "Plasmid view says update!":
+			self.feature_list.update_ownUI()
+			self.dnaview.update_ownUI()			
+		elif text == "DNA view says update!":
+			self.feature_list.update_ownUI()
+			self.plasmidview.update_ownUI()
+		elif text == "Feature list says update!":
+			self.dnaview.update_ownUI()
+			self.plasmidview.update_ownUI()
+
+
 class MyFrame(wx.Frame):
 	'''Main frame of DNApy'''
 	tab_list=[] #list of tabs 
@@ -88,10 +152,9 @@ class MyFrame(wx.Frame):
 		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
 
-		self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
-		wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
+		#self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
+		
 
-		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
 		#create toolbars
 		self.__generate_toolbar()
@@ -114,10 +177,13 @@ class MyFrame(wx.Frame):
 		genbank.gb.fileName = ''
 		genbank.restriction_sites = [] # variable for storing info about selected restriction enzymes
 
-		self.generate_dnaedit_tab("")
-		self.generate_plasmidview_tab("")
-		self.generate_sequencingview_tab("")
-		self.generate_genbankview_tab("")
+		#build the UI using the pre-defined class
+		self.DNApy = DNAedit(self, -1)
+
+		#bind events
+		#wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
+
+		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 		
 		self.do_layout()
 		self.Centre()
@@ -125,7 +191,12 @@ class MyFrame(wx.Frame):
 		# save the selected restriktion enzymes
 		self.RestriktioEnzymeSelection = [] 
 	
-		
+	
+
+
+	#######################################################################
+	
+
 
 	def do_layout(self):
 		'''
@@ -143,88 +214,25 @@ class MyFrame(wx.Frame):
 		
 
 
-	def generate_dnaedit_tab(self, evt):
-		'''
-		This method generates the dnaedit tab.
-		It displays the DNA sequence as well as a feature list.
-		'''
-		
-		number=len(self.tab_list)
-		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-	
-	
-		#create splitter and panels
-		self.dnaedit = dnaeditor_GUI.DNAedit(self.panel[number], -1)	
-		self.tab_list.append(self.dnaedit)
 
-		#add to sizer
-		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
-		self.DNApy.AddPage(self.panel[number], "DNA")
-		self.panel[number].SetSizer(sizer_1)
-
-
-
-	def generate_plasmidview_tab(self, evt):
-		'''
-		This method generates the plasmidview tab.
-		It displays a whole plasmid overview.
-		'''
-		number=len(self.tab_list)
-		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-		
-		#plasmid view
-		self.plasmid_view = plasmid_GUI.PlasmidView2(self.panel[number], -1)		
-		self.tab_list.append(self.plasmid_view)
-
-		
-		#add to sizer
-		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
-		self.DNApy.AddPage(self.panel[number], "Plasmid")
-		self.panel[number].SetSizer(sizer_1)		
-		
-	def generate_sequencingview_tab(self, evt):
-		'''
-		This method generates the sequencingview tab.
-		It will be used to process sequencing reads and performing alignments.
-		'''
-		
-		number=len(self.tab_list)
-		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-		
-		#sequencing view
-		self.sequencing_view = wx.Panel(self.panel[number], -1)		
-		self.paceholder_text = wx.StaticText(self.sequencing_view, wx.ID_ANY, label="I'm a placeholder waiting for better things...")
-		self.tab_list.append(self.sequencing_view)
-
-		#add to sizer
-		sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(item=self.tab_list[number], proportion=-1, flag=wx.EXPAND)
-		self.DNApy.AddPage(self.panel[number], "Sequencing")
-		self.panel[number].SetSizer(sizer_1)	
-
-	
-
-
-	def generate_genbankview_tab(self, evt):
-		'''
-		This method generates the genbankview tab.
-		It shows the current genbank file in text format.
-		'''
-		number=len(self.tab_list)
-		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-
-		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
-		self.genbankview.rtc.SetEditable(False)
-
-		self.tab_list.append(self.genbankview)
-
-		#add to sizer
-		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-		self.DNApy.AddPage(self.panel[number], "GenBank")
-		self.panel[number].SetSizer(sizer_1)
+#	def generate_genbankview_tab(self, evt):
+#		'''
+#		This method generates the genbankview tab.
+#		It shows the current genbank file in text format.
+#		'''
+#		number=len(self.tab_list)
+#		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
+#
+#		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
+#		self.genbankview.rtc.SetEditable(False)
+#
+#		self.tab_list.append(self.genbankview)
+#
+#		#add to sizer
+#		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
+#		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
+#		self.DNApy.AddPage(self.panel[number], "GenBank")
+#		self.panel[number].SetSizer(sizer_1)
 
 ################ file functions #################
 
@@ -286,8 +294,8 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(512, True)
 			self.fileopen = True
 
-			self.current_tab=self.DNApy.GetSelection()
-			self.tab_list[self.current_tab].update_ownUI()
+			
+			self.DNApy.update_ownUI()
 			
 		else:
 			print("error, not a gb file")		
@@ -355,15 +363,6 @@ class MyFrame(wx.Frame):
 
 ##########################################################
 
-	def page_change(self, ev):
-		'''
-		When changing between tabs.
-		Or in general, when hte active tab needs to be up-dated.
-		'''
-		self.Refresh()
-		self.current_tab=self.DNApy.GetSelection()
-		self.tab_list[self.current_tab].update_ownUI()
-
 
 
 	def update_statusbar(self, evt):
@@ -371,14 +370,14 @@ class MyFrame(wx.Frame):
 		#this stuff is for the statusbar
 #		if len(self.tab_list) == 0:
 #			string = 'File unmodified'
-#		elif self.tab_list[self.current_tab].modify==0:
+#		elif self.DNApy.modify==0:
 #			string = 'File unmodified'
-#		elif self.tab_list[self.current_tab].modify==1:
+#		elif self.DNApy.modify==1:
 #			string = 'File not yet saved'
-#		self.current_tab=self.DNApy.GetSelection()
+#		
 #		if self.current_tab == 0: #if dna editor is active
 
-##		mposition, Feature = self.dnaedit.dnaview.mouse_position("") #get mouse position
+##		mposition, Feature = self.DNApy.dnaview.mouse_position("") #get mouse position
 		mposition = 'None'
 		Feature = "None"
 	
@@ -393,13 +392,13 @@ class MyFrame(wx.Frame):
 			Feature = ""
 	
 		try:		
-			SelectionFrom, SelectionTo = (str(self.dnaedit.dnaview.stc.GetSelection()[0]+1), str(self.dnaedit.dnaview.stc.GetSelection()[1]))
+			SelectionFrom, SelectionTo = (str(self.DNApy.dnaview.stc.GetSelection()[0]+1), str(self.DNApy.dnaview.stc.GetSelection()[1]))
 			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
 				SelectionFrom, SelectionTo = ("0", "0")
 		except:
 			SelectionFrom, SelectionTo = ("0", "0")
 		try:	
-			Length = str(self.dnaedit.dnaview.stc.GetSelection()[1] - self.dnaedit.dnaview.stc.GetSelection()[0])
+			Length = str(self.DNApy.dnaview.stc.GetSelection()[1] - self.DNApy.dnaview.stc.GetSelection()[0])
 		except:
 			Length = ""
 
@@ -409,7 +408,7 @@ class MyFrame(wx.Frame):
 	
 		#this is broken... FIX!!
 #		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-#			AA = ': %s' % dna.Translate(self.dnaedit.dnaview.stc.GetSelectedText())
+#			AA = ': %s' % dna.Translate(self.DNApy.dnaview.stc.GetSelectedText())
 #		else:
 #			AA = ''
 
@@ -469,16 +468,16 @@ class MyFrame(wx.Frame):
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
-		elif control == self.dnaedit.dnaview.stc: #the main dna window	
-			self.dnaedit.dnaview.cut()
+		elif control == self.DNApy.dnaview.stc: #the main dna window	
+			self.DNApy.dnaview.cut()
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
-		elif control == self.dnaedit.dnaview.stc: #the main dna window
-			self.dnaedit.dnaview.paste()		
+		elif control == self.DNApy.dnaview.stc: #the main dna window
+			self.DNApy.dnaview.paste()		
 
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
@@ -487,32 +486,32 @@ class MyFrame(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.dnaedit.dnaview.stc: #the main dna window	
-			self.dnaedit.dnaview.copy()
+		elif control == self.DNApy.dnaview.stc: #the main dna window	
+			self.DNApy.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):
-		self.dnaedit.dnaview.cut_reverse_complement()
+		self.DNApy.dnaview.cut_reverse_complement()
 
 	def paste_reverse_complement(self, evt):
-		self.dnaedit.dnaview.paste_reverse_complement()
+		self.DNApy.dnaview.paste_reverse_complement()
 
 	def copy_reverse_complement(self, evt):
-		self.dnaedit.dnaview.copy_reverse_complement()
+		self.DNApy.dnaview.copy_reverse_complement()
 
 #	def delete(self, evt):
-#		self.dnaedit.dnaview.delete()
+#		self.DNApy.dnaview.delete()
 
 #		print('deleted')
 
 	def reverse_complement_selection(self, evt):
-		self.dnaedit.dnaview.reverse_complement_selection()
+		self.DNApy.dnaview.reverse_complement_selection()
 
 	def select_all(self, evt):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
-		elif control == self.dnaedit.dnaview.stc: #the main dna window	
-			self.dnaedit.dnaview.select_all()
+		elif control == self.DNApy.dnaview.stc: #the main dna window	
+			self.DNApy.dnaview.select_all()
 
 ##########################################
 
@@ -625,19 +624,19 @@ Put Table here
 		self.dlg.Center()
 
 	def uppercase(self, event):
-		self.dnaedit.dnaview.uppercase()
+		self.DNApy.dnaview.uppercase()
 
 	def lowercase(self, event):
-		self.dnaedit.dnaview.lowercase()
+		self.DNApy.dnaview.lowercase()
 
 	def translate_selection(self, event):
-		self.dnaedit.dnaview.translate_selection()
+		self.DNApy.dnaview.translate_selection()
 
 	def translate_selection_reverse_complement(self, event):
-		self.dnaedit.dnaview.translate_selection_reverse_complement()
+		self.DNApy.dnaview.translate_selection_reverse_complement()
 
 	def translate_feature(self, event):
-		self.dnaedit.dnaview.translate_feature()
+		self.DNApy.dnaview.translate_feature()
 #####################################
 
 	def Undo(self, evt):
@@ -721,8 +720,8 @@ Put Table here
 		All it does is to update the currently active tab.
 		'''
 		self.Refresh()
-		self.current_tab=self.DNApy.GetSelection()
-		self.tab_list[self.current_tab].update_ownUI()
+		
+		self.DNApy.update_ownUI()
 
 ######################################
 
@@ -1028,11 +1027,11 @@ Put Table here
 
 		#close single
 #		fileitem.Append(5, "Close", "Close current file")
-#		wx.EVT_MENU(self, 5, self.dnaedit.dnaview.close_file)
+#		wx.EVT_MENU(self, 5, self.DNApy.dnaview.close_file)
 
 		#close all
 #		fileitem.Append(6, "Close all", "Close all tabs")
-#		wx.EVT_MENU(self, 6, self.dnaedit.dnaview.close_all)
+#		wx.EVT_MENU(self, 6, self.DNApy.dnaview.close_all)
 #		fileitem.AppendSeparator()
 
 		#quit
