@@ -219,7 +219,7 @@ def count_aa(seq):
 	
 def reverse_translate(prot_seq, table=1):
 	'''
-	Reverse translate protein sequence to DNA sequence using the specified codon table.
+	Reverse translates protein sequence to DNA sequence using the specified codon table.
 	For each amino acid the DNA codon is chosen randomly from those that encode the specified amino acid.
 	table defaults to the standard codon table 1
 	
@@ -230,7 +230,7 @@ def reverse_translate(prot_seq, table=1):
 	assert type(prot_seq) is str, 'Error, the input must be a string containing amino acids in single letter code.'
 	dna_seq = []
 	for AA in prot_seq:
-		possible = dna.GetCodons(AA, separate=False)
+		possible = dna.GetCodons(AA, table=table, separate=False)
 		dna_seq.append(random.choice(possible))
 		
 	return ''.join(dna_seq)
