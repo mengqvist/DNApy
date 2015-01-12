@@ -48,6 +48,7 @@ import subprocess
 import dna
 import genbank
 import output
+import enzyme
 
 from base_class import DNApyBaseClass
 
@@ -188,8 +189,10 @@ class MyFrame(wx.Frame):
 		self.do_layout()
 		self.Centre()
 		
+		# initialise the retriction enzyme:
+		self.restrictionEnzymes 		= enzyme.initRestriction()
 		# save the selected restriktion enzymes
-		self.RestriktioEnzymeSelection = [] 
+		self.RestriktioEnzymeSelection 	= [] 
 	
 	
 
@@ -302,6 +305,8 @@ class MyFrame(wx.Frame):
 
 		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 
+		# update gui to find eestriction sites etc
+		self.update_globalUI()
 	
 	def save_file(self, evt):
 		'''Function for saving file'''
@@ -468,16 +473,24 @@ class MyFrame(wx.Frame):
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
+
 		elif control == self.DNApy.dnaview.stc: #the main dna window	
 			self.DNApy.dnaview.cut()
+		
+		self.update_globalUI()
+
 
 	def paste(self, evt):
 		'''Check which panel is select and paste accordingly'''
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
+
 		elif control == self.DNApy.dnaview.stc: #the main dna window
 			self.DNApy.dnaview.paste()		
+
+		self.update_globalUI()		
+
 
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
@@ -656,7 +669,7 @@ Put Table here
 		Make a popup with the enzyme selection window.
 		'''
 		#launch the dialog
-		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection)
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection,self.restrictionEnzymes)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
@@ -667,13 +680,20 @@ Put Table here
 		
 		# get the info who cuts where:
 		# the gui can then use this variable
-		genbank.restriction_sites = dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		genbank.restriction_sites = self.RestriktioEnzymeSelection
+		
+
+		
+		
+		#dlg.drawRestriction(self.RestriktioEnzymeSelection)
+		
 		
 		#kill it
 		dlg.Destroy()
 
 		#update the GUI to display the position of chosen restriction enzymes
 		self.update_globalUI()
+		
 	
 	def digestDna(self, evt):
 		'''
@@ -681,7 +701,7 @@ Put Table here
 		'''
 		if genbank.gb.gbfile["dna"]:
 			#launch the dialog
-			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection)
+			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection, self.restrictionEnzymes)
 			dlg.Center()
 			res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 		
@@ -710,6 +730,7 @@ Put Table here
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
+			
 
 		#update whatever tab is currently active
 		
@@ -718,10 +739,19 @@ Put Table here
 		'''
 		The name of this method is rather misleading.
 		All it does is to update the currently active tab.
+
+		Actaually, with the new layout and the DNApy update_ownUI() everything should get refreshed.
+		I'll still put some thought into how to make it better.
 		'''
 		self.Refresh()
-		
+	
 		self.DNApy.update_ownUI()
+
+		
+		# reload the enzymes maybe?
+		self.restrictionEnzymes.reloadEnzymes()
+		print "reload enzymes"
+
 
 ######################################
 
@@ -1105,6 +1135,7 @@ Put Table here
 
 		#lowercase
 		self.edit.Append(35, "Lowercase\tCtrl+L", "Convert selected text to lowercase")
+
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 

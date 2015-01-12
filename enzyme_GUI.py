@@ -35,16 +35,21 @@ import re
 import string
 import genbank
 import math
+import collections
+
+
 
 class EnzymeSelector(DNApyBaseClass):
 	"""
 	Class to select restriction enzymes.
 	"""
-	def __init__(self, parent, id):
+	def __init__(self, parent, enzymeClass, id):
 		self.parent = parent
 		wx.Panel.__init__(self, parent)
 		
-						
+		# make enzymes accesible
+		self.enzymeClass = enzymeClass
+		
 		# enzyme selector GUI
 		# we have three columns, each is in a flexGrid
 		font             = wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.BOLD)
@@ -132,9 +137,9 @@ class EnzymeSelector(DNApyBaseClass):
 		# every column now has to be added to the grid
 		#Use sizers add content in the correct arrangement
 		sizerClose  = wx.BoxSizer(wx.HORIZONTAL)
-		sizerClose.Add(item=self.ok)		
 		sizerClose.Add(item=self.cancel)
-		
+		sizerClose.Add(item=self.ok)	
+					
 		# grid settings
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
 		gridsizer = wx.FlexGridSizer(rows=2, cols=4, vgap=3, hgap=10)
@@ -158,7 +163,9 @@ class EnzymeSelector(DNApyBaseClass):
 		self.SetSizer(hbox)
 
 		# load the enzymes from emboss
-		self.loadEnzymes()
+		self.showOnly(None, "all")
+		
+	
 	
 	def onButton(self, event):
 		"""
@@ -174,13 +181,14 @@ class EnzymeSelector(DNApyBaseClass):
 		dlg.Destroy()
 		
 	# Function to change the displayed enzyme in the self.lb first box
-	def showOnly(self, e, n):
-
-		enzymes2show = []
+	def showOnly(self, event, n):
+		
+		# ordered dic to store objects
+		enzymes2show = collections.OrderedDict()
 		
 		if n == "all":
 			# show all
-			enzymes2show = self.enzymes["names"]
+			enzymes2show = self.enzymeClass.enzymeObj
 		elif n == 1:
 			# show singlecutters
 			enzymes2show = self.findCutters(1)
@@ -191,11 +199,10 @@ class EnzymeSelector(DNApyBaseClass):
 			# show commercial
 			with open ("resources/commercialEnzymes.lst", "r") as myfile:
 				data=myfile.read().splitlines()
-				#enzymes2show = data
 				# check if we know this enzyme
 				for e in data:
-					if e in self.enzymes["names"]:
-						enzymes2show.append(e)
+					if e in self.enzymeClass.enzymeObj:
+						enzymes2show[e] = self.enzymeClass.enzymeObj[e]
 		else:
 			print "hjat"
 	
@@ -203,8 +210,9 @@ class EnzymeSelector(DNApyBaseClass):
 		self.lb.Clear()	
 	
 		# add the enzymes:
-		for e in enzymes2show:
-			self.AddRestrictionEnzyme(e, 1)		
+		for enzyme in enzymes2show:
+			self.AddRestrictionEnzyme(enzymes2show[enzyme])	
+			
 		
 		# reset focus on the text field 
 		self.txt.SetFocus()
@@ -213,22 +221,24 @@ class EnzymeSelector(DNApyBaseClass):
 	####################################################
 	# function to find singlecutters or similar
 	def findCutters(self, n):
-		cutter = []
+		cutter = collections.OrderedDict()
 		dnaseq      = genbank.gb.gbfile["dna"]
-		# circular dna
-		# we just inspect the region +-100 
-		# to find enzyme, which cut near 0 in a ciclic plasmid
-		if genbank.gb.gbfile['locus']['topology'] == 'circular':
-			circularDnaHelper = dnaseq[:100]  # helper of 200bp from 0 to 100
-		else:
-			circularDnaHelper = ''
+		if dnaseq != None:
+			# circular dna
+			# we just inspect the region +-100 
+			# to find enzyme, which cut near 0 in a ciclic plasmid
+			if genbank.gb.gbfile['locus']['topology'] == 'circular':
+				circularDnaHelper = dnaseq[:100]  # helper of 200bp from 0 to 100
+			else:
+				circularDnaHelper = ''
 					
-		wholeDNA2Inspect = '%s%s' % (dnaseq, circularDnaHelper)		     # dna width circular helper added
+			wholeDNA2Inspect = '%s%s' % (dnaseq, circularDnaHelper)		     # dna width circular helper added
 
-		if wholeDNA2Inspect:
+		
 			# loop through every enzyme and look for match positions
-			for enzyme in self.enzymes["names"]:
-				r         = self.enzymes[enzyme]["regexp"]
+			for enzyme in self.enzymeClass.enzymeObj:
+				r         = self.enzymeClass.enzymeObj[enzyme].regex
+
 				iterator  = r.finditer(wholeDNA2Inspect)      	# find in dnaseq and circularDnaHelper
 				i         = 0 					# counter for occurence
 				positions = []				     	# we remember the cut positions for every enzyme, so we do not get false doubles
@@ -238,13 +248,11 @@ class EnzymeSelector(DNApyBaseClass):
 					if start not in positions:
 						positions.append(start)
 						i = i + 1 			# raise counter
-				
+			
 				if i == n:					# compare length of hits to the given number
-					cutter.append(enzyme)
-		
-		else:
-			print "no file loaded"
-
+					cutter[enzyme] = self.enzymeClass.enzymeObj[enzyme]
+	
+	
 		return cutter
 	
 	
@@ -273,11 +281,13 @@ class EnzymeSelector(DNApyBaseClass):
 
 	# adds one item on buttonclick
 	def addOne(self, event):
-		item     = self.lb.GetStringSelection()
-		allItems = self.lb2.GetItems()
+		item  		= self.lb.GetStringSelection()
+		obj 		= self.lb.GetClientData(self.lb.GetSelection())
+		allItems 	= self.lb2.GetItems()
+
 		# just add the item, if its not already in there
 		if item not in allItems:
-			self.lb2.Append(item)
+			self.lb2.Append(item, obj)
 			self.resort2list()
 	
 	# removes all items from 2
@@ -295,105 +305,34 @@ class EnzymeSelector(DNApyBaseClass):
 		
 
 	# adds the given restriction enzyme to the first list
-	def AddRestrictionEnzyme(self, item, i):
+	def AddRestrictionEnzyme(self, item, i=1):
 		if i == 1:
-			self.lb.Append(item)
+			self.lb.Append(item.name, item)
 		if i == 2:
-			self.lb2.Append(item)
+			self.lb2.Append(item.name, item)
+			
 
 	# can reorder the second list
 	# is called by addOne(self)
 	def resort2list(self):
-		allitems = self.lb2.GetItems() 
-		allSorted = sorted(allitems)		
-		self.lb2.SetItems(allSorted)
+		allitems = self.lb2.GetItems()	# get items
+		self.lb2.Clear()				# clear lb2
+		allSorted = sorted(allitems)	# sort items
+		
+		for enzyme in allSorted:		# readd items and objects
+			self.lb2.Append(enzyme, self.enzymeClass.enzymeObj[enzyme])
 	
-	####################################################
-	# this function is going to transform the file 
-	# "emboss_e.txt into an object of restriction
-	# enzmyes
-	def loadEnzymes(self):
-		# first load the enzyme db
-
-		# File strukture for line
-		# name = name of enzyme
-		# pattern = recognition site
-		# len = length of pattern
-		# ncuts = number of cuts made by enzyme
-		#         Zero represents unknown
-		# blunt = true if blunt end cut, false if sticky
-		# c1 = First 5' cut
-		# c2 = First 3' cut
-		# c3 = Second 5' cut
-		self.enzymes             = {}
-		self.enzymes["names"]    = []
-		self.enzymes["regexp"]   = []
-		self.enzymes["ncuts"]    = []
-		self.enzymes["cut5_1"]   = []
-		self.enzymes["cut5_2"]   = []
-
-
-		# for this we have enzymes in folder /resources
-		with open('resources/emboss_e.txt') as f:
-		    for line in f:	
-		    	# each line is one enzyme, except the header
-				if ( line[:1] != "#" ):	
-			
-					# split the line
-					lineparts = re.split(r'\t+', line)	
-				
-					# list of all possible enzymes for selector
-					self.enzymes["names"].append(lineparts[0])
-
-					# new object for each enzmye, makes searching possible
-					self.enzymes[lineparts[0]]        = {}
-					self.enzymes[lineparts[0]]["enz"] = lineparts[0]
-				
-
-					# form the regexp:
-					#Code	Meaning			Etymology	Complement	Opposite
-					#A	A			Adenosine	T	B
-					#T/U	T			Thymidine/Uridine	A	V
-					#G	G			Guanine	C	H
-					#C	C			Cytidine	G	D
-					#K	G or T			Keto	M	M
-					#M	A or C			Amino	K	K
-					#R	A or G			Purine	Y	Y
-					#Y	C or T			Pyrimidine	R	R
-					#S	C or G			Strong	S	W
-					#W	A or T			Weak	W	S
-					#B	C or G or T		not A (B comes after A)	V	A
-					#V	A or C or G		not T/U (V comes after U)	B	T/U
-					#H	A or C or T		not G (H comes after G)	D	G
-					#D	A or G or T		not C (D comes after C)	H	C
-					#X/N	G or A or T or C	any	N	.
-					#.	not G or A or T or C	.	N
-					#-	gap of indeterminate length	
-					regpattern = lineparts[1]
-					regpattern = string.replace(regpattern,"U","T")
-					regpattern = string.replace(regpattern,"K","(G|T)")
-					regpattern = string.replace(regpattern,"M","(A|C)")
-					regpattern = string.replace(regpattern,"R","(A|G)")
-					regpattern = string.replace(regpattern,"Y","(C|T)")
-					regpattern = string.replace(regpattern,"S","(C|G)")
-					regpattern = string.replace(regpattern,"W","(A|T)")
-					regpattern = string.replace(regpattern,"B","[CGT]")
-					regpattern = string.replace(regpattern,"V","[ACG]")
-					regpattern = string.replace(regpattern,"H","[ACT]")
-					regpattern = string.replace(regpattern,"D","[AGT]")
-					regpattern = string.replace(regpattern,"N","[AGTC]")
-					regpattern = string.replace(regpattern,"X","[AGTC]")
-	
-					# save the info to the object
-					self.enzymes[lineparts[0]]["regexp"] = re.compile(regpattern, re.IGNORECASE) # regexped, compiled and ready to use
-					self.enzymes[lineparts[0]]["cut5_1"] = int(lineparts[5])
-					self.enzymes[lineparts[0]]["cut5_2"] = int(lineparts[7])				# add the enzyme to the list of possible enzymes:
-					self.AddRestrictionEnzyme(lineparts[0],1)
-		return self.enzymes
 
 	# gets called to retrive the sleected infos
 	def getSelection(self):
-		return self.lb2.GetItems() 
+		allItems 	= collections.OrderedDict()
+		items 		=  self.lb2.GetItems()
+		n = 0
+		for i in items:
+			allItems[i] = self.lb2.GetClientData(n)
+			n = n +1
+
+		return allItems
 
 
 	def findRestrictionSites(self, selectedEnzymes):
@@ -472,15 +411,17 @@ class EnzymeSelector(DNApyBaseClass):
 		
 class EnzymeSelectorDialog(wx.Dialog):
 	'''A class that puts the Enzyme Selector capabilities in a dialog.'''
-	def __init__(self, parent, title, oldSelection):
+	def __init__(self, parent, title, oldSelection, enzymeClass):
 		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(750, 430)) 		
 
 		#add the panel (containing all the buttons/lists/interactive elements
-		self.content = EnzymeSelector(self, id=wx.ID_ANY)	#get the feature edit panel
+		self.content = EnzymeSelector(self, enzymeClass,id=wx.ID_ANY,)	#get the feature edit panel
 		
+
 		# add the old selection:
 		for item in oldSelection:
-			self.content.AddRestrictionEnzyme(item,2)
+
+			self.content.AddRestrictionEnzyme(enzymeClass.enzymeObj[item],2)
 
 		
 		#add sizer
@@ -515,18 +456,7 @@ class EnzymeSelectorDialog(wx.Dialog):
 
 
 
-
-
-
-
-
-
-
-
-
-
 ##############################################################################################################
-# Enzyme Digestion
 #
 # this class can show a dialog for simulation of an agarose gel
 # it is mainly for calculating fragments and showing a gel image
@@ -537,13 +467,13 @@ class EnzymeSelectorDialog(wx.Dialog):
 # 
 class EnzymeDigestionDialog(wx.Dialog):
 	'''A class that puts the Enzyme digestion capabilities in a dialog.'''
-	def __init__(self, parent, title, Enzymes):
+	def __init__(self, parent, title, Enzymes,enzymeClass):
 		super(EnzymeDigestionDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(600, 430)) 		
 		
 		# get width and height to pass to child class
 		width, height = self.GetClientSize()	
 		#add the panel, containing all the buttons/lists/interactive elements
-		self.content = EnzymeDigestion(self,Enzymes, width, height, id=wx.ID_ANY)	
+		self.content = EnzymeDigestion(self,Enzymes, enzymeClass, width, height, id=wx.ID_ANY)	
 		
 		#add sizer
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -559,9 +489,12 @@ class EnzymeDigestion(DNApyBaseClass):
 	"""
 	Class to show enzyme digestion
 	"""
-	def __init__(self, parent,Enzymes, width, height, id):
+	def __init__(self, parent,Enzymes,enzymeClass,  width, height, id):
 		self.parent = parent
 		wx.Panel.__init__(self, parent,size=(width, height))
+		
+		# get the restriction enzymes
+		self.enzymeClass = enzymeClass
 
 		# box to keep all the GUI
 		hbox      = wx.BoxSizer(wx.HORIZONTAL)
@@ -570,7 +503,10 @@ class EnzymeDigestion(DNApyBaseClass):
 		
 		# find the cut positions
 		self.cutpositions = self.findCutPositons(Enzymes, genbank.gb.gbfile["dna"])
-
+		# we already know the cut positions! They are now always there
+		
+		print self.cutpositions
+		
 		# calculate the fragments, new and old style
 		self.fragments, self.fragmentsObj     = self.calculateFragments(self.cutpositions, genbank.gb.gbfile['locus']['topology'])
 		
@@ -801,13 +737,20 @@ class EnzymeDigestion(DNApyBaseClass):
 	# uses the EnzymeSelector class to return cut positions
 	def findCutPositons(self, Enzymes, dna):
 		
-		cuts = EnzymeSelector(self, id=wx.ID_ANY).findRestrictionSites(Enzymes)	# find cut positions:
+		#cuts = EnzymeSelector(self, id=wx.ID_ANY).findRestrictionSites(Enzymes)	# find cut positions:		
+		cuts = []
+		for enzyme in Enzymes:
+			for i in self.enzymeClass.enzymeObj[enzyme].restrictionSites:
+				cuts.append(i)
+		
+		print cuts
+		
 		self.cutpositions = []							# get the cuts positions
 
 		for c in cuts:
-
-			self.cutpositions.append(c[3])					# get the first 5' cut
-			if c[4] != None:
+			if c[3] not in self.cutpositions:
+				self.cutpositions.append(c[3])					# get the first 5' cut
+			if c[4] != None and c[4] not in self.cutpositions:
 				self.cutpositions.append(c[4])				# only if there is, add the second cut
 
 		self.cutpositions = sorted(self.cutpositions)				# sort the positions
@@ -824,7 +767,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		fragments = []				# old list			
 		fragementList = []			# list to store objects
 		positions  = sorted(positions)		# sort them in cased they are not sorted jet
-		
+		print positions
 		# fragments as following or as objects (new):
 		#	fragement = [[dnastring, start, stop], [...]]
 		
