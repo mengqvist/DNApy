@@ -778,7 +778,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		if  positions == []:
 			fragments = [[dna, 1, len(dna)+1]]
 		else:
-		# else we cuts the string:
+		# else we cut the string:
 			if topology == "circular":
 				# first fragment is las cut first cut:
 				f = []
@@ -789,8 +789,10 @@ class EnzymeDigestion(DNApyBaseClass):
 				f.append(positions[len(positions)-1])	# start
 				f.append(positions[0])			# stop
 				newFragement = dnaFragment(part,positions[len(positions)-1],positions[0], len(part)) # using the new class
-				fragments.append(f)
-				fragementList.append(newFragement)
+				
+				if len(p1) > 0:				# only fragments bigger than 0
+					fragments.append(f)		# add the dna segment
+					fragementList.append(newFragement)
 			else:
 				# add two fragemtns, the last and the first one:
 				f1 = []
@@ -798,21 +800,22 @@ class EnzymeDigestion(DNApyBaseClass):
 				f1.append(p1)
 				f1.append(0)
 				f1.append(positions[0])
-				fragments.append(f1)
-				
-				
-				newFragement = dnaFragment(p1,0,positions[0], len(p1)) # new class
-				fragementList.append(newFragement)
+
+				if len(p1) > 0:				# only fragments bigger than 0
+					fragments.append(f1)		# add the dna segment
+					newFragement = dnaFragment(p1,0,positions[0], len(p1)) # new class
+					fragementList.append(newFragement)
 				
 				f2 = []
 				p2 = dna[positions[len(positions)-1]:len(dna)]
 				f2.append(p2)
 				f2.append(positions[len(positions)-1])
 				f2.append(len(dna))
-				fragments.append(f2)
+				if len(p2) > 0:				# only fragments bigger than 0
+					fragments.append(f2)		# add the dna segment
 				
-				newFragement = dnaFragment(p2,positions[len(positions)-1],len(dna), len(p2)) # new class
-				fragementList.append(newFragement)
+					newFragement = dnaFragment(p2,positions[len(positions)-1],len(dna), len(p2)) # new class
+					fragementList.append(newFragement)
 			
 			# now we have to go from first cut to second, rom second to thirt etc.
 			# our stop is the last one
@@ -824,15 +827,14 @@ class EnzymeDigestion(DNApyBaseClass):
 				f.append(positions[i-1])		# start
 				f.append(positions[i])			# stop
 				
-				fragments.append(f)			# add the dna segment
+				if len(p) > 0:				# only fragments bigger than 0
+					fragments.append(f)		# add the dna segment
 				
-				newFragement = dnaFragment(p,positions[i-1],positions[i], len(p)) # new class
-				fragementList.append(newFragement)
+					newFragement = dnaFragment(p,positions[i-1],positions[i], len(p)) # new class
+					fragementList.append(newFragement)
 				
 				i = i + 1 				# counter + 1
-		
-		
-		
+				
 		return (fragments, fragementList)
 	
 	

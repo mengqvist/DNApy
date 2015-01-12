@@ -47,6 +47,8 @@ import oligo_localizer
 import peptide_localizer
 import re
 import sys
+import wx	# for richCopy
+import json	# for richCopy
 
 
 #the feature class is not currently used. 
@@ -944,6 +946,104 @@ class gbobject(object):
 		self.reverse_complement_clipboard()
 
 
+	def RichCopy(self, start, finish):
+		'''a method to copy not only dna to clipboard but exchange features and dna 
+		   beetween two windows
+		   this depreciates the Copy method from this file
+		'''
+		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
+
+		dna = self.GetDNA(start, finish)
+
+		dnapyClipboard             = {}
+		dnapyClipboard['dna']      = self.GetDNA(start, finish) #copy to internal clipboard
+		dnapyClipboard['features'] = []
+		self.allgbfeatures_templist = copy.deepcopy(self.gbfile['features'])
+		for i in range(len(self.gbfile['features'])): #checks to match dna change
+			if len(self.gbfile['features'][i]['location']) == 1:
+				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'][0])
+			else:
+				n = 0
+				featurestart = self.get_location(self.gbfile['features'][i]['location'][n])[0]
+				n = len(self.gbfile['features'][i]['location'])-1
+				featurefinish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
+			
+			if (start<=featurestart and featurefinish<=finish) == True: #if change encompasses whole feature
+				dnapyClipboard['features'].append(self.allgbfeatures_templist[i])
+				for n in range(len(self.gbfile['features'][i]['location'])):
+					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start+1, 'b')
+					dnapyClipboard['features'][-1]['location'][n] = newlocation
+
+		# save clipboard to json string
+		dnapyClipboard     = json.dumps(dnapyClipboard)
+		
+		self.richClipboard = wx.DataObjectComposite()
+		
+		text               = wx.TextDataObject(dna)
+
+		dnapy              = wx.CustomDataObject("application/DNApy")
+		dnapy.SetData(dnapyClipboard)
+		
+		self.richClipboard.Add(text, True)	# add clear dna text as preffered object
+		self.richClipboard.Add(dnapy)		# add rich dna info as json
+		
+
+	
+		# save to the clipboard
+		if wx.TheClipboard.Open():
+			wx.TheClipboard.SetData(self.richClipboard)
+			wx.TheClipboard.Close()
+		
+		return True
+		
+		
+
+	def RichPaste(self, ip):
+		'''Paste DNA present in clipboard and any features present on that DNA
+			If a string is passed to DNA then this will over-ride anything that is present in the clipboard
+			this depreciates the Paste method from this file
+			'''
+		assert type(ip) == int, 'The insertion point must be an integer.'
+
+
+
+		self.textClipboard      = wx.TextDataObject()
+		self.dnaClipboard       = wx.CustomDataObject("application/DNApy")
+
+		# retrive the clipboard content
+		if wx.TheClipboard.Open():
+			containsDNApy  = wx.TheClipboard.GetData(self.dnaClipboard)
+			containsText   = wx.TheClipboard.GetData(self.textClipboard)
+			wx.TheClipboard.Close()
+			
+			if containsDNApy:
+				pasteRich = True
+				# get the json object
+				pasteDNA  = json.loads(self.dnaClipboard.GetData())
+				
+			elif containsText:
+				pasteRich = False
+				# paste the pure text
+				paste     = self.textClipboard.GetDataHere()
+			else:
+				# else there is nothing to paste
+				pasteRich = False
+				paste     = ''
+		
+		# here we paste, mostly the same as Paste() 
+		if pasteRich:
+
+			DNA = pasteDNA['dna']
+			self.changegbsequence(ip, ip, 'i', DNA) #change dna sequence	
+			for i in range(len(pasteDNA['features'])): #add features from clipboard
+				self.paste_feature(pasteDNA['features'][i], ip-1)
+		else:
+			DNA = paste
+			self.changegbsequence(ip, ip, 'i', DNA) #change dna sequence
+		self.add_file_version()
+			
+
+		return True
 
 
 #### Feature modification methods ####
