@@ -273,7 +273,7 @@ class MyFrame(wx.Frame):
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
 		if(genbank.gb.fileName == None or genbank.gb.fileName == "" ):
-			return1
+			return 1
 		
 		name, extension = genbank.gb.fileName.split('.')
 		if extension.lower() == 'gb':
