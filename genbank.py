@@ -828,34 +828,36 @@ class gbobject(object):
 		self.changegbsequence(start, finish, 'r', string.lower())
 		self.add_file_version()
 
-	def reverse_complement_clipboard(self):	
+	def reverse_complement_clipboard(self, clipboard):	
 		'''Reverse-complements the DNA and all features in clipboard'''
-		self.clipboard['dna'] = dna.RC(self.clipboard['dna']) #change dna sequence
-		pyperclip.copy(self.clipboard['dna'])	
-		for i in range(len(self.clipboard['features'])): #checks self.allgbfeatures to match dna change	
-			if self.clipboard['features'][i]['complement'] == True: 
-				self.clipboard['features'][i]['complement'] = False
-			elif self.clipboard['features'][i]['complement'] == False: 
-				self.clipboard['features'][i]['complement'] = True
+		clipboard['dna'] = dna.RC(clipboard['dna']) #change dna sequence
+					
+		for i in range(len(clipboard['features'])): #checks self.allgbfeatures to match dna change	
+			if clipboard['features'] [i]['complement'] == True: 
+				clipboard['features'] [i]['complement'] = False
+			elif clipboard['features'] [i]['complement'] == False: 
+				clipboard['features'] [i]['complement'] = True
 
-			for n in range(len(self.clipboard['features'][i]['location'])):
-				start, finish = self.get_location(self.clipboard['features'][i]['location'][n])
+			for n in range(len(clipboard['features'][i]['location'])):
+				start, finish = self.get_location(clipboard['features'][i]['location'][n])
 				featurelength = finish - start    #how much sequence in feature?
-				trail = len(self.clipboard['dna']) - finish     # how much sequence after feature?
+				trail = len(clipboard['dna']) - finish     # how much sequence after feature?
 
-				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -finish+(trail+featurelength+1), 'f')	
-				self.clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(self.clipboard['features'][i]['location'][n], -start+trail+1, 's')
-			self.clipboard['features'][i]['location'].reverse() #reverse order of list elements				
+				clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(clipboard['features'][i]['location'][n], -finish+(trail+featurelength+1), 'f')	
+				clipboard['features'][i]['location'][n] = self.add_or_subtract_to_locations(clipboard['features'][i]['location'][n], -start+trail+1, 's')
+			clipboard['features'][i]['location'].reverse() #reverse order of list elements
+		
+		return clipboard		
 
 
 	def RCselection(self, start, finish):
 		'''Reverse-complements current DNA selection'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		self.Copy(start, finish)
-		self.reverse_complement_clipboard()	
+		self.RichCopy(start, finish, True) # RichCopy
+		#self.reverse_complement_clipboard()	
 		self.Delete(start, finish, visible=False)
-		self.Paste(start)
+		self.RichPaste(start)
 
 	def Delete(self, start, finish, visible=True):
 		'''Deletes current DNA selection.
@@ -870,11 +872,11 @@ class gbobject(object):
 		if visible == True:
 			self.add_file_version()
 
-	def Cut(self, start, finish):
+	def Cut(self, start, finish, complement=False):
 		'''Cuts selection and place it in clipboard together with any features present on that DNA'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		self.Copy(start, finish)
+		self.RichCopy(start, finish, complement) # changed to RichCopy
 		deletedsequence = self.GetDNA(start, finish)
 		self.changegbsequence(start, finish, 'd', deletedsequence)
 		self.add_file_version()
@@ -883,7 +885,7 @@ class gbobject(object):
 		'''Cuts the reverese-complement of a selection and place it in clipboard together with any features present on that DNA'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		self.Cut(start, finish)
+		self.Cut(start, finish, True)
 		self.reverse_complement_clipboard()
 
 
@@ -914,39 +916,15 @@ class gbobject(object):
 		self.reverse_complement_clipboard() #change it back
 
 
-	def Copy(self, start, finish):
-		'''Copy DNA and all the features for a certain selection'''
-		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
-		assert start <= finish, 'Startingpoint must be before finish'
-		pyperclip.copy(self.GetDNA(start, finish)) #copy dna to system clipboard (in case I want to paste it somwhere else)
-		self.clipboard = {}
-		self.clipboard['dna'] = self.GetDNA(start, finish) #copy to internal clipboard
-		self.clipboard['features'] = []
-		self.allgbfeatures_templist = copy.deepcopy(self.gbfile['features'])
-		for i in range(len(self.gbfile['features'])): #checks to match dna change
-			if len(self.gbfile['features'][i]['location']) == 1:
-				featurestart, featurefinish = self.get_location(self.gbfile['features'][i]['location'][0])
-			else:
-				n = 0
-				featurestart = self.get_location(self.gbfile['features'][i]['location'][n])[0]
-				n = len(self.gbfile['features'][i]['location'])-1
-				featurefinish = self.get_location(self.gbfile['features'][i]['location'][n])[1]
-			
-			if (start<=featurestart and featurefinish<=finish) == True: #if change encompasses whole feature
-				self.clipboard['features'].append(self.allgbfeatures_templist[i])
-				for n in range(len(self.gbfile['features'][i]['location'])):
-					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start+1, 'b')
-					self.clipboard['features'][-1]['location'][n] = newlocation
-
 	def CopyRC(self, start, finish):
 		'''Copy the reverse complement of DNA and all the features for a certain selection'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
-		self.Copy(start, finish)
-		self.reverse_complement_clipboard()
+		self.RichCopy(start, finish, True)
+		#self.reverse_complement_clipboard()
 
 
-	def RichCopy(self, start, finish):
+	def RichCopy(self, start, finish, complement=False):
 		'''a method to copy not only dna to clipboard but exchange features and dna 
 		   beetween two windows
 		   this depreciates the Copy method from this file
@@ -973,16 +951,22 @@ class gbobject(object):
 				for n in range(len(self.gbfile['features'][i]['location'])):
 					newlocation = self.add_or_subtract_to_locations(self.gbfile['features'][i]['location'][n], -start+1, 'b')
 					dnapyClipboard['features'][-1]['location'][n] = newlocation
-
-		# save clipboard to json string
-		dnapyClipboard     = json.dumps(dnapyClipboard)
 		
+		# if complement copy is hoped for, reverse it here:
+		if complement == True:
+			dnapyClipboard = self.reverse_complement_clipboard(dnapyClipboard)
+		
+		# save simple dna as txt
 		self.richClipboard = wx.DataObjectComposite()
+		text               = wx.TextDataObject(dnapyClipboard['dna'])
 		
-		text               = wx.TextDataObject(dna)
+		# save clipboard to json string
+		JSONdnapyClipboard     = json.dumps(dnapyClipboard)
+		
+		
 
 		dnapy              = wx.CustomDataObject("application/DNApy")
-		dnapy.SetData(dnapyClipboard)
+		dnapy.SetData(JSONdnapyClipboard)
 		
 		self.richClipboard.Add(text, True)	# add clear dna text as preffered object
 		self.richClipboard.Add(dnapy)		# add rich dna info as json
@@ -993,6 +977,7 @@ class gbobject(object):
 		if wx.TheClipboard.Open():
 			wx.TheClipboard.SetData(self.richClipboard)
 			wx.TheClipboard.Close()
+			
 		
 		return True
 		
@@ -1029,7 +1014,7 @@ class gbobject(object):
 				# else there is nothing to paste
 				pasteRich = False
 				paste     = ''
-		
+
 		# here we paste, mostly the same as Paste() 
 		if pasteRich:
 
