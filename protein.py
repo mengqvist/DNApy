@@ -30,6 +30,8 @@
 #Get source code at: https://github.com/0b0bby0/DNApy
 #
 
+import dna
+import random
 
 def one_to_three(one_letter):
 	'''
@@ -214,3 +216,22 @@ def count_aa(seq):
 	'X':seq.count('R'),
 	'*':seq.count('*')}	
 	return AA
+	
+def reverse_translate(prot_seq, table=1):
+	'''
+	Reverse translates protein sequence to DNA sequence using the specified codon table.
+	For each amino acid the DNA codon is chosen randomly from those that encode the specified amino acid.
+	table defaults to the standard codon table 1
+	
+	Input is a protein sequence in one-letter code as a string.
+	Output is a DNA sequence as a string.
+	table defaults to the standard codon table 1	
+	'''
+	assert type(prot_seq) is str, 'Error, the input must be a string containing amino acids in single letter code.'
+	dna_seq = []
+	for AA in prot_seq:
+		possible = dna.GetCodons(AA, table=table, separate=False)
+		dna_seq.append(random.choice(possible))
+		
+	return ''.join(dna_seq)
+	

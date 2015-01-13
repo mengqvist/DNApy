@@ -32,7 +32,9 @@
 
 
 
-
+from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
+ 	                                  #See documentation for more detail
+from wx.lib.pubsub import pub
 
 from copy import deepcopy
 import string
@@ -52,6 +54,7 @@ import output
 import dna
 from base_class import DNApyBaseClass
 import featurelist_GUI
+import plasmid_GUI
 
 #TODO
 #fix statusbar in general
@@ -183,26 +186,31 @@ class DNALexer(BaseLexer):
 
 		#color restriction sites
 		for enzyme in genbank.restriction_sites:
-			start  = enzyme[1]
-			finish = enzyme[2]
-			style = DNALexer.STC_STYLE_ENZYMES
-			if start < finish:  # enzyme cuts in the strain
-				stc.StartStyling(start-1, 0x1f)
-				length = finish-(start-1)
-				if length == 0:
-					stc.StartStyling(start-1, 0x1f)
-					length = 1
-				stc.SetStyling(length, style)
-			else: # enzyme is exactly throughout the 0
-				# the beginning:
-				stc.StartStyling(0, 0x1f)
-				length = finish
-				stc.SetStyling(length, style)
 
-				# and the end:
-				stc.StartStyling(start-1, 0x1f)
-				length = len(genbank.gb.gbfile['dna']) - start + 1
-				stc.SetStyling(length, style)
+			sites = genbank.restriction_sites[enzyme].restrictionSites
+
+			if len(sites) > 0:
+				for site in sites:
+					start  = site[1]
+					finish = site[2]
+					style = DNALexer.STC_STYLE_ENZYMES
+					if start < finish:  # enzyme cuts in the strain
+						stc.StartStyling(start-1, 0x1f)
+						length = finish-(start-1)
+						if length == 0:
+							stc.StartStyling(start-1, 0x1f)
+							length = 1
+						stc.SetStyling(length, style)
+					else: # enzyme is exactly throughout the 0
+						# the beginning:
+						stc.StartStyling(0, 0x1f)
+						length = finish
+						stc.SetStyling(length, style)
+
+						# and the end:
+						stc.StartStyling(start-1, 0x1f)
+						length = len(genbank.gb.gbfile['dna']) - start + 1
+						stc.SetStyling(length, style)
 
 
 		#color search hits
@@ -359,11 +367,14 @@ class TextEdit(DNApyBaseClass):
 		'''
 		Method should be modified as to update other panels in response to changes in own panel.
 		'''
-		pass
+		MSG_CHANGE_TEXT = "change.text"
+		pub.sendMessage(MSG_CHANGE_TEXT, text="DNA view says update!")
 
 	
 	def update_ownUI(self):
-		'''For changing background color of text ranges'''
+		'''
+		For changing background color of text ranges and updating selection.
+		'''
 		sequence = genbank.gb.GetDNA()
 		if sequence == None:
 			sequence = ''	
@@ -381,14 +392,12 @@ class TextEdit(DNApyBaseClass):
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnLeftUp(self, event):
-		self.set_dna_selection('') #update the varable keeping track of DNA selection
-#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+		self.set_dna_selection() #update the varable keeping track of DNA selection
 		event.Skip() #very important to make the event propagate and fulfill its original function		
 
 	def OnMotion(self, event):
-		if event.Dragging() and event.LeftIsDown():
-			self.set_dna_selection('') #update the varable keeping track of DNA selection
-#			pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+		#if event.Dragging() and event.LeftIsDown():
+		#	self.set_dna_selection() #update the varable keeping track of DNA selection
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnRightUp(self, event):
@@ -397,11 +406,14 @@ class TextEdit(DNApyBaseClass):
 
 #####################################################################
 
-	def set_dna_selection(self, msg):
-		'''Recieves requests for DNA selection and then sends it.'''
+	def set_dna_selection(self):
+		'''
+		Updates DNA selection.
+		'''
 		selection = self.get_selection()
 		genbank.dna_selection = selection
-
+		self.update_globalUI()
+		#self.update_ownUI()
 
 
 	def OnKeyPress(self, evt):
@@ -469,8 +481,7 @@ class TextEdit(DNApyBaseClass):
 		elif key == 317 and shift == True: #down + select
 			self.stc.LineDownExtend()
 
-		self.set_dna_selection('') #update the varable keeping track of DNA selection
-#		pub.Publisher.sendMessage('private_group_for_those_that_affect_DNA_selection_from_DNA_editor', '') #tell others that DNA selection changed
+		self.set_dna_selection() #update the varable keeping track of DNA selection
 
 ##########################
 	def make_outputpopup(self):
@@ -507,7 +518,7 @@ class TextEdit(DNApyBaseClass):
 		start = 0
 		finish = len(genbank.gb.GetDNA())
 		self.stc.SetSelection(start, finish)
-		self.set_dna_selection('')	
+		self.set_dna_selection()	
 		self.update_ownUI()
 		self.update_globalUI()
 
@@ -516,7 +527,9 @@ class TextEdit(DNApyBaseClass):
 		start, finish = self.stc.GetSelection()
 		if start == finish: #not a selection
 			finish = -1
-#		print('start, finish', start, finish)
+		elif start > finish: #the selection was made backwards
+			start, finish = finish, start
+		
 		selection = (start+1, finish)
 #		print('selection', selection)
 		return selection
@@ -592,7 +605,8 @@ class TextEdit(DNApyBaseClass):
 			pass
 		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
-		genbank.gb.Paste(start)
+		#genbank.gb.Paste(start)
+		genbank.gb.RichPaste(start)
 		self.update_ownUI() 
 		self.update_globalUI()
 		self.stc.SetSelection(start-1, start-1)
@@ -615,7 +629,10 @@ class TextEdit(DNApyBaseClass):
 		if finish == -1:
 			raise ValueError, 'Cannot copy an empty selection'
 		else:
-			genbank.gb.Copy(start, finish)
+			#genbank.gb.Copy(start, finish)
+		
+			# try the new copy:
+			genbank.gb.RichCopy(start, finish)
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
@@ -735,53 +752,6 @@ class TextEdit(DNApyBaseClass):
 ######################################
 ######################################
 
-
-#make derivative classes that make global updates
-class FeatureList2(featurelist_GUI.FeatureList):
-	def __init__(self, parent, id):
-		super(FeatureList2, self).__init__(parent, id)
-		
-	def update_globalUI(self):
-		'''
-		Update other panels in response to changes in own panel.
-		'''
-		self.GetParent().GetParent().dnaview.update_ownUI()
-
-class TextEdit2(TextEdit):
-	def __init__(self, parent, id):
-		super(TextEdit2, self).__init__(parent, id)
-		
-	def update_globalUI(self):
-		'''
-		Update other panels in response to changes in own panel.
-		'''		
-		self.GetParent().GetParent().feature_list.update_ownUI()	
-
-		
-class DNAedit(DNApyBaseClass):
-	'''
-	This class is intended to glue together the dnaedit and featurelist panels.
-	'''
-	def __init__(self, parent, id):
-		wx.Panel.__init__(self, parent)
-		splitter1 = wx.SplitterWindow(self, 0, style=wx.SP_3D)	
-		self.feature_list = FeatureList2(splitter1, id=wx.ID_ANY)
-		self.dnaview = TextEdit2(splitter1, id=wx.ID_ANY)
-		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-295))
-
-		sizer = wx.BoxSizer(wx.HORIZONTAL)
-		sizer.Add(item=splitter1, proportion=-1, flag=wx.EXPAND)
-		self.SetSizer(sizer)
-
-		self.update_ownUI()
-		
-	#### Need to define update methods inherited from DNApyBaseClass #####
-
-	def update_ownUI(self):
-		self.feature_list.update_ownUI()
-		self.dnaview.update_ownUI()
-		
-	#######################################################################
 		
 ##### main loop
 class MyApp(wx.App):

@@ -36,8 +36,15 @@
 #add rightclick menus
 
 import wx
+
 import cairo
 from wx.lib.wxcairo import ContextFromDC
+
+from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
+ 	                                  #See documentation for more detail
+from wx.lib.pubsub import pub
+
+
 import genbank
 import copy
 import math
@@ -57,6 +64,9 @@ files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
 
+
+
+
 class PlasmidView(DNApyBaseDrawingClass):
 	highlighted_feature = False
 	genbank.search_hits = []
@@ -70,6 +80,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		# initialise the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 
+		self.parent = parent
+	
 		genbank.dna_selection = (1,1)
 
 		#self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -89,8 +101,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 		'''
 		Method should be modified as to update other panels in response to changes in own panel.
 		'''
-		pass
-		
+		MSG_CHANGE_TEXT = "change.text"
+		pub.sendMessage(MSG_CHANGE_TEXT, text="Plasmid view says update!")
+
 
 	def update_ownUI(self):
 		"""
@@ -115,6 +128,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
 		selection = (int(selection[0]-1), int(selection[1]))
 		genbank.dna_selection = selection
+		self.update_globalUI()
 
 
 ############### Done setting required methods #######################
@@ -793,46 +807,43 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 ############ Done with mouse methods ####################
 
-class PlasmidView2(DNApyBaseClass):
+class PlasmidView2(PlasmidView):
 	'''
 	This class is intended to glue together the plasmid drawing with control buttons.
 	'''
 	def __init__(self, parent, id):
 		DNApyBaseClass.__init__(self, parent, id)
-		self.plasmid_view = PlasmidView(self, -1)	
+		panel1 = wx.Panel(self)
+		panel2 = wx.Panel(self)
 
-
-		
-
-		
 		##########  Add buttons and methods to control their behaviour ###########	
 		#buttons
 		padding = 10 #how much to add around the picture
 
 		imageFile = files['default_dir']+"/icon/circle.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		circle = wx.BitmapButton(self, id=10, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+		circle = wx.BitmapButton(panel1, id=10, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/group.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		group = wx.BitmapButton(self, id=11, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+		group = wx.BitmapButton(panel1, id=11, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/radiating.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		radiating = wx.BitmapButton(self, id=12, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+		radiating = wx.BitmapButton(panel1, id=12, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		
 		imageFile = files['default_dir']+"/icon/new_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		newfeature = wx.BitmapButton(self, id=1, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+		newfeature = wx.BitmapButton(panel1, id=1, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/remove_small.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		deletefeature = wx.BitmapButton(self, id=2, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
+		deletefeature = wx.BitmapButton(panel1, id=2, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "share")
 
 		imageFile = files['default_dir']+"/icon/edit.png"
 		image1 = wx.Image(imageFile, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-		edit = wx.BitmapButton(self, id=6, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "edit")
+		edit = wx.BitmapButton(panel1, id=6, bitmap=image1, size = (image1.GetWidth()+padding, image1.GetHeight()+padding), name = "edit")
 		
 		#bind feature list buttons
 		self.Bind(wx.EVT_BUTTON, self.OnCircularLabels, id=10)
@@ -843,7 +854,6 @@ class PlasmidView2(DNApyBaseClass):
 		self.Bind(wx.EVT_BUTTON, self.OnDelete, id=2)
 		self.Bind(wx.EVT_BUTTON, self.OnEditFeature, id=6)
 
-
 		#arrange buttons vertically		
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(item=circle)
@@ -853,15 +863,28 @@ class PlasmidView2(DNApyBaseClass):
 		sizer.Add(item=deletefeature)
 		sizer.Add(item=edit)
 
+		panel1.SetSizer(sizer)
+
+
+
+		#add the actual plasmid view
+		self.plasmid_view = PlasmidView(panel2, -1)	
+
+		sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+		sizer1.Add(item=self.plasmid_view, proportion=-1, flag=wx.EXPAND)
+		panel2.SetSizer(sizer1)
+
 
 
 		#add feature list and buttons horizontally	
 		sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-		sizer2.Add(item=sizer, proportion=0, flag=wx.EXPAND)
-		sizer2.Add(item=self.plasmid_view, proportion=-1, flag=wx.EXPAND)
+		sizer2.Add(item=panel2, proportion=-1, flag=wx.EXPAND)
+		sizer2.Add(item=panel1)
 
 		self.SetSizer(sizer2)
-		
+	
+	
+	
 	def update_ownUI(self):
 		'''
 		User interface updates.
@@ -889,15 +912,19 @@ class PlasmidView2(DNApyBaseClass):
 	def	OnEditFeature(self, evt):
 		pass
 		
-	
+	def OnLeftUp(self, event):
+		event.Skip()
 	#######################################################################
 	
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
-		frame = wx.Frame(None, -1, title="Plasmid View", size=(700,700), style = wx.NO_FULL_REPAINT_ON_RESIZE)
-		panel =	PlasmidView2(frame, -1)
-	
+
+		frame = wx.Frame(None, -1, title="Plasmid View", size=(700,600), style = wx.NO_FULL_REPAINT_ON_RESIZE)
+
+
+		self.plasmid_view = PlasmidView2(frame, -1)	
+
 		
 		frame.Centre()
 		frame.Show(True)

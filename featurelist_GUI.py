@@ -37,6 +37,9 @@
 import ast
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx
+from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
+ 	                                  #See documentation for more detail
+from wx.lib.pubsub import pub
 
 import sys, os
 import string
@@ -130,7 +133,8 @@ class FeatureList(DNApyBaseClass):
 		'''
 		Method should be modified as to update other panels in response to changes in own panel.
 		'''
-		pass
+		MSG_CHANGE_TEXT = "change.text"
+		pub.sendMessage(MSG_CHANGE_TEXT, text="Feature list says update!")
 		
 
 	def update_ownUI(self):
@@ -184,7 +188,7 @@ class FeatureList(DNApyBaseClass):
 		'''Updates selection depending on which feature is chosen'''
 		index = self.feature_list.GetFirstSelected()
 		genbank.feature_selection = copy.copy(index)
-		self.update_globalUI() #update feature editor
+
 
 	def ListOnActivate(self, event):
 		'''Updates feature AND DNA selection based on which feature is chosen'''
@@ -195,7 +199,7 @@ class FeatureList(DNApyBaseClass):
 		start = genbank.gb.get_location(locations[0])[0]
 		finish = genbank.gb.get_location(locations[-1])[1]
 		genbank.dna_selection = copy.copy((start-1, finish))
-		self.GetParent().GetParent().dnaview.stc.SetSelection(start-1, finish) #update DNA selection
+		self.update_globalUI()
 
 ######
 ######
@@ -212,7 +216,8 @@ class FeatureList(DNApyBaseClass):
 		dlg = featureedit_GUI.FeatureEditDialog(None, 'New Feature') # creation of a dialog with a title
 		dlg.Center()
 		dlg.ShowModal()
-		
+		self.update_ownUI() #update the feature view
+		self.update_globalUI() 
 		
 
 	def OnDelete(self, event):
@@ -262,7 +267,8 @@ class FeatureList(DNApyBaseClass):
 		dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
 		dlg.Center()
 		dlg.ShowModal()
-		self.GetParent().GetParent().update_ownUI()
+		self.update_ownUI() #update the feature view
+		self.update_globalUI() 
 
 	def focus_feature_selection(self):
 		index = copy.copy(genbank.feature_selection)
@@ -270,6 +276,7 @@ class FeatureList(DNApyBaseClass):
 		self.feature_list.SetItemState(item=index, state=ULC.ULC_STATE_SELECTED, stateMask=wx.LIST_STATE_SELECTED) #for the highlight
 		self.feature_list.Select(index, True) #to select it
 		self.feature_list.Focus(index) #to focus it
+
 
 	def update_feature_selection(self, index):
 		'''Updates which feature is selected'''
