@@ -115,6 +115,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
+
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
 		self.DrawCairo(dc)
@@ -170,7 +171,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 	def DrawCairo(self, dc):
 		''' Function that draws the whole plasmid in every aspect'''
-		
+
 		# start the DC and clear it
 		dc.SetBackground(wx.Brush("White"))
 		dc.Clear() # make sure you clear the bitmap!
@@ -182,6 +183,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 		canvasWidth  = self.size[0]
 		canvasHeight = self.size[1]
 		ratio = float(canvasHeight)/ float(canvasWidth)
+		
+		self.labelHelper		= {}
 
 		if canvasWidth != 0 and canvasHeight != 0 and canvasWidth > 100 and canvasHeight > 100:
 			self.ctx.scale(canvasWidth*ratio, canvasHeight) # Normalizing the canvas
@@ -246,14 +249,14 @@ class PlasmidView(DNApyBaseDrawingClass):
 		drawHightlight 			= False		
 		highPath       			= False	
 		
-		self.labelHelper		= {}
+		
 		
 		
 		#####################
 		# Settings
 		arrow_thickness   = 2.4							# like everything in percent
 		radius_change     = arrow_thickness/2			# initial space between arrow and plasmid
-		lev               = arrow_thickness + 0.5		# level distance
+		lev               = arrow_thickness + 0.8		# level distance
 		arrow_head_length = 3.2 						# in degree
 		
 		length            = float(len(genbank.gb.GetDNA()))
@@ -274,7 +277,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			feature     = featurelist[i]
 			
 			# variable to save as a hittest
-			hittestName = "%s%s%s" % (name, index, start)		# random pattern
+			hittestName = "%s%s" % (name, index)				# random pattern
 			self.hittest[hittestName] = []						# initialise list to store arrow and label of a feature as paths
 			self.labelHelper[hittestName] = []					# save radius of arrow
 
@@ -290,9 +293,12 @@ class PlasmidView(DNApyBaseDrawingClass):
 			# draw the arrow:
 			arrowResult, arrowResult2 = self.drawCairoArrow(feature, hittestName,ctx, radius, radius_change, lev,arrow_head_length, length, degreeMult, borderwidth, passBC, drawHightlight )
 			
+			
+			
 			if arrowResult != False:
 				highPath  = arrowResult
 				highColor = arrowResult2
+
 		
 			
 		# now draw the highlitgh arrow, so its on top:
@@ -318,7 +324,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			feature     = featurelist[i]
 		
 			# variable to save as a hittest
-			hittestName = "%s%s%s" % (name, index, start)		# random pattern
+			hittestName = "%s%s" % (name, index)		# random pattern
 			
 			# get highest level ov labels, then calculate the radius and use that as the radius to place all labels
 			# --> might work
@@ -702,6 +708,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 				# check if this path is hit
 				if inFill == True or inStroke == True:
 					hit = path
+			
 					
 				self.ctx.fill()
 		
@@ -756,10 +763,12 @@ class PlasmidView(DNApyBaseDrawingClass):
 			# only update after change
 			if oldhit != hit:
 				self.update_ownUI()
+				
 		else:
 			self.Highlight = None
 			if oldhit != hit:
 				self.update_ownUI()
+		
 
 		
 		

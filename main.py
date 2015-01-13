@@ -750,7 +750,7 @@ Put Table here
 		
 		# reload the enzymes maybe?
 		self.restrictionEnzymes.reloadEnzymes()
-		print "reload enzymes"
+
 
 
 ######################################
