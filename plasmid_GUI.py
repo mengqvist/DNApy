@@ -74,8 +74,13 @@ class PlasmidView(DNApyBaseDrawingClass):
 	def __init__(self, parent, id):
 	
 		# hit test variable
-		self.hittest = {}
-		self.Highlight = None
+		self.hittest = {}					# to store the hittest paths
+		self.Highlight 			= None		# hightlight this on move
+		self.HighlightClick 	= None		# hightlight constantly
+		
+		self.selectionDrawing  			= []
+		self.selectionDrawingDirection 	= "right"
+		self.selectionDrawingDiff		= 0
 		
 		# initialise the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
@@ -84,8 +89,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 	
 		genbank.dna_selection = (1,1)
 
-		#self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-		#self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 		#self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
 		self.Bind(wx.EVT_MOTION, self.OnMotion)
 		#self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
@@ -191,8 +196,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			
 			self.ctx.scale(0.01, 0.01) # Normalizing the canvas
 
-			self.ctx.translate (50/ratio,50) # Changing the current transformation matrix
-		
+			self.ctx.translate (50/ratio,50) # Changing the current transformation matric			
 		
 		#
 		# plasmid settings:
@@ -200,9 +204,24 @@ class PlasmidView(DNApyBaseDrawingClass):
 		radius = 26
 		self.radius = radius
 		
+		# draw the helper plain white circle to make selection possible:
+		self.ctx.arc(0,0,radius+2.5,0,2*math.pi)
+		self.ctx.set_source_rgb (1, 1, 1) # Solid #white
+		self.ctx.set_line_width (0)
+		self.markerArea1 = self.ctx.copy_path()
+		self.ctx.fill()
+		
+		self.ctx.arc(0,0,radius-2.5,0,2*math.pi)
+		self.ctx.set_source_rgb (1,1,1) # Solid white
+		self.ctx.set_line_width (0)
+		self.markerArea2 = self.ctx.copy_path()
+		self.ctx.fill()
 
+
+
+	
 		# draw the plasmid
-		self.ctx.arc(0,0,radius+0.4,0,2*math.pi)
+		self.ctx.arc(0,0,radius+0.4,0, 2*math.pi)
 		self.ctx.set_source_rgb (0, 0, 0) # Solid color
 		self.ctx.set_line_width (0.4)
 		self.ctx.stroke()
@@ -220,20 +239,84 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.drawCairoFeatures(self.ctx, radius)
 
 
-		
-		
+			# draw selection?
+			if len(self.selectionDrawing) > 1:
+				start_rad = self.selectionDrawing[0]
+				end_rad = self.selectionDrawing[1]
+				
+				
+				
+
+				# now draw blue selection:
+				self.ctx.set_source_rgba(0,0.67,1,0.75) # Solid color
+				self.ctx.set_line_width(3)
+				x,y = self.radial2cartesian(radius, start_rad)
+				
+				
+				if start_rad - self.selectionDrawingDirection > 0:
+					# start is bigger than first finish, so 5'-3'
+					direction = "left"
+				else:
+					direction = "right"
+				
+				
+				self.ctx.move_to(x,y)
+				if direction == "right": # 3' to 5'
+					self.ctx.arc(0,0,radius, start_rad, end_rad )
+				else:
+					self.ctx.arc_negative(0,0,radius, start_rad, end_rad )
+				self.ctx.stroke()
+				
+				
+				## LINES ###################
+				# set style
+				self.ctx.set_source_rgb(0,0,0) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				
+				
+				# load the angles and draw the line!
+				
+				sx1, sy1 = self.radial2cartesian(radius+2, start_rad)
+				sx2, sy2 = self.radial2cartesian(radius-2, start_rad)
+				self.ctx.move_to(sx1,sy1)
+				self.ctx.line_to(sx2,sy2)
+				self.ctx.stroke()
+				
+				# and the endline, same thing
+				
+				ex1, ey1 = self.radial2cartesian(radius+2, end_rad)
+				ex2, ey2 = self.radial2cartesian(radius-2, end_rad)
+				self.ctx.move_to(ex1,ey1)
+				self.ctx.line_to(ex2,ey2)
+				self.ctx.stroke()
+				
+				
+			elif len(self.selectionDrawing) == 1:
+				# just show one line for hover here
+					
+				## LINES ###################
+				# set style
+				self.ctx.set_source_rgb(0,0,0) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				
+				
+				# load the angles and draw the line!
+				start_rad = self.selectionDrawing[0]
+				sx1, sy1 = self.radial2cartesian(radius+2, start_rad)
+				sx2, sy2 = self.radial2cartesian(radius-2, start_rad)
+				self.ctx.move_to(sx1,sy1)
+				self.ctx.line_to(sx2,sy2)
+				self.ctx.stroke()
+				
+					
+			
 		return True
 
 
 
 
-	def radial2cartesian(self,radius, angle, cx=0,cy=0):
-		radius = float(radius)
-		angle  = float(angle)
-		x = radius * math.cos(angle) + cx
-		y = radius * math.sin(angle) + cy
-		
-		return x,y
+
+	
 	
 	
 	
@@ -247,7 +330,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.drawn_fw_locations = [] 		# for location tracing foreward
 		self.drawn_rv_locations = [] 		# for location tracing reverse
 		drawHightlight 			= False		
-		highPath       			= False	
+		highPath       			= []
+		highColor				= []	
+		
 		
 		
 		
@@ -283,7 +368,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 			
 			# highlitght this element?
-			if self.Highlight == hittestName:
+			if self.Highlight == hittestName or self.HighlightClick == hittestName:
 				drawHightlight 	= True
 				passBC    		= bordercolorHigh 	# border Color
 			else:
@@ -296,24 +381,26 @@ class PlasmidView(DNApyBaseDrawingClass):
 			
 			
 			if arrowResult != False:
-				highPath  = arrowResult
-				highColor = arrowResult2
+				highPath.append(arrowResult)
+				highColor.append(arrowResult2)
 
 		
 			
 		# now draw the highlitgh arrow, so its on top:
 		# it is then drawn twice at the same position!
-		if highPath != False:
-			self.ctx.append_path(highPath)
-			r,g,b = colcol.hex_to_rgb(highColor)
-			r = float(r)/255
-			g = float(g)/255
-			b = float(b)/255
-			self.ctx.set_source_rgba (r,g,b,1.0) # Solid color
-			self.ctx.set_line_width (borderwidthHigh) # or 0.1
-			self.ctx.fill_preserve ()
-			self.ctx.set_source_rgb (bordercolorHigh[0],bordercolorHigh[1],bordercolorHigh[2])	
-			self.ctx.stroke()
+		if len(highPath) >0:
+			i = 0
+			for  path, color in zip(highPath, highColor):
+				self.ctx.append_path(path)
+				r,g,b = colcol.hex_to_rgb(color)
+				r = float(r)/255
+				g = float(g)/255
+				b = float(b)/255
+				self.ctx.set_source_rgba (r,g,b,1.0) # Solid color
+				self.ctx.set_line_width (borderwidthHigh) # or 0.1
+				self.ctx.fill_preserve ()
+				self.ctx.set_source_rgb (bordercolorHigh[0],bordercolorHigh[1],bordercolorHigh[2])	
+				self.ctx.stroke()
 			
 			
 		
@@ -369,7 +456,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 				f_rad_wo_head 	= f_rad
 				drawHead 		= False
 
-				
+
 			arrow_head_x, arrow_head_y  	= self.radial2cartesian(radius+level, f_rad)
 			arrow_head_x1, arrow_head_y1  	= self.radial2cartesian(radius+level+radius_change+0.5, f_rad_wo_head)
 			arrow_head_x2, arrow_head_y2  	= self.radial2cartesian(radius+level-radius_change-0.5, f_rad_wo_head)
@@ -658,12 +745,98 @@ class PlasmidView(DNApyBaseDrawingClass):
 		return True
 	
 	
+	def drawCairoSelection(self, start=0, finish=0, feature=False):
+			
+		# we need:
+		radius			  = self.radius
+
+	
+		self.selectionDrawing = []
+		
+		# feature to highlight or drag and drop?
+		if feature != False:
+			featurelist             = genbank.gb.get_all_feature_positions()
+			for i in range(0,len(featurelist)):	
+				# load all the feature infos
+				featuretype, complement, start, finish, name, index = featurelist[i]
+		
+				temHit = "%s%s" % (name, index)
+				if feature == temHit:
+					length         		= float(len(genbank.gb.GetDNA()))
+					degreeMult     	  	= float(2*math.pi/length)
+					start_rad				= self.pos_to_angle_rad(start)			# in degree
+					finish_rad 				= self.pos_to_angle_rad(finish)	
+					
+					self.selectionDrawingDirection = start_rad + 0.01
+					
+					# set selection for real!
+					self.set_dna_selection((start,finish))
+					
+		
+		else:
+		
+			# we have a selection:
+			start_rad		= start#   - math.pi/2 
+			finish_rad   	= finish # + math.pi/2 
+		
+		# set Drawing angles
+		self.selectionDrawing.append(start_rad)	
+		self.selectionDrawing.append(finish_rad)	
+		
+		
+		# save a third value for direction.
+		# it is the first value of the end
+		# so it is the second start point!
+		# if its greater than start is is a 3'-5' direction
+		# else it should be 5'-3' selection!
+		
+		# we have to reset this as soon as we hit the start again!:
+
+		# check if the movement just hit the start and maybe changed direction of selection!
+		# this part is pretty awesome and cost me some thinking. Hope it works well
+		oldDrawingDiff 				= self.selectionDrawingDiff
+		self.selectionDrawingDiff 	= start_rad - finish_rad
+		
+		oldSign = math.copysign(1, oldDrawingDiff)
+		newSign = math.copysign(1, self.selectionDrawingDiff)
+		
+		if math.fabs(round(self.selectionDrawingDiff)) < 2 and oldSign != newSign:
+			self.selectionDrawingDirection = False
+	
+		
+		if self.selectionDrawingDirection == False:
+			self.selectionDrawingDirection = finish_rad
+		####################
+		
+		self.update_ownUI()
+			
+		
+			
+
+		return True
 	
 	
 
 
 	
-############### Setting methods for interconverting angles to dna positions ##############
+############### Setting methods for converting stuff ##############
+
+	def radial2cartesian(self,radius, angle, cx=0,cy=0): # angle in radial!
+		radius = float(radius)
+		angle  = float(angle)
+		x = radius * math.cos(angle) + cx
+		y = radius * math.sin(angle) + cy
+		
+		return x,y
+		
+	def cartesian2radial(self,x, y):
+
+		x=-x # to make it correct
+		
+		add =  math.radians(90)
+		a = math.atan2(x,y) + 1 * math.pi - add
+		
+		return a
 
 	def angle_to_pos(self, angle):
 		'''Convert an angle of a circle to a DNA position'''
@@ -679,7 +852,21 @@ class PlasmidView(DNApyBaseDrawingClass):
 			angle = 0
 		else:
 			angle = self.FractionToAngle(pos/float(len_dna))
-		return angle		
+		return angle	
+		
+	def angle_to_pos_rad(self, angle):
+		len_dna = float(len(genbank.gb.GetDNA()))
+		radMult        	= float(2*math.pi/len_dna)
+		position 		= (angle-math.pi/2)/radMult + 0.5 * len_dna
+		
+		return position
+	
+	def pos_to_angle_rad(self, position):
+		len_dna = float(len(genbank.gb.GetDNA()))
+		radMult        	= float(2*math.pi/len_dna)
+		angle = (position - 0.5 * len_dna) * radMult + math.pi/2
+		
+		return angle
 
 ########## Done with angle to dna methods ####################
 
@@ -696,14 +883,13 @@ class PlasmidView(DNApyBaseDrawingClass):
 		# get the mouse positions
 		x2, y2 = self.ctx.device_to_user(x,y)
 
-	
 		
 		for path in self.hittest:
 			cairoCtx = self.ctx
 			for i in self.hittest[path]:
 				# load the path
 				self.ctx.append_path(i)
-				inFill = cairoCtx.in_fill(x2,y2) 
+				inFill = self.ctx.in_fill(x2,y2) 
 				inStroke = self.ctx.in_stroke(x2,y2)
 				# check if this path is hit
 				if inFill == True or inStroke == True:
@@ -713,61 +899,127 @@ class PlasmidView(DNApyBaseDrawingClass):
 				self.ctx.fill()
 		
 		return hit
+	
+	def HitTestMarkerArea(self):
+		'''Check if the marker area (area where selection is possible) was hit'''
+		
+		# get the mouse position
+		x, y = self.ScreenToClient(wx.GetMousePosition())	
+		x2, y2 = self.ctx.device_to_user(x,y)
+
+		self.ctx.append_path(self.markerArea1)
+		inFill1 = self.ctx.in_fill(x2,y2) 
+		self.ctx.stroke()
+		
+		self.ctx.append_path(self.markerArea2)
+		inFill2 = self.ctx.in_fill(x2,y2) 
+		self.ctx.stroke()
+		
+		# check if the path is hit for selection
+		if inFill1 == True and inFill2 == False:
+			return True
+		else:
+			return False
 
 		
 			
 
 	def OnLeftDown(self, event):
 		'''When left mouse button is pressed down, store angle at which this happened.'''
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
+		
+		# get the mouse position
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-		angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
-		self.left_down_angle = angle #save the angle at which left button was clicked for later use
+		x2, y2 = self.ctx.device_to_user(x,y)
+		
+		self.selectionDrawing 			= [] # empty selection
+		self.selectionDrawingDirection  = False
+		
+		inArea = self.HitTestMarkerArea()
+		
+		if inArea == True:		
+			a  = self.cartesian2radial(x2,y2)
+			self.left_down_angle = a
+		else:
+			self.left_down_angle = False		
+				
+			
+		
+		#return hit
 
 
 	def OnLeftUp(self, event):
-		'''When left mouse button is lifted up, determine the DNA selection from angles generated at down an up events.'''
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
-		x, y = self.ScreenToClient(wx.GetMousePosition())	
-
-		up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
-		down_angle = self.left_down_angle
-
-		'''if abs(down_angle-up_angle) <= 0.2: # want to do 'down == up' but I need some tolerance
-			self.highlighted_feature = self.HitTest()
-			if self.highlighted_feature is False: #if there is no feature, then there is not selection, just an insertion of the charet. Draw a line
-				start = self.angle_to_pos(down_angle) 
-				finish = -1 
-			else:
-				featuretype, complement, start, finish, name, index = genbank.gb.get_all_feature_positions()[self.highlighted_feature] #get info for the feature that was 'hit'
-				start += 1 #need to adjust for some reason
-		elif down_angle < up_angle:
-			start = self.angle_to_pos(down_angle)
-			finish = self.angle_to_pos(up_angle)
-		elif down_angle > up_angle:
-			start = self.angle_to_pos(up_angle)
-			finish = self.angle_to_pos(down_angle)
-		'''
-		self.set_dna_selection((start, finish))
+		# remove start point, so we know selection is done:
+		self.left_down_angle == False
+		
+		# maybe he hit a feature?
+		hit = self.HitTest()
+		if hit != None:
+			self.HighlightClick = hit
+			# we hit one, so we need to draw the selection!
+			# wich feature was hit?
+			self.drawCairoSelection(0, 0, hit)
+			
+		else:
+			self.HighlightClick = None
+		#self.set_dna_selection((start, finish))
 		self.update_ownUI()
 
 
 	def OnMotion(self, event):
 		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
-		oldhit = self.Highlight
-		hit = self.HitTest()
-		if hit:
-			self.Highlight = hit
-			# only update after change
-			if oldhit != hit:
-				self.update_ownUI()
-				
+		
+		if event.Dragging() and event.LeftIsDown() and self.left_down_angle != False:
+			# we have to make a selection now!
+			start_angle = self.left_down_angle
+			
+			# get the mouse positions
+			x, y = self.ScreenToClient(wx.GetMousePosition())	
+			x2, y2 = self.ctx.device_to_user(x,y)
+
+			a  = self.cartesian2radial(x2,y2)
+			finish_angle = a
+			self.drawCairoSelection(start_angle, finish_angle)
+			
+
+			
+			#set genebank selection
+			start 	= self.angle_to_pos_rad(start_angle)
+			finish 	= self.angle_to_pos_rad(finish_angle)
+			
+			self.set_dna_selection((start,finish))
+
+		
+		
 		else:
-			self.Highlight = None
-			if oldhit != hit:
-				self.update_ownUI()
+			oldhit 	= self.Highlight
+			hit 	= self.HitTest()
+			if hit:
+				self.Highlight = hit
+				# only update after change
+				if oldhit != hit:
+					self.update_ownUI()
+				
+			elif len(self.selectionDrawing) < 2: # only hover position, if none is selected --> maybe use two variables to make both possible?
+				# no feature to highlight, but maybe selection hover?
+				self.Highlight = None
+				
+				# check if we are in the "hover area"
+				inArea = self.HitTestMarkerArea()
+		
+				if inArea == True:
+					# get the mouse position
+					x, y = self.ScreenToClient(wx.GetMousePosition())	
+					x2, y2 = self.ctx.device_to_user(x,y)
+					self.selectionDrawing = [] # empty it
+					self.selectionDrawing.append(self.cartesian2radial(x2,y2))	
+					self.update_ownUI()
+				elif oldhit != hit:
+					self.update_ownUI()
+				elif len(self.selectionDrawing) == 1: # TODO 
+					self.selectionDrawing = [] # empty it so the hover line wont be seen all the time
+					self.update_ownUI()
+			
+
 		
 
 		
