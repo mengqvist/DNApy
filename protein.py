@@ -188,7 +188,9 @@ def full_to_three(full):
 	
 def count_aa(seq):
 	'''
-	Count occurrences of all amino acids in sequence. Return as dictionary.
+	Count occurrences of all amino acids in sequence. 
+	The X character for unknown amino acid is allowed.
+	Return as dictionary.
 	'''
 	seq = seq.upper()
 	assert all([s in 'XIVLFCMAGTWSYPHEQDNKR*' for s in seq]) is True, 'Error, unknown amino acids %s in sequence: %s' % (str([s for s in seq if s not in 'XIVLFCMAGTWSYPHEQDNKR*']), seq)
@@ -213,9 +215,11 @@ def count_aa(seq):
 	'N':seq.count('N'),
 	'K':seq.count('K'),
 	'R':seq.count('R'),
-	'X':seq.count('R'),
-	'*':seq.count('*')}	
+	'*':seq.count('*'),
+	'X':seq.count('X')}	
 	return AA
+	
+
 	
 def reverse_translate(prot_seq, table=1):
 	'''
