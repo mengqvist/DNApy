@@ -35,7 +35,6 @@
 #add 'dna ruler'
 #add rightclick menus
 
-import random
 import wx
 
 import cairo
