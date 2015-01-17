@@ -35,13 +35,14 @@
 #add 'dna ruler'
 #add rightclick menus
 
+import random
 import wx
 
 import cairo
 from wx.lib.wxcairo import ContextFromDC
 
-from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
- 	                                  #See documentation for more detail
+from wx.lib.pubsub import setupkwargs 		#this line not required in wxPython2.9.
+ 	                                  	#See documentation for more detail
 from wx.lib.pubsub import pub
 
 
@@ -57,6 +58,8 @@ import featureedit_GUI
 
 import colcol
 
+import options					# new option file to make options easy to change in one file (or settings.txt)
+
 files={}   #list with all configuration files
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
 files['default_dir']=string.replace(files['default_dir'], "\\", "/")
@@ -68,19 +71,25 @@ execfile(settings) #gets all the pre-assigned settings
 
 
 class PlasmidView(DNApyBaseDrawingClass):
-	highlighted_feature = False
-	genbank.search_hits = []
-	label_type = 'circular'	
+	'''
+		Draws a plasmid view using cairo on a wx.dc
+		uses current file if any
+	'''	
 	def __init__(self, parent, id):
-	
-		# hit test variable
-		self.hittest = {}					# to store the hittest paths
-		self.Highlight 			= None		# hightlight this on move
+		
+		# load options into self.opt
+		self.opt = options.options()
+
+		# variables to store current events like highlight etc.
+		# for hover and click
+		self.hittest = {}			# to store the hittest paths
+		self.Highlight 		= None		# hightlight this on move
 		self.HighlightClick 	= None		# hightlight constantly
 		
-		self.selectionDrawing  			= []
+		# for selection
+		self.selectionDrawing  		= []
 		self.selectionDrawingDirection 	= "right"
-		self.selectionDrawingDiff		= 0
+		self.selectionDrawingDiff	= 0
 		
 		# initialise the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
@@ -177,74 +186,78 @@ class PlasmidView(DNApyBaseDrawingClass):
 	def DrawCairo(self, dc):
 		''' Function that draws the whole plasmid in every aspect'''
 
-		# start the DC and clear it
-		dc.SetBackground(wx.Brush("White"))
-		dc.Clear() # make sure you clear the bitmap!
-		# load it into cairo
-		self.ctx = ContextFromDC(dc)
 		
-		# set hight and width. Its 100, 100 
-		width, height = self.GetVirtualSize()
+		dc.SetBackground(wx.Brush("White"))	# start the DC and clear it
+		dc.Clear() 				# make sure you clear the bitmap!
+		self.ctx = ContextFromDC(dc)		# load it into cairo
+		
+		
+		
+		width, height = self.GetVirtualSize()	# set hight and width. Its 100, 100 
 		canvasWidth  = self.size[0]
 		canvasHeight = self.size[1]
 		ratio = float(canvasHeight)/ float(canvasWidth)
 		
-		self.labelHelper		= {}
-
+		
+		self.labelHelper		= {}	# a helper variable for labels drawn into arrows!
+		
+		# only resize the canvas if software is loaded. This prevents error messages
 		if canvasWidth != 0 and canvasHeight != 0 and canvasWidth > 100 and canvasHeight > 100:
 			self.ctx.scale(canvasWidth*ratio, canvasHeight) # Normalizing the canvas
-			
-			self.ctx.scale(0.01, 0.01) # Normalizing the canvas
-
-			self.ctx.translate (50/ratio,50) # Changing the current transformation matric			
+			self.ctx.scale(0.01, 0.01) 			# make it 100*ratiox100
+			self.ctx.translate (50/ratio,50) 		# set center to 0,0		
 		
-		#
-		# plasmid settings:
-		# 
-		radius = 26
-		self.radius = radius
+		
+		# get radius rom options:
+		radius 		= self.opt.pRadius
+		self.radius 	= radius
+		
+		# load label positions:
+		self.labelPos = self.labelPositions()
+		
 		
 		# draw the helper plain white circle to make selection possible:
-		self.ctx.arc(0,0,radius+2.5,0,2*math.pi)
-		self.ctx.set_source_rgb (1, 1, 1) # Solid #white
-		self.ctx.set_line_width (0)
-		self.markerArea1 = self.ctx.copy_path()
-		self.ctx.fill()
+		self.ctx.arc(0,0,radius+2.5,0,2*math.pi)		# outer circle
+		self.ctx.set_source_rgb (1, 1, 1) 			# white
+		self.ctx.set_line_width (0)				# no line
+		self.markerArea1 = self.ctx.copy_path()			# copy for later
+		self.ctx.fill()						# fill
 		
-		self.ctx.arc(0,0,radius-2.5,0,2*math.pi)
-		self.ctx.set_source_rgb (1,1,1) # Solid white
-		self.ctx.set_line_width (0)
-		self.markerArea2 = self.ctx.copy_path()
-		self.ctx.fill()
+		self.ctx.arc(0,0,radius-2.5,0,2*math.pi)		# inner circle
+		self.ctx.set_source_rgb (1,1,1)				# Solid white		
+		self.ctx.set_line_width (0)				# no line
+		self.markerArea2 = self.ctx.copy_path()			# copy for later
+		self.ctx.fill()						# fill
 
 
 
-	
-		# draw the plasmid
-		self.ctx.arc(0,0,radius+0.4,0, 2*math.pi)
-		self.ctx.set_source_rgb (0, 0, 0) # Solid color
-		self.ctx.set_line_width (0.4)
-		self.ctx.stroke()
+		# draw the plasmid (two circles with different radius)
+		self.ctx.arc(0,0,radius+0.4,0, 2*math.pi)		# circle
+		self.ctx.set_source_rgb (0, 0, 0) 			# Solid color
+		self.ctx.set_line_width (0.4)				# line width
+		self.ctx.stroke()					# stroke only no fill!
 
 		# inner plasmid
-		self.ctx.arc(0,0,radius-0.4,0,2*math.pi)
-		self.ctx.stroke()
+		self.ctx.arc(0,0,radius-0.4,0,2*math.pi)		# inner circle
+		self.ctx.stroke()					# stroke the same color and settings
 		
+		# if a file is loaded draw the rest
 		if genbank.gb.GetDNA():
+
+
 
 			#draw plasmid name
 			self.drawCairoPlasmidName(self.ctx)
 		
-			# draw features
-			self.drawCairoFeatures(self.ctx, radius)
 
-
-			# draw selection?
+			
+			# draw features and labels in arrow
+			self.drawCairoFeatures()
+			
+			# should we draw selection?
 			if len(self.selectionDrawing) > 1:
-				start_rad = self.selectionDrawing[0]
-				end_rad = self.selectionDrawing[1]
-				
-				
+				start_rad 	= self.selectionDrawing[0]
+				end_rad 	= self.selectionDrawing[1]
 				
 
 				# now draw blue selection:
@@ -307,9 +320,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 				self.ctx.move_to(sx1,sy1)
 				self.ctx.line_to(sx2,sy2)
 				self.ctx.stroke()
-				
-					
-			
+		
+		
+
 		return True
 
 
@@ -321,7 +334,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 	
 	
 	
-	def drawCairoFeatures(self, ctx, radius):
+	def drawCairoFeatures(self):
 		'''Loops trough features and calls other functions to draw the arrows and
 		the labels'''
 		
@@ -334,24 +347,26 @@ class PlasmidView(DNApyBaseDrawingClass):
 		highColor				= []	
 		
 		
+						
 		
 		
 		
 		#####################
-		# Settings
-		arrow_thickness   = 2.4							# like everything in percent
-		radius_change     = arrow_thickness/2			# initial space between arrow and plasmid
-		lev               = arrow_thickness + 0.8		# level distance
-		arrow_head_length = 3.2 						# in degree
+		# Settings loaded from self.opt
+		radius				= self.opt.pRadius
+		arrow_thickness   	= self.opt.pArrowThick		# like everything in percent
+		radius_change     	= self.opt.pRadChange		# initial space between arrow and plasmid
+		lev               	= self.opt.pLevAdd		# level distance
+		arrow_head_length 	= self.opt.pArrowHeadLength	
 		
-		length            = float(len(genbank.gb.GetDNA()))
-		degreeMult        = float(360/length)
+		length           	= float(len(genbank.gb.GetDNA()))
+		degreeMult       	= float(360/length)
 		
-		bordercolor       = [0, 0, 0 ]
-		borderwidth       = 0.1
+		bordercolor      	= self.opt.pFeatureBC
+		borderwidth       	= self.opt.pBW
 		
-		bordercolorHigh   = [1,0.2, 0]
-		borderwidthHigh   = 0.35
+		bordercolorHigh   	= self.opt.pFeatureBChigh
+		borderwidthHigh   	= self.opt.pBWhigh
 		#####################
 		
 		# loop through all features
@@ -362,9 +377,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 			feature     = featurelist[i]
 			
 			# variable to save as a hittest
-			hittestName = "%s%s" % (name, index)				# random pattern
-			self.hittest[hittestName] = []						# initialise list to store arrow and label of a feature as paths
-			self.labelHelper[hittestName] = []					# save radius of arrow
+			hittestName 					= "%s%s" % (name, index)	# name and index as indicator!
+			self.hittest[hittestName] 		= []						# initialise list to store arrow and label of a feature as paths
+			self.labelHelper[hittestName] 	= [True]					# save radius of arrow to draw the label maybe
 
 			
 			# highlitght this element?
@@ -376,11 +391,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 				drawHightlight	= False
 		
 			# draw the arrow:
-			arrowResult, arrowResult2 = self.drawCairoArrow(feature, hittestName,ctx, radius, radius_change, lev,arrow_head_length, length, degreeMult, borderwidth, passBC, drawHightlight )
+			arrowResult, arrowResult2 = self.drawCairoArrow(feature, hittestName, radius, radius_change, lev,arrow_head_length, length, degreeMult, borderwidth, passBC, drawHightlight )
 			
-			
-			
+			# if we want to highlight this
 			if arrowResult != False:
+				# we get color and the path from the function to save!
 				highPath.append(arrowResult)
 				highColor.append(arrowResult2)
 
@@ -396,15 +411,15 @@ class PlasmidView(DNApyBaseDrawingClass):
 				r = float(r)/255
 				g = float(g)/255
 				b = float(b)/255
-				self.ctx.set_source_rgba (r,g,b,1.0) # Solid color
-				self.ctx.set_line_width (borderwidthHigh) # or 0.1
+				self.ctx.set_source_rgb (r,g,b,) 		# Solid color
+				self.ctx.set_line_width (borderwidthHigh) 	# or 0.1
 				self.ctx.fill_preserve ()
 				self.ctx.set_source_rgb (bordercolorHigh[0],bordercolorHigh[1],bordercolorHigh[2])	
 				self.ctx.stroke()
 			
-			
+	
 		
-		# loop through all features to draw the labels
+		# loop through all features to draw the labels in arrows!
 		for i in range(0,len(featurelist)):	
 			# load all the feature infos
 			featuretype, complement, start, finish, name, index = featurelist[i]
@@ -413,20 +428,27 @@ class PlasmidView(DNApyBaseDrawingClass):
 			# variable to save as a hittest
 			hittestName = "%s%s" % (name, index)		# random pattern
 			
-			# get highest level ov labels, then calculate the radius and use that as the radius to place all labels
-			# --> might work
-			
 			# draw the label and the line connecting them
-			labelresult = self.drawCairoLabel(feature, hittestName)
+			labelresult = self.drawArrowLabels(feature, hittestName)
+			if labelresult != False:
+				# this label was not drawn into arrow
+				# save it hittest name as missing
+				self.labelHelper[hittestName] = [False,feature]
+			
+			
 		
+		# here draw the other Labels:
+		self.drawCairoLabels()
+					
+	
 		return True
 	
 	
 	
 	
 	# only draw arrow of feature
-	def drawCairoArrow(self, feature, hittestName,ctx, radius,  radius_change, lev,arrow_head_length, length, degreeMult, bw, bc, high ):
-		'''Fucntion to draw the arrow onto the canvas and save 
+	def drawCairoArrow(self, feature, hittestName, radius,  radius_change, lev,arrow_head_length, length, degreeMult, bw, bc, high ):
+		'''Function to draw the arrow onto the canvas and save 
 		its path for a hittest'''
 		# load infos:
 		featuretype, complement, start, finish, name, index = feature
@@ -436,7 +458,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.drawn_fw_locations, levelMult = self.find_overlap(self.drawn_fw_locations, (start, finish))
 			if levelMult>3 or finish-start<=5: #Only allow for tree levels. Also, for very short features, draw them at bottom level
 				levelMult = 0
-				radius_change = radius_change + radius_change * 0.25
+				radius_change = radius_change * 1.25
 
 			level 				= lev * (1+levelMult)
 	
@@ -471,13 +493,15 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.ctx.move_to(x_start, y_start)
 			
 			self.labelHelper[hittestName].append(radius+level-radius_change)	# inner radius
+			self.labelHelper[hittestName].append(radius+level+radius_change)	# outer radius
+			
 			# the actual drawing:
 			self.ctx.arc(0, 0, radius+level+radius_change,s_rad, f_rad_wo_head);
 
 			if drawHead:
-				ctx.line_to(arrow_head_x1,arrow_head_y1)
-				ctx.line_to(arrow_head_x,arrow_head_y)
-				ctx.line_to(arrow_head_x2,arrow_head_y2)
+				self.ctx.line_to(arrow_head_x1,arrow_head_y1)
+				self.ctx.line_to(arrow_head_x,arrow_head_y)
+				self.ctx.line_to(arrow_head_x2,arrow_head_y2)
 			self.ctx.arc_negative(0, 0, radius+level-radius_change, f_rad_wo_head, s_rad);
 			self.ctx.close_path ()
 			
@@ -485,7 +509,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.drawn_rv_locations, levelMult = self.find_overlap(self.drawn_rv_locations, (start, finish))
 			if levelMult>3 or finish-start<=5: #Only allow for tree levels. Also, for very short features, draw them at bottom level
 				levelMult = 0
-				radius_change = radius_change + radius_change * 0.25
+				radius_change = radius_change * 1.25 # for bigger items!
 
 			level 				= lev * (1+levelMult)
 	
@@ -517,13 +541,14 @@ class PlasmidView(DNApyBaseDrawingClass):
 			self.ctx.move_to(x_start, y_start)
 			
 			self.labelHelper[hittestName].append(radius-level-radius_change)	# smallest radius
+			self.labelHelper[hittestName].append(radius-level+radius_change)	# outer radius
 			
 			# the actual drawing:
 			self.ctx.arc_negative(0, 0, radius-level-radius_change,s_rad, f_rad_wo_head);
 			if drawHead:
-				ctx.line_to(arrow_head_x1,arrow_head_y1)
-				ctx.line_to(arrow_head_x,arrow_head_y)
-				ctx.line_to(arrow_head_x2,arrow_head_y2)
+				self.ctx.line_to(arrow_head_x1,arrow_head_y1)
+				self.ctx.line_to(arrow_head_x,arrow_head_y)
+				self.ctx.line_to(arrow_head_x2,arrow_head_y2)
 			self.ctx.arc(0, 0, radius-level+radius_change, f_rad_wo_head, s_rad);
 			self.ctx.close_path ()
 	
@@ -555,14 +580,17 @@ class PlasmidView(DNApyBaseDrawingClass):
 			return False, False
 	
 	
-	def drawCairoLabel(self, f, hittestName):
-		featuretype, complement, start, finish, name, index = f
+	def drawArrowLabels(self, f, hittestName):
+		'''
+			Draws labels into arrows
+		'''
 		
 
-			
-	
-		arrowRadius = float(self.labelHelper[hittestName][0]) + 0.5
+		featuretype, complement, start, finish, name, index = f
+		
+		arrowRadius = float(self.labelHelper[hittestName][1]) + 0.5
 		back_rad = 0
+		returnValue	= False
 	
 		# calculate length of coresponding arrow, ignoring the level!
 		length         		= float(len(genbank.gb.GetDNA()))
@@ -597,12 +625,18 @@ class PlasmidView(DNApyBaseDrawingClass):
 		spacer 		= 0.1 * TextWidth
 		ar_l_spacer = ar_l - spacer
 	
-		# check if text would fix into arrow if round
+		# check if text would fix into arrow
 		if TextWidth < ar_l_spacer:
 		
 			
 			# if yes we have to draw every symbole one for one
 			startspacer = (ar_l - TextWidth)/2
+			
+			#
+			# we have to draw the labbels different fore foreward and reverse features
+			# also upper and lower features are different
+			# so we need for time a similar code
+			#
 			
 			# draw foreward and upper labels here:
 			if complement == False and (middle_deg <= 90 or middle_deg >= 270)  :
@@ -696,17 +730,76 @@ class PlasmidView(DNApyBaseDrawingClass):
 					new_rad	= (float(TextWidth) / 20.0) * dist2rad
 					back_rad = back_rad - new_rad
 					self.ctx.rotate(-new_rad)
-			
+		else:
+			# we could not draw this label
+			# we should draw this label later!
+			returnValue = hittestName
 		self.ctx.rotate(-back_rad)
 
-		return False
+		return returnValue
+	
+	
+	
+	
+	
+	def drawCairoLabels(self):
+		'''Function to draw labels of:
+			- features wich are to short for drawing inside
+			- restriction enzymes
+			- any other
+		'''
 
+		# cairo context in -> self.ctx
+		
+		# all positions should be in --> self.labelPos
+		
+		# all missing labels are saved as self.labelHelper[hittestName] = [False,feature]
+		# so you can loop trough them
+		
+		for name in self.labelHelper:
+			if self.labelHelper[name][0] == False:
+				featuretype, complement, start, finish, name, index = self.labelHelper[name][1]
+				
+				#radius = self.labelHelper[name][3]
+
+				
+				# middle of feature:
+				length 		= float(len(genbank.gb.GetDNA()))
+				middle 		= start + (finish-start)/2 % length
+				middleAngle = self.pos_to_angle_rad(middle)
+				x,y 	= self.radial2cartesian(self.opt.pRadius+0.4, middleAngle) 	# middle of item, outer plasmid radius
+				x1,y1 	= self.radial2cartesian(self.opt.labelRadius, middleAngle)	# endpoint of line
+		
+				# draw a line from label to feature				
+				self.ctx.set_source_rgba(0.0,0.0,0.0,1) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				self.ctx.move_to(x,y)
+				self.ctx.line_to(x1,y1)
+				self.ctx.stroke()
+				
+				# draw a box:
+				
+				#self.hitpath = self.ctx.copy_path()
+				#self.ctx.fill()
+				
+				# draw a label
+				
+				# add box-path to hittest list of this feature or enzyme		
+				#self.hittest[name].append(self.hitpath) 
+				
+				
+
+		return True
+	
+	
+	
+	
 	
 	def drawCairoPlasmidName(self, ctx):
 		'''Draw the plasmid name and basepairs in the middle'''
 		
-		width  = 100
-		height = 100
+		#width  = 100
+		#height = 100
 		self.hittest['plasmidname'] = []
 		
 		name = genbank.gb.fileName.split('.')[0]
@@ -727,9 +820,6 @@ class PlasmidView(DNApyBaseDrawingClass):
 		
 		self.ctx.show_text(name)
 		
-
-		
-		
 		# bp
 		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		self.ctx.set_font_size(2);
@@ -737,12 +827,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 		self.ctx.move_to(-TextWidth/2, 2.7);  
 		self.ctx.show_text(basepairs);
 		
-		# if we want to rotate, we could make that here or so:
-#		self.ctx.rotate(1) 
-		
-
 		
 		return True
+	
+	
+	
 	
 	
 	def drawCairoSelection(self, start=0, finish=0, feature=False):
@@ -764,8 +853,8 @@ class PlasmidView(DNApyBaseDrawingClass):
 				if feature == temHit:
 					length         		= float(len(genbank.gb.GetDNA()))
 					degreeMult     	  	= float(2*math.pi/length)
-					start_rad				= self.pos_to_angle_rad(start)			# in degree
-					finish_rad 				= self.pos_to_angle_rad(finish)	
+					start_rad			= self.pos_to_angle_rad(start)			# in degree
+					finish_rad 			= self.pos_to_angle_rad(finish)	
 					
 					self.selectionDrawingDirection = start_rad + 0.01
 					
@@ -806,16 +895,37 @@ class PlasmidView(DNApyBaseDrawingClass):
 		
 		if self.selectionDrawingDirection == False:
 			self.selectionDrawingDirection = finish_rad
-		####################
+
 		
 		self.update_ownUI()
-			
-		
-			
-
 		return True
 	
 	
+	
+	# function to make a List of allowed label positions
+	# the later can be used to position as much labels on the screen as possible
+	def labelPositions(self):
+		allowedPositions = []
+		
+		# how high should a label be?
+		generalHight = 15 # px on screen
+		generalHight = self.ctx.device_to_user_distance(0,generalHight)[1]
+
+		# get plasmid view width and height
+		width, height = self.GetVirtualSize()
+		
+
+		
+		# so labels are arranged around the plasmid.
+		# at least the radius of the plasmid and 3 layers of arrows have to fit below:		
+		labelRadius = self.opt.labelRadius
+
+
+		
+		
+		
+		
+		return allowedPositions
 
 
 	
