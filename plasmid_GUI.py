@@ -131,7 +131,12 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
-		self.DrawCairo(dc)
+		
+		dc.SetBackground(wx.Brush("White"))	# start the DC and clear it
+		dc.Clear() 				# make sure you clear the bitmap!
+		ctx = ContextFromDC(dc)		# load it into cairo
+		self.DrawCairo(ctx)
+		
 		dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
 		self.Refresh()
 		self.Update()
@@ -146,7 +151,32 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 ############### Done setting required methods #######################
+	
+	def exportMapAs(self, filepath, fileType=".svg"):
+		'''	This method is similar to update_ownUI only that it 
+			exports a file
+			it makes a surface as svg instead of wx.dc
+		'''
+		
+		# create new surface:
+		fo = file(filepath, 'w')
+		width, height = 1000,1000
+		
+		if fileType==".svg":
+			surface = cairo.SVGSurface (fo, width, height)
+		elif fileType==".png":
+			# does not work yet!
+			surface = cairo.Surface (fo, width, height) 
+		else:
+			return False
 
+		ctx = cairo.Context (surface)
+		self.DrawCairo(ctx)
+		surface.finish()
+		
+		self.update_ownUI()
+		return True
+	
 	def find_overlap(self, drawn_locations, new_range):
 		'''
 		Takes two ranges and determines whether the new range has overlaps with the old one.
@@ -182,13 +212,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 
-	def DrawCairo(self, dc):
+	def DrawCairo(self, ctx):
 		''' Function that draws the whole plasmid in every aspect'''
 
-		
-		dc.SetBackground(wx.Brush("White"))	# start the DC and clear it
-		dc.Clear() 				# make sure you clear the bitmap!
-		self.ctx = ContextFromDC(dc)		# load it into cairo
+		self.ctx = ctx
+
 		
 		
 		

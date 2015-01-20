@@ -97,7 +97,8 @@ class DNAedit(DNApyBaseClass):
 		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
 		self.dnaview = dnaeditor_GUI.TextEdit(splitter1, id=wx.ID_ANY)
 		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
-
+		
+		
 
 		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
 		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))	
@@ -267,13 +268,19 @@ class MyFrame(wx.Frame):
 		self.dir_to_open = default_filepath
 		#self.dir_to_open = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) #current script directory
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
-		dlg.ShowModal()
+		
+		if dlg.ShowModal() == wx.ID_CANCEL:
+			return     # the user does not want to open that file!
+			
 		genbank.gb.fileName = dlg.GetFilename()
 		all_path=dlg.GetPath()
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
+		
 		if(genbank.gb.fileName == None or genbank.gb.fileName == "" ):
 			return 1
+	
+			
 		
 		name, extension = genbank.gb.fileName.split('.')
 		if extension.lower() == 'gb':
@@ -346,7 +353,40 @@ class MyFrame(wx.Frame):
 			self.SetTitle(genbank.gb.fileName+' - DNApy')
 			#except:
 			#	error_window(7, self)
+	
+	# export svg or png
+	def export_plasmid_map(self, evt):
+		
+		# show dialog
+		
+		# if we want export as png we have to make the wildcard so:
+		#filetypes = ['.png', '.svg']
+		#wildcard = "as .png file (*.png)|*.png | as .svg file (*.svg)|*.svg"
+		
+		filetypes = ['.svg']
+		wildcard = "as .svg file (*.svg)|*.svg"
+		
+		saveFileDialog = wx.FileDialog(self, "Save your image file", "", "/",
+				                       wildcard, wx.FD_SAVE )
+		# check if file was opened
+		if saveFileDialog.ShowModal() == wx.ID_CANCEL:
+			return     # the user changed idea...
 
+		# proceed loading the file chosen by the user
+		# this can be done with e.g. wxPython input streams:
+		exportFilePath = saveFileDialog.GetPath()		
+		filetype = filetypes[saveFileDialog.GetFilterIndex()]
+		
+		# add extension
+		if exportFilePath[-4:] != filetype and exportFilePath[-4:] != filetype.upper():
+			exportFilePath = "%s%s" %(exportFilePath,filetype)
+		
+
+		
+		# now draw the svg to the surface and get it:
+		exportfile = self.DNApy.plasmidview.plasmid_view.exportMapAs(exportFilePath,filetype)
+		
+		return True
 
 	def quit(self, evt):
 		'''Function for quiting program'''
@@ -1049,6 +1089,10 @@ Put Table here
 		#save document as
 		fileitem.Append(4, "Save as\tShift+Ctrl+S", "Save a copy of current file")
 		wx.EVT_MENU(self, 4, self.save_as_file)
+		
+		# export plasmid map as svg or png
+		fileitem.Append(5, "Export plasmid map\tShift+Ctrl+E", "Export the plasmid map only")
+		wx.EVT_MENU(self, 5, self.export_plasmid_map)
 
 		#save all
 #		fileitem.Append(5, "Save all", "Save all open tabs")
