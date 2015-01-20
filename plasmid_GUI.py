@@ -160,7 +160,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 		
 		# create new surface:
 		fo = file(filepath, 'w')
-		width, height = 1000,1000
+		width, height = 1000,1000 # set to 1000x1000, can be anything
 		
 		if fileType==".svg":
 			surface = cairo.SVGSurface (fo, width, height)
@@ -171,7 +171,7 @@ class PlasmidView(DNApyBaseDrawingClass):
 			return False
 
 		ctx = cairo.Context (surface)
-		self.DrawCairo(ctx)
+		self.DrawCairo(ctx, (width,height) )
 		surface.finish()
 		
 		self.update_ownUI()
@@ -212,19 +212,22 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 
-	def DrawCairo(self, ctx):
+	def DrawCairo(self, ctx, exportSize=False):
 		''' Function that draws the whole plasmid in every aspect'''
 
 		self.ctx = ctx
 
 		
-		
-		
-		width, height = self.GetVirtualSize()	# set hight and width. Its 100, 100 
-		canvasWidth  = self.size[0]
-		canvasHeight = self.size[1]
-		ratio = float(canvasHeight)/ float(canvasWidth)
-		
+		if exportSize == False:
+			width, height = self.GetVirtualSize()	# set hight and width. Its 100, 100 
+			canvasWidth  = self.size[0]
+			canvasHeight = self.size[1]
+			ratio = float(canvasHeight)/ float(canvasWidth)
+		else:
+			width, height = exportSize	# set hight and width. Its 2000, 1000 maybe 
+			canvasWidth  = width
+			canvasHeight = height
+			ratio = float(canvasHeight)/ float(canvasWidth)
 		
 		self.labelHelper		= {}	# a helper variable for labels drawn into arrows!
 		
