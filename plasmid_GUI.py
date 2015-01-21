@@ -36,9 +36,14 @@
 #add rightclick menus
 
 import wx
-from wx.lib.pubsub import setupkwargs #this line not required in wxPython2.9.
- 	                                  #See documentation for more detail
+
+import cairo
+from wx.lib.wxcairo import ContextFromDC
+
+from wx.lib.pubsub import setupkwargs 		#this line not required in wxPython2.9.
+ 	                                  	#See documentation for more detail
 from wx.lib.pubsub import pub
+
 
 import genbank
 import copy
@@ -49,6 +54,10 @@ import string
 from base_class import DNApyBaseDrawingClass
 from base_class import DNApyBaseClass
 import featureedit_GUI
+
+import colcol
+
+import options					# new option file to make options easy to change in one file (or settings.txt)
 
 files={}   #list with all configuration files
 files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -61,10 +70,27 @@ execfile(settings) #gets all the pre-assigned settings
 
 
 class PlasmidView(DNApyBaseDrawingClass):
-	highlighted_feature = False
-	genbank.search_hits = []
-	label_type = 'circular'	
+	'''
+		Draws a plasmid view using cairo on a wx.dc
+		uses current file if any
+	'''	
 	def __init__(self, parent, id):
+		
+		# load options into self.opt
+		self.opt = options.options()
+
+		# variables to store current events like highlight etc.
+		# for hover and click
+		self.hittest = {}			# to store the hittest paths
+		self.Highlight 		= None		# hightlight this on move
+		self.HighlightClick 	= None		# hightlight constantly
+		
+		# for selection
+		self.selectionDrawing  		= []
+		self.selectionDrawingDirection 	= "right"
+		self.selectionDrawingDiff	= 0
+		
+		# initialise the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 
 		self.parent = parent
@@ -73,9 +99,11 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-		self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
+		#self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
 		self.Bind(wx.EVT_MOTION, self.OnMotion)
-		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
+		#self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
+		
+
 
 
 		
@@ -100,9 +128,15 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
+
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
-		self.Draw(dc)
+		
+		dc.SetBackground(wx.Brush("White"))	# start the DC and clear it
+		dc.Clear() 				# make sure you clear the bitmap!
+		ctx = ContextFromDC(dc)		# load it into cairo
+		self.DrawCairo(ctx)
+		
 		dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
 		self.Refresh()
 		self.Update()
@@ -117,7 +151,32 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 
 ############### Done setting required methods #######################
+	
+	def exportMapAs(self, filepath, fileType=".svg"):
+		'''	This method is similar to update_ownUI only that it 
+			exports a file
+			it makes a surface as svg instead of wx.dc
+		'''
+		
+		# create new surface:
+		fo = file(filepath, 'w')
+		width, height = 1000,1000 # set to 1000x1000, can be anything
+		
+		if fileType==".svg":
+			surface = cairo.SVGSurface (fo, width, height)
+		elif fileType==".png":
+			# does not work yet!
+			surface = cairo.Surface (fo, width, height) 
+		else:
+			return False
 
+		ctx = cairo.Context (surface)
+		self.DrawCairo(ctx, (width,height) )
+		surface.finish()
+		
+		self.update_ownUI()
+		return True
+	
 	def find_overlap(self, drawn_locations, new_range):
 		'''
 		Takes two ranges and determines whether the new range has overlaps with the old one.
@@ -149,465 +208,775 @@ class PlasmidView(DNApyBaseDrawingClass):
 					break
 				i += 1
 
+
+
+
+
+	def DrawCairo(self, ctx, exportSize=False):
+		''' Function that draws the whole plasmid in every aspect'''
+
+		self.ctx = ctx
+
+		
+		if exportSize == False:
+			width, height = self.GetVirtualSize()	# set hight and width. Its 100, 100 
+			canvasWidth  = self.size[0]
+			canvasHeight = self.size[1]
+			ratio = float(canvasHeight)/ float(canvasWidth)
+		else:
+			width, height = exportSize	# set hight and width. Its 2000, 1000 maybe 
+			canvasWidth  = width
+			canvasHeight = height
+			ratio = float(canvasHeight)/ float(canvasWidth)
+		
+		self.labelHelper		= {}	# a helper variable for labels drawn into arrows!
+		
+		# only resize the canvas if software is loaded. This prevents error messages
+		if canvasWidth != 0 and canvasHeight != 0 and canvasWidth > 100 and canvasHeight > 100:
+			self.ctx.scale(canvasWidth*ratio, canvasHeight) # Normalizing the canvas
+			self.ctx.scale(0.01, 0.01) 			# make it 100*ratiox100
+			self.ctx.translate (50/ratio,50) 		# set center to 0,0		
+		
+		
+		# get radius rom options:
+		radius 		= self.opt.pRadius
+		self.radius 	= radius
+		
+		# load label positions:
+		self.labelPos = self.labelPositions()
+		
+		
+		# draw the helper plain white circle to make selection possible:
+		self.ctx.arc(0,0,radius+2.5,0,2*math.pi)		# outer circle
+		self.ctx.set_source_rgb (1, 1, 1) 			# white
+		self.ctx.set_line_width (0)				# no line
+		self.markerArea1 = self.ctx.copy_path()			# copy for later
+		self.ctx.fill()						# fill
+		
+		self.ctx.arc(0,0,radius-2.5,0,2*math.pi)		# inner circle
+		self.ctx.set_source_rgb (1,1,1)				# Solid white		
+		self.ctx.set_line_width (0)				# no line
+		self.markerArea2 = self.ctx.copy_path()			# copy for later
+		self.ctx.fill()						# fill
+
+
+
+		# draw the plasmid (two circles with different radius)
+		self.ctx.arc(0,0,radius+0.4,0, 2*math.pi)		# circle
+		self.ctx.set_source_rgb (0, 0, 0) 			# Solid color
+		self.ctx.set_line_width (0.4)				# line width
+		self.ctx.stroke()					# stroke only no fill!
+
+		# inner plasmid
+		self.ctx.arc(0,0,radius-0.4,0,2*math.pi)		# inner circle
+		self.ctx.stroke()					# stroke the same color and settings
+		
+		# if a file is loaded draw the rest
+		if genbank.gb.GetDNA():
+
+
+
+			#draw plasmid name
+			self.drawCairoPlasmidName(self.ctx)
 		
 
-	def Draw(self, dc):
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
-		self.min_centre = min(self.centre_x, self.centre_y)
 			
-		self.Radius = min(self.size[0], self.size[1])/3 - self.min_centre/8 #the last one is the label line length
+			# draw features and labels in arrow
+			self.drawCairoFeatures()
+			
+			# should we draw selection?
+			if len(self.selectionDrawing) > 1:
+				start_rad 	= self.selectionDrawing[0]
+				end_rad 	= self.selectionDrawing[1]
+				
 
-#		dc.SetDeviceOrigin(size_x/2, size_y/2)
+				# now draw blue selection:
+				self.ctx.set_source_rgba(0,0.67,1,0.75) # Solid color
+				self.ctx.set_line_width(3)
+				x,y = self.radial2cartesian(radius, start_rad)
+				
+				
+				if start_rad - self.selectionDrawingDirection > 0:
+					# start is bigger than first finish, so 5'-3'
+					direction = "left"
+				else:
+					direction = "right"
+				
+				
+				self.ctx.move_to(x,y)
+				if direction == "right": # 3' to 5'
+					self.ctx.arc(0,0,radius, start_rad, end_rad )
+				else:
+					self.ctx.arc_negative(0,0,radius, start_rad, end_rad )
+				self.ctx.stroke()
+				
+				
+				## LINES ###################
+				# set style
+				self.ctx.set_source_rgb(0,0,0) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				
+				
+				# load the angles and draw the line!
+				
+				sx1, sy1 = self.radial2cartesian(radius+2, start_rad)
+				sx2, sy2 = self.radial2cartesian(radius-2, start_rad)
+				self.ctx.move_to(sx1,sy1)
+				self.ctx.line_to(sx2,sy2)
+				self.ctx.stroke()
+				
+				# and the endline, same thing
+				
+				ex1, ey1 = self.radial2cartesian(radius+2, end_rad)
+				ex2, ey2 = self.radial2cartesian(radius-2, end_rad)
+				self.ctx.move_to(ex1,ey1)
+				self.ctx.line_to(ex2,ey2)
+				self.ctx.stroke()
+				
+				
+			elif len(self.selectionDrawing) == 1:
+				# just show one line for hover here
+					
+				## LINES ###################
+				# set style
+				self.ctx.set_source_rgb(0,0,0) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				
+				
+				# load the angles and draw the line!
+				start_rad = self.selectionDrawing[0]
+				sx1, sy1 = self.radial2cartesian(radius+2, start_rad)
+				sx2, sy2 = self.radial2cartesian(radius-2, start_rad)
+				self.ctx.move_to(sx1,sy1)
+				self.ctx.line_to(sx2,sy2)
+				self.ctx.stroke()
+		
+		
 
-		dc.SetBackground(wx.Brush("White"))
-		dc.Clear() # make sure you clear the bitmap!
-		gcdc = wx.GCDC(dc)
+		return True
 
-		#make a hidden dc to which features can be drawn in uinique colors and later used for hittests
-		self.hidden_dc = wx.MemoryDC()
-		self.hidden_dc.SelectObject(wx.EmptyBitmap(self.ClientSize[0], self.ClientSize[1]))
-		self.hidden_dc.SetBackground(wx.Brush("White"))
-		self.hidden_dc.Clear() # make sure you clear the bitmap!
 
-		#draw DNA circles
-		gcdc.SetPen(wx.Pen(colour='#444444', width=3))
-		gcdc.SetBrush(wx.Brush("White"))
-		gcdc.DrawCircle(x=self.centre_x, y=self.centre_y, radius=self.Radius) #outer DNA circle
 
-		#draw plasmid name
-		self.Draw_plasmid_name(gcdc)
 
-		#draw features
-		if genbank.gb.get_all_feature_positions() != None:
-			self.Draw_features(gcdc)
 
-		#draw enzymes
-		self.Draw_enzymes(gcdc)
-
-		#draw selection
-		if genbank.gb.GetDNA() != None:
-			self.Draw_selection(gcdc)
-
-		#draw search hits
-		self.Draw_search_hits(gcdc)
 	
+	
+	
+	
+	
+	def drawCairoFeatures(self):
+		'''Loops trough features and calls other functions to draw the arrows and
+		the labels'''
+		
+		# set some variables
+		featurelist             = genbank.gb.get_all_feature_positions()
+		self.drawn_fw_locations = [] 		# for location tracing foreward
+		self.drawn_rv_locations = [] 		# for location tracing reverse
+		drawHightlight 			= False		
+		highPath       			= []
+		highColor				= []	
+		
+		
+						
+		
+		
+		
+		#####################
+		# Settings loaded from self.opt
+		radius				= self.opt.pRadius
+		arrow_thickness   	= self.opt.pArrowThick		# like everything in percent
+		radius_change     	= self.opt.pRadChange		# initial space between arrow and plasmid
+		lev               	= self.opt.pLevAdd		# level distance
+		arrow_head_length 	= self.opt.pArrowHeadLength	
+		
+		length           	= float(len(genbank.gb.GetDNA()))
+		degreeMult       	= float(360/length)
+		
+		bordercolor      	= self.opt.pFeatureBC
+		borderwidth       	= self.opt.pBW
+		
+		bordercolorHigh   	= self.opt.pFeatureBChigh
+		borderwidthHigh   	= self.opt.pBWhigh
+		#####################
+		
+		# loop through all features
+		for i in range(0,len(featurelist)): 
+
+			# load all the feature infos
+			featuretype, complement, start, finish, name, index = featurelist[i]
+			feature     = featurelist[i]
 			
-#		self.hidden_dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
+			# variable to save as a hittest
+			hittestName 					= "%s%s" % (name, index)	# name and index as indicator!
+			self.hittest[hittestName] 		= []						# initialise list to store arrow and label of a feature as paths
+			self.labelHelper[hittestName] 	= [True]					# save radius of arrow to draw the label maybe
+
+			
+			# highlitght this element?
+			if self.Highlight == hittestName or self.HighlightClick == hittestName:
+				drawHightlight 	= True
+				passBC    		= bordercolorHigh 	# border Color
+			else:
+				passBC    		= bordercolor		# border Color
+				drawHightlight	= False
+		
+			# draw the arrow:
+			arrowResult, arrowResult2 = self.drawCairoArrow(feature, hittestName, radius, radius_change, lev,arrow_head_length, length, degreeMult, borderwidth, passBC, drawHightlight )
+			
+			# if we want to highlight this
+			if arrowResult != False:
+				# we get color and the path from the function to save!
+				highPath.append(arrowResult)
+				highColor.append(arrowResult2)
+
+		
+			
+		# now draw the highlitgh arrow, so its on top:
+		# it is then drawn twice at the same position!
+		if len(highPath) >0:
+			i = 0
+			for  path, color in zip(highPath, highColor):
+				self.ctx.append_path(path)
+				r,g,b = colcol.hex_to_rgb(color)
+				r = float(r)/255
+				g = float(g)/255
+				b = float(b)/255
+				self.ctx.set_source_rgb (r,g,b,) 		# Solid color
+				self.ctx.set_line_width (borderwidthHigh) 	# or 0.1
+				self.ctx.fill_preserve ()
+				self.ctx.set_source_rgb (bordercolorHigh[0],bordercolorHigh[1],bordercolorHigh[2])	
+				self.ctx.stroke()
+			
+	
+		
+		# loop through all features to draw the labels in arrows!
+		for i in range(0,len(featurelist)):	
+			# load all the feature infos
+			featuretype, complement, start, finish, name, index = featurelist[i]
+			feature     = featurelist[i]
+		
+			# variable to save as a hittest
+			hittestName = "%s%s" % (name, index)		# random pattern
+			
+			# draw the label and the line connecting them
+			labelresult = self.drawArrowLabels(feature, hittestName)
+			if labelresult != False:
+				# this label was not drawn into arrow
+				# save it hittest name as missing
+				self.labelHelper[hittestName] = [False,feature]
+			
+			
+		
+		# here draw the other Labels:
+		self.drawCairoLabels()
+					
+	
+		return True
+	
+	
+	
+	
+	# only draw arrow of feature
+	def drawCairoArrow(self, feature, hittestName, radius,  radius_change, lev,arrow_head_length, length, degreeMult, bw, bc, high ):
+		'''Function to draw the arrow onto the canvas and save 
+		its path for a hittest'''
+		# load infos:
+		featuretype, complement, start, finish, name, index = feature
+		
+		# draw
+		if complement == False:
+			self.drawn_fw_locations, levelMult = self.find_overlap(self.drawn_fw_locations, (start, finish))
+			if levelMult>3 or finish-start<=5: #Only allow for tree levels. Also, for very short features, draw them at bottom level
+				levelMult = 0
+				radius_change = radius_change * 1.25
+
+			level 				= lev * (1+levelMult)
+	
+			s_deg				= float(start)  * degreeMult			# in degree
+			f_deg 				= float(finish) * degreeMult
+			s_rad 				= (s_deg * math.pi/180) - math.pi/2 
+			f_rad   			= (f_deg * math.pi/180) - math.pi/2 
+		
+			f_rad_wo_head  		= ((f_deg-arrow_head_length) * math.pi/180) - math.pi/2 
+			f_rad_wo_head_help 	= ((f_deg-2*arrow_head_length) * math.pi/180) - math.pi/2 
+			
+
+			
+			# weather to draw a head or not, only if feature is large enough
+			drawHead = True
+			if f_rad_wo_head_help < s_rad:
+				f_rad_wo_head 	= f_rad
+				drawHead 		= False
 
 
-	def Draw_plasmid_name(self, gcdc):
+			arrow_head_x, arrow_head_y  	= self.radial2cartesian(radius+level, f_rad)
+			arrow_head_x1, arrow_head_y1  	= self.radial2cartesian(radius+level+radius_change+0.5, f_rad_wo_head)
+			arrow_head_x2, arrow_head_y2  	= self.radial2cartesian(radius+level-radius_change-0.5, f_rad_wo_head)
+
+
+			# get the color:
+			color = eval(featuretype)['fw'] #get the color of feature (as string)
+			assert type(color) == str
+
+			# move to start
+			x_start, y_start = self.radial2cartesian(radius+level+radius_change, s_rad)
+			self.ctx.move_to(x_start, y_start)
+			
+			self.labelHelper[hittestName].append(radius+level-radius_change)	# inner radius
+			self.labelHelper[hittestName].append(radius+level+radius_change)	# outer radius
+			
+			# the actual drawing:
+			self.ctx.arc(0, 0, radius+level+radius_change,s_rad, f_rad_wo_head);
+
+			if drawHead:
+				self.ctx.line_to(arrow_head_x1,arrow_head_y1)
+				self.ctx.line_to(arrow_head_x,arrow_head_y)
+				self.ctx.line_to(arrow_head_x2,arrow_head_y2)
+			self.ctx.arc_negative(0, 0, radius+level-radius_change, f_rad_wo_head, s_rad);
+			self.ctx.close_path ()
+			
+		else:
+			self.drawn_rv_locations, levelMult = self.find_overlap(self.drawn_rv_locations, (start, finish))
+			if levelMult>3 or finish-start<=5: #Only allow for tree levels. Also, for very short features, draw them at bottom level
+				levelMult = 0
+				radius_change = radius_change * 1.25 # for bigger items!
+
+			level 				= lev * (1+levelMult)
+	
+			s_deg				= float(finish)  * degreeMult			# in degree
+			f_deg 				= float(start) * degreeMult
+			s_rad 				= (s_deg * math.pi/180) - math.pi/2 
+			f_rad   			= (f_deg * math.pi/180) - math.pi/2 
+		
+			f_rad_wo_head  		= ((f_deg + arrow_head_length) * math.pi/180) - math.pi/2 
+			f_rad_wo_head_help 	= ((f_deg + 1.5 * arrow_head_length) * math.pi/180) - math.pi/2 
+			
+			# weather to draw a head or not, only if feature is large enough
+			drawHead = True
+			if f_rad_wo_head_help > s_rad:
+				f_rad_wo_head 	= f_rad
+				drawHead 		= False
+
+				
+			arrow_head_x, arrow_head_y  = self.radial2cartesian(radius-level, f_rad)
+			arrow_head_x1, arrow_head_y1  = self.radial2cartesian(radius-level-radius_change-0.5, f_rad_wo_head)
+			arrow_head_x2, arrow_head_y2  = self.radial2cartesian(radius-level+radius_change+0.5, f_rad_wo_head)
+
+			# get the color:
+			color = eval(featuretype)['rv'] #get the color of feature (as string)
+			assert type(color) == str
+
+			# move to start
+			x_start, y_start = self.radial2cartesian(radius-level-radius_change, s_rad)
+			self.ctx.move_to(x_start, y_start)
+			
+			self.labelHelper[hittestName].append(radius-level-radius_change)	# smallest radius
+			self.labelHelper[hittestName].append(radius-level+radius_change)	# outer radius
+			
+			# the actual drawing:
+			self.ctx.arc_negative(0, 0, radius-level-radius_change,s_rad, f_rad_wo_head);
+			if drawHead:
+				self.ctx.line_to(arrow_head_x1,arrow_head_y1)
+				self.ctx.line_to(arrow_head_x,arrow_head_y)
+				self.ctx.line_to(arrow_head_x2,arrow_head_y2)
+			self.ctx.arc(0, 0, radius-level+radius_change, f_rad_wo_head, s_rad);
+			self.ctx.close_path ()
+	
+
+			
+
+		# now draw the arrows with color and lines
+		r,g,b = colcol.hex_to_rgb(color)
+		r = float(r)/255
+		g = float(g)/255
+		b = float(b)/255
+
+		self.ctx.set_source_rgba (r,g,b,1.0) # Solid color
+		self.ctx.set_line_width (bw) # or 0.1
+		
+		self.ctx.fill_preserve ()
+		self.ctx.set_source_rgb (bc[0],bc[1],bc[2])
+		
+		# save feature to hittest:
+		self.hitpath = self.ctx.copy_path()
+		self.hittest[hittestName].append(self.hitpath)
+
+		self.ctx.stroke()
+		
+		# return the path if it should be highlighted!
+		if high == True:
+			return self.hitpath, color
+		else:
+			return False, False
+	
+	
+	def drawArrowLabels(self, f, hittestName):
+		'''
+			Draws labels into arrows
+		'''
+		
+
+		featuretype, complement, start, finish, name, index = f
+		
+		arrowRadius = float(self.labelHelper[hittestName][1]) + 0.5
+		back_rad = 0
+		returnValue	= False
+	
+		# calculate length of coresponding arrow, ignoring the level!
+		length         		= float(len(genbank.gb.GetDNA()))
+		degreeMult     	  	= float(360/length)
+		s_deg				= float(start)  * degreeMult			# in degree
+		f_deg 				= float(finish) * degreeMult
+		middle_deg			= f_deg - ((f_deg-s_deg)/2)				# the center of the arrow
+		s_rad 				= (s_deg * math.pi/180)  - math.pi/2 
+		f_rad   			= (f_deg * math.pi/180)  - math.pi/2 
+	
+		ar_l = 2 * math.pi * (arrowRadius-3.2) * (f_deg - s_deg)/360 # 3.2 is arrow head
+	
+		dist2rad			= (f_rad - s_rad)/ar_l
+	
+	
+	
+		# calculate length of written text
+		# remove any '"' in front or at the end 
+		if name[0:1] == '"':
+			name = name[1:]
+			lengthName = len(name)
+			if name[-1:] == '"':
+				name = name[:-1]
+			
+	
+		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+		self.ctx.set_font_size(2);
+		self.ctx.set_source_rgb (1,1,1)
+		xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)
+	
+		# we want some spacer:
+		spacer 		= 0.1 * TextWidth
+		ar_l_spacer = ar_l - spacer
+	
+		# check if text would fix into arrow
+		if TextWidth < ar_l_spacer:
+		
+			
+			# if yes we have to draw every symbole one for one
+			startspacer = (ar_l - TextWidth)/2
+			
+			#
+			# we have to draw the labbels different fore foreward and reverse features
+			# also upper and lower features are different
+			# so we need for time a similar code
+			#
+			
+			# draw foreward and upper labels here:
+			if complement == False and (middle_deg <= 90 or middle_deg >= 270)  :
+
+				start_rad	= s_rad + (startspacer * dist2rad)
+		
+				back_rad 	=  0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius, -0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad + new_rad
+					self.ctx.rotate(new_rad)
+			elif complement == False and (middle_deg > 90 or middle_deg < 270) :
+
+				start_rad	= f_rad - (startspacer * dist2rad) # f_rad because we write from head to start
+		
+				back_rad 	=  - 0.5* math.pi + start_rad  # sum of rotations to later rotate back
+
+				# rotate context so the drawing position is down:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius+1.3, 0.5* math.pi )
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad - new_rad
+					self.ctx.rotate(-new_rad)
+			elif complement == True and (middle_deg < 90 or middle_deg > 270) :
+
+				start_rad	= s_rad + (startspacer * dist2rad)
+		
+				back_rad 	=  0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius, -0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad + new_rad
+					self.ctx.rotate(+new_rad)
+			elif complement == True and (middle_deg > 90 or middle_deg < 270) :
+
+				start_rad	= f_rad - (startspacer * dist2rad)
+		
+				back_rad 	=  -0.5* math.pi + start_rad  # sum of rotations to later rotate back
+		
+				# rotate context so the drawing position is up:
+				self.ctx.rotate(back_rad)
+			
+		
+				startposition_x, startposition_y = self.radial2cartesian(arrowRadius+1.3, 0.5* math.pi)
+				self.ctx.move_to(startposition_x, startposition_y); 
+				for n in name:
+					
+					# to remove variations in width we take 20 time the same char
+					helptext = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" %(n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n)
+					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(helptext)
+					self.ctx.show_text(n)
+
+			
+					new_rad	= (float(TextWidth) / 20.0) * dist2rad
+					back_rad = back_rad - new_rad
+					self.ctx.rotate(-new_rad)
+		else:
+			# we could not draw this label
+			# we should draw this label later!
+			returnValue = hittestName
+		self.ctx.rotate(-back_rad)
+
+		return returnValue
+	
+	
+	
+	
+	
+	def drawCairoLabels(self):
+		'''Function to draw labels of:
+			- features wich are to short for drawing inside
+			- restriction enzymes
+			- any other
+		'''
+
+		# cairo context in -> self.ctx
+		
+		# all positions should be in --> self.labelPos
+		
+		# all missing labels are saved as self.labelHelper[hittestName] = [False,feature]
+		# so you can loop trough them
+		
+		for name in self.labelHelper:
+			if self.labelHelper[name][0] == False:
+				featuretype, complement, start, finish, name, index = self.labelHelper[name][1]
+				
+				#radius = self.labelHelper[name][3]
+
+				
+				# middle of feature:
+				length 		= float(len(genbank.gb.GetDNA()))
+				middle 		= start + (finish-start)/2 % length
+				middleAngle = self.pos_to_angle_rad(middle)
+				x,y 	= self.radial2cartesian(self.opt.pRadius+0.4, middleAngle) 	# middle of item, outer plasmid radius
+				x1,y1 	= self.radial2cartesian(self.opt.labelRadius, middleAngle)	# endpoint of line
+		
+				# draw a line from label to feature				
+				self.ctx.set_source_rgba(0.0,0.0,0.0,1) # Solid color
+				self.ctx.set_line_width(0.2) # or 0.1
+				self.ctx.move_to(x,y)
+				self.ctx.line_to(x1,y1)
+				self.ctx.stroke()
+				
+				# draw a box:
+				
+				#self.hitpath = self.ctx.copy_path()
+				#self.ctx.fill()
+				
+				# draw a label
+				
+				# add box-path to hittest list of this feature or enzyme		
+				#self.hittest[name].append(self.hitpath) 
+				
+				
+
+		return True
+	
+	
+	
+	
+	
+	def drawCairoPlasmidName(self, ctx):
 		'''Draw the plasmid name and basepairs in the middle'''
+		
+		#width  = 100
+		#height = 100
+		self.hittest['plasmidname'] = []
+		
 		name = genbank.gb.fileName.split('.')[0]
 		basepairs = '0 bp'
 		if genbank.gb.GetDNA() != None:
 			basepairs = str(len(genbank.gb.GetDNA())) + ' bp'
-
-#		font = wx.SystemSettings.GetFont(1)
-		font = wx.Font(pointSize=self.min_centre/16, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		gcdc.SetFont(font)
-		gcdc.SetTextForeground(('#666666'))
-		name_length = gcdc.GetTextExtent(name) #length of text in pixels
-		gcdc.DrawText(name, self.centre_x-name_length[0]/2, self.centre_y-name_length[1])
-
-		font = wx.Font(pointSize=self.min_centre/20, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		gcdc.SetFont(font)
-		gcdc.SetTextForeground(('#666666'))
-		basepairs_length = gcdc.GetTextExtent(basepairs)
-		gcdc.DrawText(basepairs, self.centre_x-basepairs_length[0]/2, self.centre_y+basepairs_length[1]/2)
-
-
-
-	def Draw_selection(self, gcdc):
-		'''Draws the current selection'''
-		gcdc.SetBrush(wx.Brush(colour=wx.Colour(0,75,255,128))) #blue
-		gcdc.SetPen(wx.Pen(colour='#444444', width=1))
-
-		start, finish = copy.copy(genbank.dna_selection)
-		start_angle = self.pos_to_angle(start-1)
-		if finish == -1: #if no selection
-			finish_angle = start_angle
-		else:
-			finish_angle = self.pos_to_angle(finish)
-
-#		print('plasmid start finsh', start, finish)
-#		print('plasmid angles', start_angle, finish_angle)
-
-		if start == finish+1 or finish_angle-start_angle<0.3:
-			xc=self.centre_x
-			yc=self.centre_y
-			x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180))
-			y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
-			gcdc.DrawLine(xc, yc, x1, y1)
 		
-		else:	
-			xc=self.centre_x
-			yc=self.centre_y
-			x1 = xc + self.Radius * math.cos((finish_angle-90)*(math.pi/180)) #the latter needs to be first as the arc draws backwards
-			y1 = yc + self.Radius * math.sin((finish_angle-90)*(math.pi/180))
-			x2 = xc + self.Radius * math.cos((start_angle-90)*(math.pi/180))
-			y2 = yc + self.Radius * math.sin((start_angle-90)*(math.pi/180))
-			gcdc.DrawArc(x1, y1, x2, y2, xc, yc);
-
-
-	def Draw_enzymes(self, gcdc):
-		pass
-
-	def Draw_features(self, gcdc):
-		'''Function dedicated to drawing feature arrows. The highlighted variable is used to pass an integer in case one wishes to highlight features.'''
-		#for features
-		self.min_centre = min(self.centre_x, self.centre_y) #length of shortest part of window
-		feature_thickness = self.min_centre/24 #thickness of feature arrows and is used for a bunch of derived measurements
-		outside_space = feature_thickness/4 #space between the outermost feature and the DNA circle
-		arrowhead_length = 5 #length of arrowhead
-		step = 0.25 #degree interval at which polygon point should be drawn
-		spacer = feature_thickness/4 #for in-between features
-
-		#for labels
-		font_size = int(self.Radius/18)
-		font = wx.Font(pointSize=font_size, family=wx.FONTFAMILY_SWISS, style=wx.FONTWEIGHT_NORMAL, weight=wx.FONTWEIGHT_NORMAL)
-		gcdc.SetFont(font)
-		label_line_length = self.min_centre/8 #length of the line connection label to feature
-		max_label_length = self.Radius #max length of label in pixels
-		xc=self.centre_x #centre of circle
-		yc=self.centre_y #centre of circle
-
-		#calculate possible positions for labels. 
-		label_positions = {}	
-
-		#grouping labels
-		if self.label_type == 'group':
-			for i in range(0, 360, 2):
-				if 0 <= i <=15:
-					x = self.centre_x
-					y = 5 + (i-0)*font_size/2
-				elif 15 < i <= 40:
-					x = self.centre_x + max_label_length
-					y = self.Radius/3 + (i-15)*font_size/2
-				elif 40 < i <= 90:
-					x = self.centre_x + self.Radius + label_line_length
-					y = self.Radius/2 + (i-40)*font_size/2
-
-				elif 90 < i <= 140:
-					x = self.centre_x + self.Radius + label_line_length
-					y = self.centre_y + (i-90)*font_size/2
-				elif 140 < i <= 165:
-					x = self.centre_x + max_label_length
-					y = self.centre_y + self.Radius + (i-140)*font_size/2
-				elif 165 < i <=180:
-					x = self.centre_x
-					y = self.centre_y + self.Radius + label_line_length + (i-165)*font_size/2
-
-				elif 180 < i <= 195:
-					x = self.centre_x
-					y = self.centre_y + self.Radius + label_line_length + (i-180)*font_size/2
-				elif 195 < i <= 220:
-					x = self.centre_x - max_label_length
-					y = self.centre_y + self.Radius + (i-195)*font_size/2
-				elif 220 < i <=270:
-					x = self.centre_x - self.Radius - label_line_length
-					y = self.centre_y + (i-220)*font_size/2
-
-				elif 270 < i <=320:
-					x = self.centre_x - self.Radius - label_line_length
-					y = self.centre_y - (i-270)*font_size/2
-				elif 320 < i <= 345:
-					x = self.centre_x - max_label_length
-					y = self.Radius/3 + (i-320)*font_size/2
-				elif 345 < i <= 360:
-					x = self.centre_x
-					y = 5 + (i-345)*font_size/2
-
-				else:
-					raise ValueError
-				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
-
-		#radiating labels
-		elif self.label_type == 'radiating':
-			for i in range(0, 360, 2):
-				x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
-
-		#circular labels
-		elif self.label_type == 'circular':
-			for i in range(0, 92, 4):
-				j = 88-i #I need to go backwards since I use the y-coordinate at the centre of the circle as a starting point
-				if j == 88:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-				else:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-					if y > label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
-						y = label_positions[str(j+4)][1] - gcdc.GetTextExtent('Text')[1]
-				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
-			for i in range(92, 180, 4):
-				if i == 92:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-				else:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-					if y < label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
-						y = label_positions[str(i-4)][1] + gcdc.GetTextExtent('Text')[1]
-				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used
-
-			for i in range(0, 92, 4): # for the actual range 180 to 270
-				j = 268-i #I need to go backwards since I use the y-coordinate at the centre of the circle as a starting point
-				if j == 268:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-				else:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, j)
-					if y < label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
-						y = label_positions[str(j+4)][1] + gcdc.GetTextExtent('Text')[1]
-				label_positions[str(j)] = (x, y, False) #add coordinates of points and indicate that it is not used
-
-			for i in range(268, 360, 4):
-				if i == 268:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-				else:
-					x, y = self.AngleToPoints(xc, yc, self.Radius+label_line_length, i)
-					if y > label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]: #make sure labels don't overlap
-						y = label_positions[str(i-4)][1] - gcdc.GetTextExtent('Text')[1]
-				label_positions[str(i)] = (x, y, False) #add coordinates of points and indicate that it is not used	
-
-		else:
-			raise ValueError
-
-
-		drawn_fw_locations = [] #for keeping track of how many times a certain region has been painted on
-		drawn_rv_locations = [] #for keeping track of how many times a certain region has been painted on
-
-
-		#features
-		featurelist = genbank.gb.get_all_feature_positions()
-		self.feature_catalog = {} #for matching features with the unique colors
-		self.feature_catalog['(255, 255, 255, 255)'] = False #the background is white, have to add that key
-
-		self.unique_color = (0, 0, 0)
-		for i in range(0,len(featurelist)): 
-			self.feature_catalog[str(self.NextRGB()+(255,))] = i #add to catalog with new RGB color
-
-			featuretype, complement, start, finish, name, index = featurelist[i]
+		# name
+		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+		self.ctx.set_font_size(2.5);
+		xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)
+		self.ctx.move_to(-TextWidth/2, 0);  
 		
-			featuretype = featuretype.replace('-', 'a') #for -10 and -35 region
-			featuretype = featuretype.replace("5'", "a5") #for 5' features
-			featuretype = featuretype.replace("3'", "a3") #for 5' features
-
-
-			start_angle = self.pos_to_angle(start)
-			finish_angle = self.pos_to_angle(finish)
-			xc=self.centre_x #centre of circle
-			yc=self.centre_y #centre of circle
-
-			#set color surrounding feature. Normally black, red if feature is highlighted. Also change text color.
-
-			if i is self.highlighted_feature: #if the current feature corresponds to that which should be highlighted
-				gcdc.SetPen(wx.Pen(colour='#FF0000', width=2))
-				gcdc.SetTextForeground('#FF0000')
-			else:
-				gcdc.SetPen(wx.Pen(colour='#444444', width=1))
-				gcdc.SetTextForeground('#000000')
-
-			#draw feature
-			if complement == False:
-				#find level to draw on
-				drawn_fw_locations, level = self.find_overlap(drawn_fw_locations, (start, finish))
-				if level>3 or finish-start<=3: #Only allow for tree levels. Also, for very short features, draw them at bottom level
-					level = 0
-				
-				#set colors
-				color = eval(featuretype)['fw'] #get the color of feature (as string)
-				assert type(color) == str
-				gcdc.SetBrush(wx.Brush(color))
-
-				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
-					radius = self.Radius+outside_space+feature_thickness+((feature_thickness+spacer)*level)
-					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow=False)
-
-				else: #if not too short, make arrow
-					radius = self.Radius+outside_space+feature_thickness+((feature_thickness+spacer)*level)
-					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow='fw')
-
-			elif complement == True:
-				#find level to draw on
-				drawn_rv_locations, level = self.find_overlap(drawn_rv_locations, (start, finish))
-				if level>3 or finish-start<=3: #Only allow for tree levels. Also, for very short features, draw them at bottom level
-					level = 0
-				
-				#set colors
-				color = eval(featuretype)['rv'] #get the color of feature (as string)
-				assert type(color) == str
-				gcdc.SetBrush(wx.Brush(color))
-
-				if arrowhead_length > int(finish_angle-start_angle): #if feature is too short to make arrow, make box
-					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
-					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow=False)
+		# save feature to hittest:
+		self.hitpath = self.ctx.copy_path()
+		self.hittest['plasmidname'].append(self.hitpath)
 	
-				else: #if not too short, make arrow
-					radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
-					pointlist = self.make_arc(xc, yc, start_angle, finish_angle, radius, feature_thickness, step, arrowhead_length, arrow='rv')
-
-
-			#first draw the hidden features which are used for hittests on click
-			self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
-			self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
-			self.hidden_dc.DrawPolygon(pointlist)
-
-			#now draw the real features
-			gcdc.DrawPolygon(pointlist)
-
-
-
-			###############
-			# Draw label #
-			###############
-
-			#draw label for feature
-			#text parameters
-			feature_name = name
-			name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
-			feature_radius = self.Radius-outside_space-((feature_thickness+spacer)*level) #the feature radius depends on where on the plasmid it is drawn
-
-			while name_length[0] > max_label_length: #shorten text if it is too long 
-				feature_name = feature_name[:-3]+'..'
-				name_length = gcdc.GetTextExtent(feature_name) #length of text in pixels
+		
+		self.ctx.show_text(name)
+		
+		# bp
+		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+		self.ctx.set_font_size(2);
+		xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(basepairs)
+		self.ctx.move_to(-TextWidth/2, 2.7);  
+		self.ctx.show_text(basepairs);
+		
+		
+		return True
 	
-			#draw the lines to the label and the label itself, if the feature is highlighted
-			radius = self.Radius-outside_space-((feature_thickness+spacer)*level)
-			angle = start_angle+(finish_angle-start_angle)/2
-			x1, y1 = self.AngleToPoints(xc, yc, radius, angle)	
-
-			#now get the second coordinate
-			if self.label_type == 'group' or self.label_type == 'radiating': #'group' and 'radiating' have labels every 2 degrees, circular every 4
-				angle_step = 2
-			elif self.label_type == 'circular':
-				angle_step = 4				
-			else:
-				raise ValueError
-				
-
-			angle = start_angle+(finish_angle-start_angle)/2 #naivly assume that the coordinate at label angle is ok and try that
-			angle = int(angle/angle_step)*angle_step #I have to round to a numbers divisible by 3 (this gives 120 possible labels)
-
+	
+	
+	
+	
+	def drawCairoSelection(self, start=0, finish=0, feature=False):
 			
-			x2, y2, used = label_positions[str(angle)]
+		# we need:
+		radius			  = self.radius
 
-			counter = 0
-			while used == True: #if it turns out that it is used already, then  try next
-				counter += angle_step
-				if counter > 360:
-					raise ValueError, 'There are more labels than there are available positions to draw them'
-					break
-				angle += angle_step
-				if angle == 360:
-					angle = angle_step
-				x2, y2, used = label_positions[str(angle)]
-			label_positions[str(angle)] = (x2, y2, True) #update so that the position is now used
-
-
-			if self.label_type == 'group' or self.label_type == 'circular':
-				gcdc.DrawLine(x1,y1,x2,y2) #draw line to feature
-				if angle <= 180:
-					gcdc.DrawLine(x2,y2,x2+name_length[0]+3,y2)
-					gcdc.DrawText(feature_name,x2+3,y2-gcdc.GetTextExtent(feature_name)[1])
-
-					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
-					self.hidden_dc.DrawRectangle(x2, y2, gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
-
-				elif angle > 180:
-					gcdc.DrawLine(x2,y2,x2-name_length[0],y2)
-					gcdc.DrawText(feature_name,x2-name_length[0],y2-gcdc.GetTextExtent(feature_name)[1])
-
-					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
-					self.hidden_dc.DrawRectangle(x2, y2, -gcdc.GetTextExtent(feature_name)[0], -gcdc.GetTextExtent(feature_name)[1])
-
-			elif self.label_type == 'radiating':
-				if i is self.highlighted_feature: #only draw line if feature is highlighted
-					gcdc.DrawLine(x1,y1,x2,y2)
-				if angle <= 180:
-					text_extent = gcdc.GetTextExtent(feature_name)
-					text_radius = self.Radius + label_line_length
-
-					#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
-					tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
-					radians = math.atan(tanangle) #negate the Tin part and get radians
-					degrees = radians*(180/math.pi)	#convert radians to degrees
-					text_position_angle = angle-degrees			
-
-					tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
-					gcdc.DrawRotatedText(feature_name, tx, ty, -angle+90)
-
-					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
-					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
-					x2, y2 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle+degrees)
-					x3, y3 = self.AngleToPoints(xc, yc, text_radius + text_extent[0], angle-degrees)
-					x4, y4 = self.AngleToPoints(xc, yc, text_radius, angle-degrees)
-					self.hidden_dc.DrawPolygon([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])					
-
-				elif angle > 180:
-					text_extent = gcdc.GetTextExtent(feature_name)
-					text_radius = self.Radius + label_line_length + text_extent[0]
-
-					#need to adjust for text height. Imagine right angled triangle. Adjecent is radius. Opposite is half of the text height. Calculate tan angle.
-					tanangle = (0.5*text_extent[1])/text_radius #calculate the Tan(angle)
-					radians = math.atan(tanangle) #negate the Tin part and get radians
-					degrees = radians*(180/math.pi)	#convert radians to degrees
-					text_position_angle = angle+degrees			
-
-					tx, ty = self.AngleToPoints(xc, yc, text_radius, text_position_angle)
-					gcdc.DrawRotatedText(feature_name, tx, ty, -angle-90)
-
-					#draw hidden box at text positon, used for hittests
-					self.hidden_dc.SetPen(wx.Pen(colour=self.unique_color, width=0))
-					self.hidden_dc.SetBrush(wx.Brush(colour=self.unique_color))
-					x1, y1 = self.AngleToPoints(xc, yc, text_radius, angle+degrees)
-					x2, y2 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle+degrees)
-					x3, y3 = self.AngleToPoints(xc, yc, text_radius - text_extent[0], angle-degrees)
-					x4, y4 = self.AngleToPoints(xc, yc, text_radius, angle-degrees)
-					self.hidden_dc.DrawPolygon([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])
-					
-				else:
-					raise ValueError
-
-	def Draw_search_hits(self, gcdc):
-		'''Indicate where search hits were found'''
-		gcdc.SetPen(wx.Pen(colour=(204,255,0,255), width=3))
-		gcdc.SetBrush(wx.Brush(colour=(204,255,0,255)))
-
-		xc=self.centre_x #centre of circle
-		yc=self.centre_y #centre of circle
-		step = 0.25 #how tightly the points should be
+	
+		self.selectionDrawing = []
 		
-		if len(genbank.search_hits) > 0:
-			for hit in genbank.search_hits:
-				pointlist = []
-				start, finish = hit
-				start_angle = self.pos_to_angle(start-1)
-				finish_angle = self.pos_to_angle(finish)
+		# feature to highlight or drag and drop?
+		if feature != False:
+			featurelist             = genbank.gb.get_all_feature_positions()
+			for i in range(0,len(featurelist)):	
+				# load all the feature infos
+				featuretype, complement, start, finish, name, index = featurelist[i]
+		
+				temHit = "%s%s" % (name, index)
+				if feature == temHit:
+					length         		= float(len(genbank.gb.GetDNA()))
+					degreeMult     	  	= float(2*math.pi/length)
+					start_rad			= self.pos_to_angle_rad(start)			# in degree
+					finish_rad 			= self.pos_to_angle_rad(finish)	
+					
+					self.selectionDrawingDirection = start_rad + 0.01
+					
+					# set selection for real!
+					self.set_dna_selection((start,finish))
+					
+		
+		else:
+		
+			# we have a selection:
+			start_rad		= start#   - math.pi/2 
+			finish_rad   	= finish # + math.pi/2 
+		
+		# set Drawing angles
+		self.selectionDrawing.append(start_rad)	
+		self.selectionDrawing.append(finish_rad)	
+		
+		
+		# save a third value for direction.
+		# it is the first value of the end
+		# so it is the second start point!
+		# if its greater than start is is a 3'-5' direction
+		# else it should be 5'-3' selection!
+		
+		# we have to reset this as soon as we hit the start again!:
 
-				#near side of box
-				i = 0
-				while i <= int(finish_angle-start_angle):
-					radius = self.Radius-5
-					angle = finish_angle-i
-					x, y = self.AngleToPoints(xc, yc, radius, angle)
-					pointlist.append((x,y))
-					i += step
+		# check if the movement just hit the start and maybe changed direction of selection!
+		# this part is pretty awesome and cost me some thinking. Hope it works well
+		oldDrawingDiff 				= self.selectionDrawingDiff
+		self.selectionDrawingDiff 	= start_rad - finish_rad
+		
+		oldSign = math.copysign(1, oldDrawingDiff)
+		newSign = math.copysign(1, self.selectionDrawingDiff)
+		
+		if math.fabs(round(self.selectionDrawingDiff)) < 2 and oldSign != newSign:
+			self.selectionDrawingDirection = False
+	
+		
+		if self.selectionDrawingDirection == False:
+			self.selectionDrawingDirection = finish_rad
 
-				#far side of box
-				i = int(finish_angle-start_angle)
-				while i >= 0:
-					radius = self.Radius+5
-					angle = finish_angle-i
-					x, y = self.AngleToPoints(xc, yc, radius, angle)
-					pointlist.append((x,y))
-					i -= step				
-				gcdc.DrawPolygon(pointlist)
+		
+		self.update_ownUI()
+		return True
+	
+	
+	
+	# function to make a List of allowed label positions
+	# the later can be used to position as much labels on the screen as possible
+	def labelPositions(self):
+		allowedPositions = []
+		
+		# how high should a label be?
+		generalHight = 15 # px on screen
+		generalHight = self.ctx.device_to_user_distance(0,generalHight)[1]
 
-############### Setting methods for interconverting angles to dna positions ##############
+		# get plasmid view width and height
+		width, height = self.GetVirtualSize()
+		
+
+		
+		# so labels are arranged around the plasmid.
+		# at least the radius of the plasmid and 3 layers of arrows have to fit below:		
+		labelRadius = self.opt.labelRadius
+
+
+		
+		
+		
+		
+		return allowedPositions
+
+
+	
+############### Setting methods for converting stuff ##############
+
+	def radial2cartesian(self,radius, angle, cx=0,cy=0): # angle in radial!
+		radius = float(radius)
+		angle  = float(angle)
+		x = radius * math.cos(angle) + cx
+		y = radius * math.sin(angle) + cy
+		
+		return x,y
+		
+	def cartesian2radial(self,x, y):
+
+		x=-x # to make it correct
+		
+		add =  math.radians(90)
+		a = math.atan2(x,y) + 1 * math.pi - add
+		
+		return a
 
 	def angle_to_pos(self, angle):
 		'''Convert an angle of a circle to a DNA position'''
@@ -623,7 +992,21 @@ class PlasmidView(DNApyBaseDrawingClass):
 			angle = 0
 		else:
 			angle = self.FractionToAngle(pos/float(len_dna))
-		return angle		
+		return angle	
+		
+	def angle_to_pos_rad(self, angle):
+		len_dna = float(len(genbank.gb.GetDNA()))
+		radMult        	= float(2*math.pi/len_dna)
+		position 		= (angle-math.pi/2)/radMult + 0.5 * len_dna
+		
+		return position
+	
+	def pos_to_angle_rad(self, position):
+		len_dna = float(len(genbank.gb.GetDNA()))
+		radMult        	= float(2*math.pi/len_dna)
+		angle = (position - 0.5 * len_dna) * radMult + math.pi/2
+		
+		return angle
 
 ########## Done with angle to dna methods ####################
 
@@ -634,86 +1017,189 @@ class PlasmidView(DNApyBaseDrawingClass):
 
 	def HitTest(self):
 		'''Tests whether the mouse is over any feature or label'''
-		dc = wx.ClientDC(self) #get the client dc
-		x, y = self.ScreenToClient(wx.GetMousePosition()) #get coordinate of mouse event
-		pixel_color = self.hidden_dc.GetPixel(x,y) #use that coordinate to find pixel on the hidden d
-		return self.feature_catalog[str(pixel_color)] #return the index
+		hit = None
+		x, y = self.ScreenToClient(wx.GetMousePosition())	
+		
+		# get the mouse positions
+		x2, y2 = self.ctx.device_to_user(x,y)
+
+		
+		for path in self.hittest:
+			cairoCtx = self.ctx
+			for i in self.hittest[path]:
+				# load the path
+				self.ctx.append_path(i)
+				inFill = self.ctx.in_fill(x2,y2) 
+				inStroke = self.ctx.in_stroke(x2,y2)
+				# check if this path is hit
+				if inFill == True or inStroke == True:
+					hit = path
+			
+					
+				self.ctx.fill()
+		
+		return hit
+	
+	def HitTestMarkerArea(self):
+		'''Check if the marker area (area where selection is possible) was hit'''
+		
+		# get the mouse position
+		x, y = self.ScreenToClient(wx.GetMousePosition())	
+		x2, y2 = self.ctx.device_to_user(x,y)
+
+		self.ctx.append_path(self.markerArea1)
+		inFill1 = self.ctx.in_fill(x2,y2) 
+		self.ctx.stroke()
+		
+		self.ctx.append_path(self.markerArea2)
+		inFill2 = self.ctx.in_fill(x2,y2) 
+		self.ctx.stroke()
+		
+		# check if the path is hit for selection
+		if inFill1 == True and inFill2 == False:
+			return True
+		else:
+			return False
+
+		
 			
 
 	def OnLeftDown(self, event):
 		'''When left mouse button is pressed down, store angle at which this happened.'''
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
+		
+		# get the mouse position
 		x, y = self.ScreenToClient(wx.GetMousePosition())	
-		angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
-		self.left_down_angle = angle #save the angle at which left button was clicked for later use
+		x2, y2 = self.ctx.device_to_user(x,y)
+		
+		self.selectionDrawing 			= [] # empty selection
+		self.selectionDrawingDirection  = False
+		
+		inArea = self.HitTestMarkerArea()
+		
+		if inArea == True:		
+			a  = self.cartesian2radial(x2,y2)
+			self.left_down_angle = a
+		else:
+			self.left_down_angle = False		
+				
+			
+		
+		#return hit
 
 
 	def OnLeftUp(self, event):
-		'''When left mouse button is lifted up, determine the DNA selection from angles generated at down an up events.'''
-		self.centre_x = self.size[0]/2 #centre of window in x
-		self.centre_y = self.size[1]/2 #centro of window in y
-		x, y = self.ScreenToClient(wx.GetMousePosition())	
-
-		up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
-		down_angle = self.left_down_angle
-
-		if abs(down_angle-up_angle) <= 0.2: # want to do 'down == up' but I need some tolerance
-			self.highlighted_feature = self.HitTest()
-			if self.highlighted_feature is False: #if there is no feature, then there is not selection, just an insertion of the charet. Draw a line
-				start = self.angle_to_pos(down_angle) 
-				finish = -1 
-			else:
-				featuretype, complement, start, finish, name, index = genbank.gb.get_all_feature_positions()[self.highlighted_feature] #get info for the feature that was 'hit'
-				start += 1 #need to adjust for some reason
-		elif down_angle < up_angle:
-			start = self.angle_to_pos(down_angle)
-			finish = self.angle_to_pos(up_angle)
-		elif down_angle > up_angle:
-			start = self.angle_to_pos(up_angle)
-			finish = self.angle_to_pos(down_angle)
-
-		self.set_dna_selection((start, finish))
+		# remove start point, so we know selection is done:
+		self.left_down_angle == False
+		
+		# maybe he hit a feature?
+		hit = self.HitTest()
+		if hit != None:
+			self.HighlightClick = hit
+			# we hit one, so we need to draw the selection!
+			# wich feature was hit?
+			self.drawCairoSelection(0, 0, hit)
+			
+		else:
+			self.HighlightClick = None
+		#self.set_dna_selection((start, finish))
 		self.update_ownUI()
 
 
 	def OnMotion(self, event):
 		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
-		if event.Dragging() and event.LeftIsDown():
+		
+		if event.Dragging() and event.LeftIsDown() and self.left_down_angle != False:
+			# we have to make a selection now!
+			start_angle = self.left_down_angle
+			
+			# get the mouse positions
 			x, y = self.ScreenToClient(wx.GetMousePosition())	
+			x2, y2 = self.ctx.device_to_user(x,y)
 
-			up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
-			down_angle = self.left_down_angle
+			a  = self.cartesian2radial(x2,y2)
+			finish_angle = a
+			self.drawCairoSelection(start_angle, finish_angle)
+			
 
-			if down_angle <= up_angle:
-				start = self.angle_to_pos(down_angle)
-				finish = self.angle_to_pos(up_angle)
-			elif down_angle > up_angle:
-				start = self.angle_to_pos(up_angle)
-				finish = self.angle_to_pos(down_angle)			
+			
+			#set genebank selection
+			start 	= self.angle_to_pos_rad(start_angle)
+			finish 	= self.angle_to_pos_rad(finish_angle)
+			
+			self.set_dna_selection((start,finish))
 
-			self.set_dna_selection((start, finish))
-			self.update_ownUI()
+		
+		
 		else:
+			oldhit 	= self.Highlight
+			hit 	= self.HitTest()
+			if hit:
+				self.Highlight = hit
+				# only update after change
+				if oldhit != hit:
+					self.update_ownUI()
+				
+			elif len(self.selectionDrawing) < 2: # only hover position, if none is selected --> maybe use two variables to make both possible?
+				# no feature to highlight, but maybe selection hover?
+				self.Highlight = None
+				
+				# check if we are in the "hover area"
+				inArea = self.HitTestMarkerArea()
+		
+				if inArea == True:
+					# get the mouse position
+					x, y = self.ScreenToClient(wx.GetMousePosition())	
+					x2, y2 = self.ctx.device_to_user(x,y)
+					self.selectionDrawing = [] # empty it
+					self.selectionDrawing.append(self.cartesian2radial(x2,y2))	
+					self.update_ownUI()
+				elif oldhit != hit:
+					self.update_ownUI()
+				elif len(self.selectionDrawing) == 1: # TODO 
+					self.selectionDrawing = [] # empty it so the hover line wont be seen all the time
+					self.update_ownUI()
+			
+
+		
+
+		
+		
+		
+		#if event.Dragging() and event.LeftIsDown():
+		
+			
+			#up_angle = self.PointsToAngle(self.centre_x, self.centre_y, x, y)
+			#down_angle = self.left_down_angle
+
+			#if down_angle <= up_angle:
+			#	start = self.angle_to_pos(down_angle)
+			#	finish = self.angle_to_pos(up_angle)
+			#elif down_angle > up_angle:
+			#	start = self.angle_to_pos(up_angle)
+			#	finish = self.angle_to_pos(down_angle)			
+
+			#self.set_dna_selection((start, finish))
+			#self.update_ownUI()
+		'''else:
 			new_index = self.HitTest()
 			if new_index is self.highlighted_feature: #if the index did not change
 				pass
 			else:
 				self.highlighted_feature = new_index
-				self.update_ownUI()
+				self.update_ownUI()'''
 
 
 	def OnLeftDouble(self, event):
 		'''When left button is double clicked, launch the feature edit dialog.'''
-		new_index = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
+		'''new_index = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
 		if new_index is not False: #False is returned for the background
 			featurelist = genbank.gb.get_all_feature_positions()
 			featuretype, complement, start, finish, name, index = featurelist[new_index]
 			genbank.feature_selection = copy.copy(index)
 
-			dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
-			dlg.ShowModal()
-			dlg.Center()
+			dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title'''
+		dlg.ShowModal()
+		dlg.Center()
 
 
 	def OnRightUp(self, event):
@@ -834,6 +1320,7 @@ class PlasmidView2(PlasmidView):
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
+
 		frame = wx.Frame(None, -1, title="Plasmid View", size=(700,600), style = wx.NO_FULL_REPAINT_ON_RESIZE)
 
 
