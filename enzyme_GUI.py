@@ -204,7 +204,7 @@ class EnzymeSelector(DNApyBaseClass):
 					if e in self.enzymeClass.enzymeObj:
 						enzymes2show[e] = self.enzymeClass.enzymeObj[e]
 		else:
-			print "hjat"
+			print "what selection?"
 	
 		# clear list first
 		self.lb.Clear()	
@@ -505,7 +505,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		self.cutpositions = self.findCutPositons(Enzymes, genbank.gb.gbfile["dna"])
 		# we already know the cut positions! They are now always there
 		
-		print self.cutpositions
+		
 		
 		# calculate the fragments, new and old style
 		self.fragments, self.fragmentsObj     = self.calculateFragments(self.cutpositions, genbank.gb.gbfile['locus']['topology'])
@@ -743,7 +743,7 @@ class EnzymeDigestion(DNApyBaseClass):
 			for i in self.enzymeClass.enzymeObj[enzyme].restrictionSites:
 				cuts.append(i)
 		
-		print cuts
+		
 		
 		self.cutpositions = []							# get the cuts positions
 
@@ -767,7 +767,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		fragments = []				# old list			
 		fragementList = []			# list to store objects
 		positions  = sorted(positions)		# sort them in cased they are not sorted jet
-		print positions
+		
 		# fragments as following or as objects (new):
 		#	fragement = [[dnastring, start, stop], [...]]
 		
@@ -968,7 +968,7 @@ class EnzymeDigestion(DNApyBaseClass):
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
 		selection = (int(selection[0]+1), int(selection[1]))
 		genbank.dna_selection = selection
-		print "select: ", selection
+		
 		# update UI
 		self.update_globalUI()
 

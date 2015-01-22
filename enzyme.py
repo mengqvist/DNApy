@@ -83,6 +83,9 @@ class restrictionEnzyme():
 		
 	def addRestrictionSite(self,start,end,cut51,cut52,dnaMatch):
 		self.restrictionSites.append([self.name,start,end,cut51,cut52,dnaMatch])
+		
+	def resetRestrictionSite(self):
+		self.restrictionSites = []
 # End of Class restrictionEnzyme()
 ##########################################################################
 
@@ -221,7 +224,10 @@ class initRestriction():
 
 			# loop all the selected enzymes
 			for enzyme in self.enzymeObj:
-			
+				
+				# reset restrictionsites first:
+				self.enzymeObj[enzyme].resetRestrictionSite()
+				
 				restrictionsitesList = [] # variable to return the restriction sites
 				r         	= self.enzymeObj[enzyme].regex
 				# get the cut position

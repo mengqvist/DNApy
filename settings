@@ -6,13 +6,13 @@ windowsize = (1300, 650)
 
 ## Available colors ##
 #rv color is same as fw, just lighter
-red = {'color':'red', 'fw':'#bb553d', 'rv':'#d28a5f'}
+red = {'color':'red', 'fw':'#B01A1A', 'rv':'#CC3B3B'}
 orange = {'color':'orange','fw':'#e29425', 'rv':'#f5c27a'}
 yellow = {'color':'yellow','fw':'#ffe349', 'rv':'#fdf388'}
-green = {'color':'green','fw':'#44a153', 'rv':'#b2d562'}
-cyan = {'color':'cyan','fw':'#4c9dab', 'rv':'#7acccb'}
-blue = {'color':'blue','fw':'#5683bf', 'rv':'#9fbfdc'}
-purple = {'color':'purple','fw':'#5f5799', 'rv':'#907bbe'}
+green = {'color':'green','fw':'#159918', 'rv':'#68A819'}
+cyan = {'color':'cyan','fw':'#0EA8C7', 'rv':'#19B5B3'}
+blue = {'color':'blue','fw':'#166AC4', 'rv':'#3886D9'}
+purple = {'color':'purple','fw':'#574E96', 'rv':'#6A62A6'}
 magenta = {'color':'magenta','fw':'#a14673', 'rv':'#c57fad'}
 burgundy = {'color':'burgundy','fw':'#955050', 'rv':'#b58d8d'}
 grey = {'color':'grey','fw':'#848484', 'rv':'#c2c2c2'}
