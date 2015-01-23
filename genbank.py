@@ -911,17 +911,13 @@ class gbobject(object):
 	def PasteRC(self, ip):
 		'''Paste reverse complement of DNA in clipboard'''
 		assert type(ip) == int, 'The insertion point must be an integer.'
-		self.reverse_complement_clipboard()
-		self.Paste(ip)
-		self.reverse_complement_clipboard() #change it back
-
+		self.RichPaste(ip,True)
 
 	def CopyRC(self, start, finish):
 		'''Copy the reverse complement of DNA and all the features for a certain selection'''
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
 		self.RichCopy(start, finish, True)
-		#self.reverse_complement_clipboard()
 
 
 	def RichCopy(self, start, finish, complement=False):
@@ -983,7 +979,7 @@ class gbobject(object):
 		
 		
 
-	def RichPaste(self, ip):
+	def RichPaste(self, ip, complement=False):
 		'''Paste DNA present in clipboard and any features present on that DNA
 			If a string is passed to DNA then this will over-ride anything that is present in the clipboard
 			this depreciates the Paste method from this file
@@ -1014,10 +1010,15 @@ class gbobject(object):
 				# else there is nothing to paste
 				pasteRich = False
 				paste     = ''
-
-		# here we paste, mostly the same as Paste() 
+		
+		# if complement paste is wished we need to reverse somethings
+		if complement == True and pasteRich == True:
+			pasteDNA = self.reverse_complement_clipboard(pasteDNA) 	# reverse the clipboard content
+		elif complement == True and pasteRich == False:
+			paste = dna.RC(paste) 									# reverse the dna txt
+			
+		# here we paste 
 		if pasteRich:
-
 			DNA = pasteDNA['dna']
 			self.changegbsequence(ip, ip, 'i', DNA) #change dna sequence	
 			for i in range(len(pasteDNA['features'])): #add features from clipboard
