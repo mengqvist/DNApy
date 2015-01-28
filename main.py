@@ -98,7 +98,7 @@ class DNAedit(DNApyBaseClass):
 		self.dnaview = dnaeditor_GUI.TextEdit(splitter1, id=wx.ID_ANY)
 		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
 		
-		
+		self.parent = parent
 
 		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
 		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))	
@@ -138,6 +138,7 @@ class DNAedit(DNApyBaseClass):
 		elif text == "DNA view says update!":
 			self.feature_list.update_ownUI()
 			self.plasmidview.update_ownUI()
+			self.parent.update_statusbar(text) # also statusbar update
 		elif text == "Feature list says update!":
 			self.dnaview.update_ownUI()
 			self.plasmidview.update_ownUI()
@@ -173,11 +174,12 @@ class MyFrame(wx.Frame):
 		self.fileopen = False #used to see if a file is open
 		self.new_file(None) #create new genbank file
 
-		genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
-		genbank.feature_selection = False #variable for storing current feature selection
-		genbank.search_hits = []
-		genbank.gb.fileName = ''
-		genbank.restriction_sites = [] # variable for storing info about selected restriction enzymes
+		genbank.dna_selection 		= (1, -1)	 	# variable for storing current DNA selection
+		genbank.cursor_position 	= 0 			# to save cursor position
+		genbank.feature_selection 	= False #variable for storing current feature selection
+		genbank.search_hits 		= []
+		genbank.gb.fileName 		= ''
+		genbank.restriction_sites 	= [] # variable for storing info about selected restriction enzymes
 
 		#build the UI using the pre-defined class
 		self.DNApy = DNAedit(self, -1)
@@ -412,58 +414,36 @@ class MyFrame(wx.Frame):
 
 	def update_statusbar(self, evt):
 		'''Updates statusbar'''
-		#this stuff is for the statusbar
-#		if len(self.tab_list) == 0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==1:
-#			string = 'File not yet saved'
-#		
-#		if self.current_tab == 0: #if dna editor is active
-
-##		mposition, Feature = self.DNApy.dnaview.mouse_position("") #get mouse position
-		mposition = 'None'
-		Feature = "None"
-	
-		try:
-			Position = str(mposition+1)
-		except:
-			Position = ""
-	
-		try:
-			Feature = str(Feature)
-		except:
-			Feature = ""
-	
-		try:		
-			SelectionFrom, SelectionTo = (str(self.DNApy.dnaview.stc.GetSelection()[0]+1), str(self.DNApy.dnaview.stc.GetSelection()[1]))
-			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-				SelectionFrom, SelectionTo = ("0", "0")
-		except:
-			SelectionFrom, SelectionTo = ("0", "0")
-		try:	
-			Length = str(self.DNApy.dnaview.stc.GetSelection()[1] - self.DNApy.dnaview.stc.GetSelection()[0])
-		except:
-			Length = ""
-
-
-		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-	
-	
-		#this is broken... FIX!!
-#		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-#			AA = ': %s' % dna.Translate(self.DNApy.dnaview.stc.GetSelectedText())
-#		else:
-#			AA = ''
-
-
 		
-#		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+		Position = genbank.cursor_position
+		selection = self.get_dna_selection()
+	
+		# set text
+		if selection[1] != -1:
+			# it is a selection
+			length = abs(selection[0]-selection[1])+1 # length of the selected
+			
+			if length == 3:
+				# if its just one codo show full name of amino acid
+				dnaSq 			= genbank.gb.GetDNA()
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				AAoneLetter 	= dna.Translate(selDNA)
+				AAFull 			= dna.protein.one_to_full(AAoneLetter)
+				AA = " amino acid: %s (%s)" %(AAFull, AAoneLetter)
 
-#		else:
-#			self.SetStatusText('', 0)
-#			self.SetStatusText('', 1)		
+			elif length % 3 == 0:
+				# if partable trough 3 show all amino acids that fit
+				dnaSq 			= genbank.gb.GetDNA()
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				fullProtein = dna.Translate(selDNA)
+				AA = " amino acid: %s" %(fullProtein)
+				
+			else:
+				AA = ""
+			self.SetStatusText('Selection: %d to %d, %d bp %s' % (selection[0], selection[1], length,AA), 0) #text in first field
+		else:
+			self.SetStatusText('Position: %s bp' % (Position), 0) #text in first field
+		
 
 
 ######### get and set methods #########

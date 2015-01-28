@@ -33,6 +33,7 @@
 import fasta
 import string
 import random
+import protein # for conversion from dna to amino acid name
 
 
 ############# Basic DNA functions #####################

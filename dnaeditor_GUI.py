@@ -389,23 +389,34 @@ class TextEdit(DNApyBaseClass):
 ######################################################
 
 	def OnLeftDown(self, event):
+		
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnLeftUp(self, event):
 		self.set_dna_selection() #update the varable keeping track of DNA selection
+		self.set_cursor_position() # update cursor position
 		event.Skip() #very important to make the event propagate and fulfill its original function		
 
 	def OnMotion(self, event):
-		#if event.Dragging() and event.LeftIsDown():
-		#	self.set_dna_selection() #update the varable keeping track of DNA selection
+		if event.Dragging() and event.LeftIsDown():
+			oldSel = genbank.dna_selection
+			if oldSel != self.get_selection():
+				self.set_dna_selection() #update the varable keeping track of DNA selection
+		
+		
 		event.Skip() #very important to make the event propagate and fulfill its original function
+
 
 	def OnRightUp(self, event):
 		print('dna right up')
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 #####################################################################
-
+	
+	def set_cursor_position(self):
+		# set position of cursor for status bar:
+		genbank.cursor_position = self.stc.GetCurrentPos()+1 # +1 because we have no 0 position, A|CGA is pos 2
+		
 	def set_dna_selection(self):
 		'''
 		Updates DNA selection.
@@ -482,6 +493,8 @@ class TextEdit(DNApyBaseClass):
 			self.stc.LineDownExtend()
 
 		self.set_dna_selection() #update the varable keeping track of DNA selection
+		
+		self.set_cursor_position() # udpate cursor position, just in case
 
 ##########################
 	def make_outputpopup(self):
@@ -774,7 +787,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
 	execfile(settings) #gets all the pre-assigned settings
 
-	genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
+	genbank.dna_selection = (1, -1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
 	genbank.search_hits = []
 	
