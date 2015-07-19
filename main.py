@@ -181,7 +181,7 @@ class MyFrame(wx.Frame):
 		self.new_file(None) #create new genbank file
 
 
-		genbank.dna_selection 		= (1, -1)	 	# variable for storing current DNA selection
+		genbank.dna_selection 		= (0, 0, -1)	 	# variable for storing current DNA selection
 		genbank.cursor_position 	= 0 			# to save cursor position
 
 
@@ -429,14 +429,14 @@ class MyFrame(wx.Frame):
 		selection = self.get_dna_selection()
 	
 		# set text
-		if selection[1] != -1:
+		if selection[1] != 0:
 			# it is a selection
 			length = abs(selection[0]-selection[1])+1 # length of the selected
 			
 			if length == 3:
 				# if its just one codo show full name of amino acid
 				dnaSq 			= genbank.gb.GetDNA()
-				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				selDNA 			= dnaSq[selection[0]:selection[1]]
 				AAoneLetter 	= dna.Translate(selDNA)
 				AAFull 			= dna.protein.one_to_full(AAoneLetter)
 				AA = " amino acid: %s (%s)" %(AAFull, AAoneLetter)
@@ -444,7 +444,7 @@ class MyFrame(wx.Frame):
 			elif length % 3 == 0:
 				# if partable trough 3 show all amino acids that fit
 				dnaSq 			= genbank.gb.GetDNA()
-				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				selDNA 			= dnaSq[selection[0]:selection[1]]
 				fullProtein = dna.Translate(selDNA)
 				AA = " amino acid: %s" %(fullProtein)
 				
@@ -476,7 +476,7 @@ class MyFrame(wx.Frame):
 #
 #		try:
 #			Feature = str(Feature)
-		except:
+#		except:
 #			Feature = ""
 #
 #		try:
@@ -522,6 +522,9 @@ class MyFrame(wx.Frame):
 	def set_dna_selection(self, selection):
 		'''Method for selecting a certain DNA range'''
 		#input needs to be a touple of two values
+		if len(selection) == 2:
+			a, b = selection
+			selection = (a,b,-1)
 		genbank.dna_selection = selection
 
 
@@ -1038,7 +1041,7 @@ Put Table here
 
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
-		start, finish = self.get_dna_selection()
+		start, finish, zero = self.get_dna_selection()
 		for i in range(len(genbank.search_hits)):
 			if start < genbank.search_hits[0][0]:
 				self.set_dna_selection(genbank.search_hits[-1])

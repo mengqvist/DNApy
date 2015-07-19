@@ -103,8 +103,9 @@ class plasmidstore():
 								'leftDown'			: None,
 								'markerArea1' 		: None,
 								'markerArea2' 		: None,
-								'selection'			: (0, 0),
-								'selectionOld'		: (0, 0),}
+								'selection'			: (0, 0, -1),
+								'selectionOld'		: (0, 0, -1)
+							  } 		
 		
 
 		return None
@@ -155,7 +156,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 		# object to store our cacluations over time
 		self.plasmidstore 		= plasmidstore()		
-		self.radius 			= 27								# cairo unit
+		self.radius 			= 25								# cairo unit
 		self.radiusI 			= self.radius - 0.013 * self.radius	# cairo unit
 		self.radiusO 			= self.radius + 0.013 * self.radius	# cairo unit
 		self.radiusLabels 		= self.radius + 17 					# cairo unit
@@ -232,7 +233,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	def set_dna_selection(self, selection):
 		'''Receives requests for DNA selection and then sends it.'''
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
-		selection = (int(selection[0]), int(selection[1]))
+		selection = (int(selection[0]), int(selection[1]), int(selection[2]))
 		genbank.dna_selection = selection
 		self.plasmidstore.interaction["selection"] = selection
 		self.update_globalUI()
@@ -247,7 +248,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		''' get selection from editor and update own store '''
 		selection =  genbank.dna_selection
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
-		selection = (int(selection[0]), int(selection[1]))
+		selection = (int(selection[0]), int(selection[1]), int(selection[2]))
 		self.plasmidstore.interaction["selection"] = selection
 		
 
@@ -309,7 +310,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		else:
 			return False
 	
-	def saveSelection(self, start=0, finish=0, featureHit=False):
+	def saveSelection(self, start=0, finish=0, zero=-1, featureHit=False):
 
 		# feature to highlight or drag and drop?
 		if featureHit != False:
@@ -320,10 +321,13 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 				hName = self.hitName(name, index)
 				if featureHit == hName:
+					# a feature with start smaller then finish, is a featur laying over zero
+					if start > finish:
+						zero = 1 # 1 --> feature starts left and ends right of +1
 					# set selection for real!
-					self.set_dna_selection((start,finish))
+					self.set_dna_selection((start,finish, zero))
 		else:
-			self.set_dna_selection((start,finish))
+			self.set_dna_selection((start,finish, zero))
 		
 		return None
 	
@@ -370,7 +374,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	############### Inteaction with mosue and keyboard ################
 	def OnLeftUp(self, event):
 	
-		pos1, pos2 	= self.plasmidstore.interaction["selection"]
+		pos1, pos2, zero 	= self.plasmidstore.interaction["selection"]
 		if self.plasmidstore.interaction["leftDown"] == True and pos2 != 0:
 			# selection is finish
 			self.plasmidstore.interaction["leftDown"] = False
@@ -379,10 +383,10 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			x2, y2 		= self.ctx.device_to_user(x,y)
 			pos 		= self.cartesian2position(x2,y2)
 			
-			self.plasmidstore.interaction["selection"] = (pos1, pos)
+			self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 
 		elif pos2 == 0:
-			self.plasmidstore.interaction["selection"] = (0, 0)
+			self.plasmidstore.interaction["selection"] = (0, 0, -1)
 
 			# maybe we cliked on a feature, label or a line?
 			hit = self.HitTest()
@@ -390,7 +394,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 				self.plasmidstore.interaction["hit"] = hit
 				# we hit one, so we need to draw the selection!
 				# wich feature was hit?
-				self.saveSelection(0, 0, hit)
+				self.saveSelection(0, 0, -1, hit)
 			else:
 				self.plasmidstore.interaction["hit"] = None
 		
@@ -407,13 +411,13 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			x2, y2 = self.ctx.device_to_user(x,y)
 			pos = self.cartesian2position(x2,y2)
 			self.plasmidstore.interaction["leftDown"] = True
-			self.plasmidstore.interaction["selection"] = (pos, 0)
+			self.plasmidstore.interaction["selection"] = (pos, 0, -1)
 			
 			print ("startSelection")
 		else:
 			# remove selection
 			self.plasmidstore.interaction["hit"] = None
-			self.saveSelection(0, 0, False)
+			self.saveSelection(0, 0, -1, False)
 		
 		return None
 	
@@ -423,15 +427,19 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		
 		if event.Dragging() and event.LeftIsDown() and self.plasmidstore.interaction["leftDown"] == True:
 			# save the mouse position
-			x, y 		= self.ScreenToClient(wx.GetMousePosition())
-			x2, y2 		= self.ctx.device_to_user(x,y)
-			pos 		= self.cartesian2position(x2,y2)
-			pos1, pos2 	= self.plasmidstore.interaction["selection"]
-			self.plasmidstore.interaction["selection"] = (pos1, pos)
-
+			x, y 				= self.ScreenToClient(wx.GetMousePosition())
+			x2, y2 				= self.ctx.device_to_user(x,y)
+			pos 				= self.cartesian2position(x2,y2)
+			pos1, pos2, zero 	= self.plasmidstore.interaction["selection"]
+			self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
+			
+			# if we have a sudden increase, we might have moven over zero
+			if abs(pos2 - pos) > self.dnaLength/2 and pos2 != 0:
+				zero = zero * -1 # turn zero around
+				self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 
 			#set genebank selection
-			self.saveSelection(pos1,pos)
+			self.saveSelection(pos1, pos, zero)
 			self.update_ownUI()
 
 
@@ -1038,18 +1046,19 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		selOld 	= self.plasmidstore.interaction["selectionOld"]
 		sel 	= self.plasmidstore.interaction["selection"]
 		if sel != selOld:
-			if sel == (None, None):
+			if sel[1] == 0:
 				# remove selection arc
 				self.plasmidstore.drawnSelection = None
 			else:
 				# draw selection arc
-				pos1, pos2 = sel
+				pos1, pos2, zero = sel
+
 				a1 = self.position2angle(pos1)
 				a2 = self.position2angle(pos2)
 				
-				if pos1 < pos2:
+				if (pos1 < pos2 and zero == -1) or (pos2 < pos1 and zero == 1):
 					self.ctx.arc(0,0,self.radius,a1,a2)
-				else:
+				else :
 					self.ctx.arc_negative(0,0,self.radius,a1,a2)
 				path = self.ctx.copy_path() # save line path
 				self.ctx.new_path() 		# clear canvas
@@ -1066,12 +1075,20 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		''' print the stored elements on th canvas'''
 		# prepare the canvas
 		width, height = self.GetVirtualSize()
-		ratio = float(height)/ float(width)
-		# only resize the canvas if software is loaded. This prevents error messages
-		if width != 0 and height != 0 and width > 100 and height > 100:
-			self.ctx.scale(width*ratio, height) # Normalizing the canvas
-			self.ctx.scale(0.01, 0.01) 			# make it 100*ratiox100
-			self.ctx.translate (50/ratio,50) 		# set center to 0,0
+		if width < height:
+			ratio = float(width)/float(height)
+			# only resize the canvas if software is loaded. This prevents error messages
+			if width != 0 and height != 0 and width > 100 and height > 100:
+				self.ctx.scale(width, height*ratio) # Normalizing the canvas
+				self.ctx.scale(0.01, 0.01) 			# make it 100*ratiox100
+				self.ctx.translate (50,50/ratio) 		# set center to 0,0
+		if width >= height:
+			ratio = float(height)/float(width)
+			# only resize the canvas if software is loaded. This prevents error messages
+			if width != 0 and height != 0 and width > 100 and height > 100:
+				self.ctx.scale(width*ratio, height) # Normalizing the canvas
+				self.ctx.scale(0.01, 0.01) 			# make it 100*ratiox100
+				self.ctx.translate (50/ratio,50) 		# set center to 0,0
 		self.drawFeatures()
 		self.drawLabels()
 		self.drawSelection()
@@ -1152,7 +1169,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	def drawSelection(self):
 		''' draw arc for selection '''
 		if self.plasmidstore.drawnSelection != None:
-			self.ctx.set_source_rgb (0, 1, 0) 			# Solid color
+			self.ctx.set_source_rgba (0.2, 0.3, 0.75, 0.6) 			# Solid color
 			self.ctx.set_line_width(5)
 			path = self.plasmidstore.drawnSelection
 			self.ctx.append_path(path)

@@ -379,7 +379,7 @@ class TextEdit(DNApyBaseClass):
 		if sequence == None:
 			sequence = ''	
 		self.stc.SetText(sequence) #put the DNA in the editor
-		start, finish = genbank.dna_selection
+		start, finish, zero = genbank.dna_selection
 		if finish == -1: #a caret insertion (and no selection). Will actually result in a selection where start is one larger than finish
 			self.stc.GotoPos(start-1) #set caret insertion
 		else:
@@ -408,7 +408,6 @@ class TextEdit(DNApyBaseClass):
 
 
 	def OnRightUp(self, event):
-		print('dna right up')
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 #####################################################################
@@ -422,6 +421,8 @@ class TextEdit(DNApyBaseClass):
 		Updates DNA selection.
 		'''
 		selection = self.get_selection()
+		a, b = selection			# new to enable selections over 0
+		selection = (a, b , -1)
 		genbank.dna_selection = selection
 		self.update_globalUI()
 		#self.update_ownUI()
@@ -429,9 +430,9 @@ class TextEdit(DNApyBaseClass):
 
 	def OnKeyPress(self, evt):
 		key = evt.GetUniChar()
-#		print(key)
+
 		shift = evt.ShiftDown() # is shift down?
-#		print(shift)
+
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish = self.stc.GetSelection()
 			if start != finish: # if a selection, delete it, then paste
@@ -539,12 +540,11 @@ class TextEdit(DNApyBaseClass):
 		'''Gets the text editor selection and adjusts it to DNA locations.'''
 		start, finish = self.stc.GetSelection()
 		if start == finish: #not a selection
-			finish = -1
+			finish = 0
 		elif start > finish: #the selection was made backwards
 			start, finish = finish, start
 		
 		selection = (start+1, finish)
-#		print('selection', selection)
 		return selection
 
 	def uppercase(self):
@@ -787,7 +787,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
 	execfile(settings) #gets all the pre-assigned settings
 
-	genbank.dna_selection = (1, -1)	 #variable for storing current DNA selection
+	genbank.dna_selection = (0, 0, -1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
 	genbank.search_hits = []
 	
