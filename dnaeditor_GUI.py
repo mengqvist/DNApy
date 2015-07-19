@@ -395,6 +395,7 @@ class TextEdit(DNApyBaseClass):
 	def OnLeftUp(self, event):
 		self.set_dna_selection() #update the varable keeping track of DNA selection
 		self.set_cursor_position() # update cursor position
+		self.update_globalUI()
 		event.Skip() #very important to make the event propagate and fulfill its original function		
 
 	def OnMotion(self, event):

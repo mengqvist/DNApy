@@ -144,7 +144,7 @@ class DNAedit(DNApyBaseClass):
 		elif text == "DNA view says update!":
 			self.feature_list.update_ownUI()
 			self.plasmidview.update_ownUI()
-			self.parent.update_statusbar(text) # also statusbar update
+			#self.parent.update_statusbar(text) # also statusbar update
 		elif text == "Feature list says update!":
 			self.dnaview.update_ownUI()
 			self.plasmidview.update_ownUI()

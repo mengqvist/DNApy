@@ -76,18 +76,27 @@ execfile(settings) #gets all the pre-assigned settings
 class plasmidstore():
 	''' class that defines a storing object for the plasmid drawing process'''
 	def __init__(self):
-		self.features 		= None # hold the feature info
-		self.enzymes		= None # hold the selected enzyme info
-		#self.featurePos 	= None # hold the positions of start end end of each feature in angular
-		self.drawnfeatures 	= {} # hold all cairo objects to draw Features
-		self.drawnlabels 	= {} # hold all written stuff
-		self.drawnLLines 	= {} # labellines
-		self.labelBoxes		= {} # make selecting labels more easy
-		self.drawnSelection = None# one path for selection only
+		# BASIC INFO
+		self.features 		= None 		# hold the feature info
+		self.enzymes		= None 		# hold the selected enzyme info
 		
-
+		# FEATURES
+		self.drawnfeatures 	= {} 		# hold all cairo objects to draw Features
+		self.drawnlabels 	= {} 		# hold all written stuff
+		self.drawnLLines 	= {} 		# labellines
+		self.labelBoxes		= {} 		# make selecting labels more easy
+		self.labelULine		= {}
 		
-		# label helper variables
+		# ENZYMES
+		self.drawnlabelsE 	= {} 		# hold all written stuff
+		self.drawnLLinesE 	= {} 		# labellines
+		self.labelBoxesE	= {} 		# make selecting labels more easy
+		
+		# SELECTION
+		self.drawnSelection = None		# one path for selection only
+		self.drawnPosition 	= None 		# hold the line, indicating the cursor position
+			
+		# LABELING HELPER
 		self.LiF 			= [] # labels to be written in feature arrows
 		self.LoF 			= [] # labels to be written as textlabels of features
 		self.LoE 			= [] # labels to be writtem as restrictionlabels
@@ -104,7 +113,9 @@ class plasmidstore():
 								'markerArea1' 		: None,
 								'markerArea2' 		: None,
 								'selection'			: (0, 0, -1),
-								'selectionOld'		: (0, 0, -1)
+								'selectionOld'		: (0, 0, -1),
+								'position'			: 1,
+								'positionOld'		: 0
 							  } 		
 		
 
@@ -112,7 +123,7 @@ class plasmidstore():
 
 
 class drawPlasmid(DNApyBaseDrawingClass):
-	''' This class handle the drawing'''
+	''' This class handle the drawing of a plasmid'''
 	'''
 		it should draw:
 		- Plasmid 
@@ -163,7 +174,9 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		self.arrowWidth 		= 1.8 								# cairo unit
 		self.labelHeight 		= 12 								# pixel
 		
-		self.i = 0
+
+		self.Highlight 			= None								# store who to highlight
+		self.enzymeGap			= "-|-"								# seperator to make unique hitname less unique
 		
 		# start the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
@@ -199,6 +212,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 		# update selection from editor
 		self.updateSelection() 
+		self.updatePosition()
 		
 		# start the calculations if any.
 		self.checkFeatureCalculations() 		# changed features may change labels also
@@ -242,7 +256,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 	def set_cursor_position(self, position):
 		# set position of cursor for status bar:
-		genbank.cursor_position = position 
+		genbank.cursor_position 					= position 
+		self.plasmidstore.interaction["position"] 	= position
 
 	def updateSelection(self):
 		''' get selection from editor and update own store '''
@@ -250,7 +265,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		assert type(selection) == tuple, 'Error, dna selection must be a tuple'
 		selection = (int(selection[0]), int(selection[1]), int(selection[2]))
 		self.plasmidstore.interaction["selection"] = selection
-		
+	
+	def updatePosition(self):
+		''' get position from editor and update own store '''
+		position 									=  genbank.cursor_position
+		self.plasmidstore.interaction["position"] 	= position
 
 	def hitName(self, name, index):
 		# unique and reproducible id for each feature
@@ -269,7 +288,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		x2, y2 	= self.ctx.device_to_user(x,y)
 
 		# list of all the paths:
-		loop = [self.plasmidstore.drawnfeatures, self.plasmidstore.drawnlabels, self.plasmidstore.labelBoxes]
+		loop = [self.plasmidstore.drawnfeatures, 	# features
+				self.plasmidstore.drawnlabels, 		# featurelabes
+				self.plasmidstore.labelBoxes,		# featurelabels
+				self.plasmidstore.drawnlabelsE,  	# enzymes
+				self.plasmidstore.labelBoxesE]		# enzymes
 		# loop over all possible paths to find the one we have under the mouse
 		for paths in loop:
 			for i in paths:
@@ -403,6 +426,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 	
 	def OnLeftDown(self, event):
+		# remove the position cursor:
+		self.set_cursor_position(0)
 		
 		selection = self.HitTestSelection()
 		if selection:
@@ -444,35 +469,38 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 
 
-		return None
+		
+		# check if something is beneath the mousecursor
 		oldhit 	= self.Highlight
 		hit 	= self.HitTest()
-		if hit:
-			self.Highlight = hit
-			# only update after change
-			if oldhit != hit:
-				self.update_ownUI()
-
-		elif len(self.selectionDrawing) < 2: # only hover position, if none is selected --> maybe use two variables to make both possible?
+		# save the state
+		self.Highlight = hit
+		# only update after change
+		if oldhit != hit:
+			self.update_ownUI()
+				
+		
+		
+		#elif len(self.selectionDrawing) < 2: # only hover position, if none is selected --> maybe use two variables to make both possible?
 			# no feature to highlight, but maybe selection hover?
-			self.Highlight = None
+		#	self.Highlight = None
 
 
 			# check if we are in the "hover area"
-			inArea = self.HitTestMarkerArea()
+		#	inArea = self.HitTestMarkerArea()
 
-			if inArea == True:
-				# get the mouse position
-				x, y = self.ScreenToClient(wx.GetMousePosition())
-				x2, y2 = self.ctx.device_to_user(x,y)
-				self.selectionDrawing = [] # empty it
-				self.selectionDrawing.append(self.cartesian2radial(x2,y2))
-				self.update_ownUI()
-			elif oldhit != hit:
-				self.update_ownUI()
-			elif len(self.selectionDrawing) == 1: # TODO
-				self.selectionDrawing = [] # empty it so the hover line wont be seen all the time
-				self.update_ownUI()
+		#	if inArea == True:
+		#		# get the mouse position
+		#		x, y = self.ScreenToClient(wx.GetMousePosition())
+		#		x2, y2 = self.ctx.device_to_user(x,y)
+		#		self.selectionDrawing = [] # empty it
+		#		self.selectionDrawing.append(self.cartesian2radial(x2,y2))
+		#		self.update_ownUI()
+		#	elif oldhit != hit:
+		#		self.update_ownUI()
+		#	elif len(self.selectionDrawing) == 1: # TODO
+		#		self.selectionDrawing = [] # empty it so the hover line wont be seen all the time
+		#		self.update_ownUI()
 
 
 
@@ -564,17 +592,20 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			for feature in 	featuresNew:
 				featuretype, complement, start, finish, name, index = feature
 				hitname 	= self.hitName(name, index)
-				# path creation
-				allFeatures[hitname] = [self.cairoFeature(feature), featuretype]
 				
-				# label handling
+				# do not display the annoying source
+				if featuretype != "source": 
+					# path creation
+					allFeatures[hitname] = [self.cairoFeature(feature), featuretype]
+				
+					# label handling
 
-				length 		= self.dnaLength
-				middle 		= start + (finish-start)/2 % length
+					length 		= self.dnaLength
+					middle 		= start + (finish-start)/2 % length
 				
-				name		= self.nameBeautiful(name)
-				y 			= None # to be populated
-				labelFeature.append([middle, name, index, hitname, y])
+					name		= self.nameBeautiful(name)
+					y 			= None # to be populated
+					labelFeature.append([middle, name, index, hitname, y])
 				
 			# save the new paths in the fancy storing class for further processing
 			self.plasmidstore.drawnfeatures = allFeatures
@@ -674,13 +705,18 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 	
 	
-	def caironameLabels(self, labels, site):
-		''' create paths for labelsgiven'''
-		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	def caironameLabels(self, labels, site, kind):
+		''' create paths for labels given'''
+		
+		if kind == "features":
+			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+		else:
+			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		self.ctx.set_font_size(self.lH)
-		paths 		= {}
-		labelPaths 	= {}
-		labelBoxes	= {}
+		textPaths			= {}
+		linePaths 			= {}
+		underlinePaths 		= {}
+		boxPaths			= {}
 		
 		shift = 4 # shift the labels closer to the plasmid, as the have a bigger radius
 		
@@ -688,7 +724,12 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		for l in labels:
 			name 	= l[1]
 			y 		= l[4]
-			hname 	= self.hitName(name, l[2])
+			if kind == "enzymes":
+				name2		= "%s%s" %(name, self.enzymeGap)
+			else:
+				name2		= name
+			hname 	= self.hitName(name2, l[2])
+
 					
 			xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)
 
@@ -701,25 +742,33 @@ class drawPlasmid(DNApyBaseDrawingClass):
 						
 			# save label:
 			path		 = self.ctx.copy_path()
-			paths[hname] = path
+			textPaths[hname] = path
 			self.ctx.new_path() # clear canvas
 			
 			# make a box behind the text, so we can select more easys:
 			self.ctx.rectangle(x, y - self.lH, TextWidth, self.lH)
-			labelBoxes[hname] = self.ctx.copy_path()
+			boxPaths[hname] = self.ctx.copy_path()
 			self.ctx.new_path()
 			
-			# make a line:
+			# featurs have a underline:
+			if kind == "features":
+				self.ctx.move_to(x, y)
+				self.ctx.line_to(x + TextWidth, y)
+				path		 = self.ctx.copy_path()
+				underlinePaths[hname] = path
+				self.ctx.new_path() # clear canvas
+			
+			# make a line from text to plasmid:
 			if site == "left":
 				x = x + TextWidth
 			else:
 				x = x
 			
-			# get the radius:
+			# get the radius to where the line should lead:
 			try:
 				r = self.plasmidstore.radiusOuter[hname]
 			except:
-				r = self.radiusO
+				r = self.radiusI
 					
 			y1 = y - self.lH/2 + 0.3
 			self.ctx.move_to(x, y1)
@@ -727,13 +776,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			x3, y3 = self.position2cartesian(l[0], r)
 			self.ctx.line_to(x2,y2)
 			self.ctx.line_to(x3,y3)
-			labelPaths[hname] = self.ctx.copy_path() # save line path
+			linePaths[hname] = self.ctx.copy_path() # save line path
 			self.ctx.new_path() # clear canvas
 			
 			
-
-
-		return paths, labelPaths, labelBoxes
+		return textPaths, linePaths, boxPaths, underlinePaths
 
 	def checkLabelCalculations(self):
 		''' this functions takes the current positions and calcualtions
@@ -757,19 +804,27 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			# Features
 			LoF1 = [] # first half
 			LoF2 = [] # second half
+			LoF1I = [] # indexing
+			LoF2I = [] # indexing
 			for l in LoF:
 				if l[0] < half:
 					LoF1.append(l)
+					LoF1I.append(l[3])
 				else:
 					LoF2.append(l)
+					LoF2I.append(l[3])
 			# Enzymes
 			LoE1 = [] # first half
 			LoE2 = [] # second half
+			LoE1I = [] # indexing
+			LoE2I = [] # indexing
 			for l in LoE:
 				if l[0] < half:
 					LoE1.append(l)
+					LoE1I.append(l[3])
 				else:
 					LoE2.append(l)
+					LoE2I.append(l[3])
 			
 
 		
@@ -780,15 +835,47 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			Labels1 = self.arrangeLabels(LoF1, LoE1, -1)
 			Labels2 = self.arrangeLabels(LoF2, LoE2, +1)
 			
+			# sperate into features and enzymes... 
+			# this must be, so we can order them together, but color them
+			# different
+			LabelsFeatures1 	= []
+			LabelsFeatures2 	= []
+			LabelsEnzymes1	 	= []
+			LabelsEnzymes2 		= []
+			for label in Labels1:
+				hit = label[3]
+				if hit in LoF1I:
+					LabelsFeatures1.append(label)
+				if hit in LoE1I:
+					LabelsEnzymes1.append(label)
+			for label in Labels2:
+				hit = label[3]
+				if hit in LoF2I:
+					LabelsFeatures2.append(label)
+				if hit in LoE2I:
+					LabelsEnzymes2.append(label)
+			# done serperating the labels agai				
 
 			
-			# make the paths
-			labelpaths1, linepaths1, boxesPaths1 	= self.caironameLabels(Labels1, "right")
-			labelpaths2, linepaths2, boxesPaths2 	= self.caironameLabels(Labels2, "left")
-			# save paths for displaying
-			self.plasmidstore.drawnlabels 			= self.merge_dicts(labelpaths1, labelpaths2) 
-			self.plasmidstore.drawnLLines 			= self.merge_dicts(linepaths1, linepaths2) 
-			self.plasmidstore.labelBoxes 			= self.merge_dicts(boxesPaths1, boxesPaths2) 
+			# FEATURES: make the paths for features
+			laP1, liP1, bP1, UlP1	= self.caironameLabels(LabelsFeatures1, "right", "features")
+			laP2, liP2, bP2, UlP2  	= self.caironameLabels(LabelsFeatures2, "left", "features")
+			# FEATURES: save paths for displaying
+			self.plasmidstore.drawnlabels 			= self.merge_dicts(laP1, laP2) 
+			self.plasmidstore.drawnLLines 			= self.merge_dicts(liP1, liP2) 
+			self.plasmidstore.labelBoxes 			= self.merge_dicts(bP1, bP2) 
+			self.plasmidstore.labelULine 			= self.merge_dicts(UlP1, UlP2) 
+			
+			
+			
+			# ENZYMES: make the paths for enzymes
+			laP1, liP1, bP1, UlP1	= self.caironameLabels(LabelsEnzymes1, "right", "enzymes")
+			laP2, liP2, bP2, UlP2 	= self.caironameLabels(LabelsEnzymes2, "left", "enzymes")
+			# ENZYMES: save paths for displaying
+			self.plasmidstore.drawnlabelsE 			= self.merge_dicts(laP1, laP2) 
+			self.plasmidstore.drawnLLinesE 			= self.merge_dicts(liP1, liP2) 
+			self.plasmidstore.labelBoxesE 			= self.merge_dicts(bP1, bP2) 
+
 			
 			# save the new status quo of the labels 
 			self.plasmidstore.LoFold = self.plasmidstore.LoF
@@ -876,7 +963,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			target = self.dnaLength / 4 * 1
 		else:
 			target = self.dnaLength / 4 * 3
-		print ("target", target)
+
 		i = 0
 		# start by putting the initial position
 		for l in Labels:
@@ -1031,8 +1118,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					name, start, end, cut51, cut52, dnaMatch = site
 					length 		= self.dnaLength
 					middle 		= start + (end-start)/2 % length
-					hitname 	= self.hitName(name, index)
 					name		= self.nameBeautiful(name)
+					name2		= "%s%s" %(name, self.enzymeGap)
+					hitname 	= self.hitName(name2, index)
+					
+					
 					y 			= None # to be populated
 					labels.append([middle, name, index, hitname, y])
 					
@@ -1043,8 +1133,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 	def checkSelectionCalculations(self):
 		''' only chnage the arc if we changed something '''
-		selOld 	= self.plasmidstore.interaction["selectionOld"]
-		sel 	= self.plasmidstore.interaction["selection"]
+		# selection
+		selOld 		= self.plasmidstore.interaction["selectionOld"]
+		sel 		= self.plasmidstore.interaction["selection"]
+
+		
 		if sel != selOld:
 			if sel[1] == 0:
 				# remove selection arc
@@ -1065,7 +1158,29 @@ class drawPlasmid(DNApyBaseDrawingClass):
 				self.plasmidstore.drawnSelection = path
 			self.plasmidstore.interaction["selectionOld"] = sel
 		
+		
+		# draw the line for indicating the position
+		position 	= self.plasmidstore.interaction["position"]
+		positionOld	= self.plasmidstore.interaction["positionOld"]
 
+		if position != positionOld:
+			if position < self.dnaLength and position > 0:
+				# get the coordinates for the line
+				x1, y1 = self.position2cartesian(position, self.radiusI - 1)
+				x2, y2 = self.position2cartesian(position, self.radiusO + 1)
+				# draw the actual line
+				self.ctx.move_to(x1,y1)
+				self.ctx.line_to(x2,y2)
+				# copy, save and delete
+				path = self.ctx.copy_path()
+				self.plasmidstore.drawnPosition = path
+				self.ctx.new_path() 		
+				# save settings
+				
+			else:
+				self.plasmidstore.drawnPosition = None
+		
+		self.plasmidstore.interaction["positionOld"] = position
 		return None
 	
 	############################################
@@ -1115,7 +1230,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		radius=10
 		self.ctx.arc(0,0,self.radiusO,0, 2*math.pi)		# circle
 		self.ctx.set_source_rgb (0, 0, 0) 			# Solid color
-		self.ctx.set_line_width (0.4)				# line width
+		self.ctx.set_line_width (0.24)				# line width
 		self.ctx.stroke()					# stroke only no fill!
 
 		# inner plasmid
@@ -1140,7 +1255,16 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			#self.ctx.new_path()
 			self.ctx.append_path(path)
 			self.ctx.set_source_rgba (r,g,b,1.0) # Solid color
-			self.ctx.fill()
+			self.ctx.fill_preserve()
+			
+			# outline for the feature that is beneeth the mouse:
+			if a == self.Highlight:
+				#self.ctx.set_source_rgb (1, 0, 0)
+				self.ctx.set_line_width(0.3)
+				self.ctx.stroke()
+			else:
+				# remove path
+				self.ctx.new_path()
 			
 			i = i + 1
 		
@@ -1150,34 +1274,93 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 	def drawLabels(self):
 		''' function to put the labels on the canvas'''
-		print("DO output path labels")
+		
+		
+		# FEATURES
 		self.ctx.set_source_rgb (0, 0, 0) 			# Solid color
 		self.ctx.set_line_width(0.1)
-		# draw label names
+		# draw feature label names
 		for a in self.plasmidstore.drawnlabels:
 			path = self.plasmidstore.drawnlabels[a]
 			self.ctx.append_path(path)
+			# darker color for the feature that is beneeth the mouse:
+			if a == self.Highlight:
+				self.ctx.set_source_rgba (0, 0, 0, 1)
+			else:
+				self.ctx.set_source_rgba (0, 0, 0, 0.7)
 			self.ctx.fill()
 		
 		# draw the lines
 		for a in self.plasmidstore.drawnLLines:
 			path = self.plasmidstore.drawnLLines[a]
 			self.ctx.append_path(path)
+			
+			# darker color for the feature that is beneeth the mouse:
+			if a == self.Highlight:
+				self.ctx.set_source_rgba (0, 0, 0, 1)
+			else:
+				self.ctx.set_source_rgba (0, 0, 0, 0.3)
 			self.ctx.stroke()
+			
+		# draw the underlines
+		#for a in self.plasmidstore.labelULine:
+		#	path = self.plasmidstore.labelULine[a]
+		#	self.ctx.append_path(path)
+		#	self.ctx.set_line_width(2)
+		#	
+		#	# darker color for the feature that is beneeth the mouse:
+		#	if a == self.Highlight:
+		##		self.ctx.set_source_rgba (0, 0, 0, 1)
+		#	else:
+		#		self.ctx.set_source_rgba (0, 0, 0, 0.3)
+		#	self.ctx.stroke()
 		
+		
+		# ENZYMES
+		self.ctx.set_source_rgb (0, 0, 0) 			# Solid color
+		self.ctx.set_line_width(0.1)
+		# draw feature label names
+		for a in self.plasmidstore.drawnlabelsE:
+			path = self.plasmidstore.drawnlabelsE[a]
+			self.ctx.append_path(path)
+			# darker color for the feature that is beneeth the mouse:
+			if self.Highlight != None and a.split(self.enzymeGap)[0] == self.Highlight.split(self.enzymeGap)[0]:
+				self.ctx.set_source_rgba (0, 0, 0, 1)
+			else:
+				self.ctx.set_source_rgba (0, 0, 0, 0.7)
+			self.ctx.fill()
+		
+		# draw the lines
+		for a in self.plasmidstore.drawnLLinesE:
+			path = self.plasmidstore.drawnLLinesE[a]
+			self.ctx.append_path(path)
+			
+			# darker color for the feature that is beneeth the mouse:
+			if self.Highlight != None and a.split(self.enzymeGap)[0] == self.Highlight.split(self.enzymeGap)[0]:
+				self.ctx.set_source_rgba (0, 0, 0, 1)
+			else:
+				self.ctx.set_source_rgba (0, 0, 0, 0.3)
+			self.ctx.stroke()
 		
 	def drawSelection(self):
 		''' draw arc for selection '''
 		if self.plasmidstore.drawnSelection != None:
 			self.ctx.set_source_rgba (0.2, 0.3, 0.75, 0.6) 			# Solid color
-			self.ctx.set_line_width(5)
+			self.ctx.set_line_width(3)
 			path = self.plasmidstore.drawnSelection
+			self.ctx.append_path(path)
+			self.ctx.stroke()
+		
+		if self.plasmidstore.drawnSelection == None and self.plasmidstore.drawnPosition != None:
+			self.ctx.set_source_rgba (0,0,0) 			# Solid color
+			self.ctx.set_line_width(0.2)
+			path = self.plasmidstore.drawnPosition
 			self.ctx.append_path(path)
 			self.ctx.stroke()
 
 
 
-class PlasmidView2(drawPlasmid):
+class PlasmidView2(DNApyBaseDrawingClass):
 	'''
 	This class is intended to glue together the plasmid drawing with control buttons.
 	'''
