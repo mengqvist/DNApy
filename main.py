@@ -454,60 +454,6 @@ class MyFrame(wx.Frame):
 		else:
 			self.SetStatusText('Position: %s bp' % (Position), 0) #text in first field
 		
-#
-#		#this stuff is for the statusbar
-#		if len(self.tab_list) == 0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==1:
-#			string = 'File not yet saved'
-#
-#		if self.current_tab == 0: #if dna editor is active
-
-##		mposition, Feature = self.DNApy.dnaview.mouse_position("") #get mouse position
-#		mposition = 'None'
-#		Feature = "None"
-#
-#		try:
-#			Position = str(mposition+1)
-#		except:
-#			Position = ""
-#
-#		try:
-#			Feature = str(Feature)
-#		except:
-#			Feature = ""
-#
-#		try:
-#			SelectionFrom, SelectionTo = (str(self.DNApy.dnaview.stc.GetSelection()[0]+1), str(self.DNApy.dnaview.stc.GetSelection()[1]))
-#			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-#				SelectionFrom, SelectionTo = ("0", "0")
-#		except:
-#			SelectionFrom, SelectionTo = ("0", "0")
-#		try:
-#			Length = str(self.DNApy.dnaview.stc.GetSelection()[1] - self.DNApy.dnaview.stc.GetSelection()[0])
-#		except:
-#			Length = ""
-#
-#
-##		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-#
-
-#		#this is broken... FIX!!
-#		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-#			AA = ': %s' % dna.Translate(self.DNApy.dnaview.stc.GetSelectedText())
-#		else:
-#			AA = ''
-
-
-
-#		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
-
-#		else:
-#			self.SetStatusText('', 0)
-#			self.SetStatusText('', 1)
-
 
 
 ######### get and set methods #########
