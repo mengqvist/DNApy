@@ -436,7 +436,7 @@ class MyFrame(wx.Frame):
 			if length == 3:
 				# if its just one codo show full name of amino acid
 				dnaSq 			= genbank.gb.GetDNA()
-				selDNA 			= dnaSq[selection[0]:selection[1]]
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
 				AAoneLetter 	= dna.Translate(selDNA)
 				AAFull 			= dna.protein.one_to_full(AAoneLetter)
 				AA = " amino acid: %s (%s)" %(AAFull, AAoneLetter)
@@ -444,7 +444,7 @@ class MyFrame(wx.Frame):
 			elif length % 3 == 0:
 				# if partable trough 3 show all amino acids that fit
 				dnaSq 			= genbank.gb.GetDNA()
-				selDNA 			= dnaSq[selection[0]:selection[1]]
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
 				fullProtein = dna.Translate(selDNA)
 				AA = " amino acid: %s" %(fullProtein)
 				

@@ -37,7 +37,7 @@ def one_to_three(one_letter):
 	'''
 	Convert a one letter code amino acid to a three letter code.
 	'''
-	assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % one_letter
+	assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*X', 'Error, %s is not a valid amino acid' % one_letter
 	
 	AA = {'I':'Ile',
 	'V':'Val',
@@ -59,7 +59,8 @@ def one_to_three(one_letter):
 	'N':'Asn',
 	'K':'Lys',
 	'R':'Arg',
-	'*':'***'}	
+	'*':'***',
+	'X':'Unknown'}	
 	return AA[one_letter.upper()]
 	
 	
@@ -97,7 +98,7 @@ def one_to_full(one_letter):
 	'''
 	Convert one-letter amino acid code to full amino acid name.
 	'''
-	assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % one_letter
+	assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*X', 'Error, %s is not a valid amino acid' % one_letter
 	AA = {'F':'Phenylalanine', 
 	'L':'Leucine', 
 	'S':'Serine', 
@@ -118,7 +119,8 @@ def one_to_full(one_letter):
 	'A':'Alanine', 
 	'D':'Aspartic acid', 
 	'E':'Glutamic acid', 
-	'G':'Glycine'}
+	'G':'Glycine',
+	'X': 'Unknown'}
 	return AA[one_letter.upper()]
 
 	
@@ -146,7 +148,8 @@ def full_to_one(full):
 							'alanine', 
 							'aspartic acid', 
 							'glutamic acid', 
-							'glycine'], 'Error, %s is not a valid amino acid' % full
+							'glycine',
+							'unknown'], ('Error, %s is not a valid amino acid' % full)
 
 	AA = {'phenylalanine':'F', 
 			'leucine':'L', 
@@ -168,7 +171,8 @@ def full_to_one(full):
 			'alanine':'A', 
 			'aspartic acid':'D', 
 			'glutamic acid':'E', 
-			'glycine':'G'}
+			'glycine':'G',
+			'unknown': 'X'} # to handle N as a nuclec acid
 	return AA[full.lower()]
 	
 	
