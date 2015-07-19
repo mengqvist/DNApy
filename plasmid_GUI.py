@@ -195,6 +195,10 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		# update selection from editor
 		self.updateSelection() 
 		
+		# start the calculations if any.
+		self.checkFeatureCalculations() 		# changed features may change labels also
+		self.checkEnzymeCalculations() 			# check for restriction enzymes
+		self.checkLabelCalculations() 			# changed features may change labels also
 		
 		# check if we even have to redraw anything:
 		dc = wx.MemoryDC()
@@ -204,10 +208,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		dc.Clear() 				# make sure you clear the bitmap!
 		self.ctx = ContextFromDC(dc)		# load it into cairo
 		
-		# start the calculations if any.
-		self.checkFeatureCalculations() 		# changed features may change labels also
-		self.checkEnzymeCalculations() 			# check for restriction enzymes
-		self.checkLabelCalculations() 			# changed features may change labels also
+		# seletion starts here
 		self.checkSelectionCalculations()		# check and make a selection arc
 
 		
