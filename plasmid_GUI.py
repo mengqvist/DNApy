@@ -1345,11 +1345,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		if self.plasmidstore.drawnSelection != None:
 			#0082ED
 			r,g,b = colcol.hex_to_rgb('#0082ED') 
-			print r,g,b
+
 			r = float(r)/255
 			g = float(g) /255
 			b = float(b) /255
-			print r,g,b
+
 			self.ctx.set_source_rgba (r,g,b, 0.6) 			# Solid color
 			self.ctx.set_line_width(3)
 			path = self.plasmidstore.drawnSelection
