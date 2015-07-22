@@ -558,11 +558,12 @@ class EnzymeDigestion(DNApyBaseClass):
 		hbox       = wx.BoxSizer(wx.HORIZONTAL)
 		gridsizer  = wx.FlexGridSizer(rows=2, cols=2, vgap=3, hgap=10)
 		gridsizer.AddGrowableCol(0)					# make cols growable
-		hbox.Add(gridsizer, 1, wx.EXPAND|wx.ALL, 15)
-		
 		# add the elements to the grid for flexible display
 		gridsizer.Add(controlbox)      				# row 1, col 1
 		gridsizer.Add(drawingbox)      				# row 1, col 1
+		hbox.Add(gridsizer, 1, wx.EXPAND|wx.ALL, 15)
+		
+
 		
 		#set sizer
 		self.SetSizer(hbox)

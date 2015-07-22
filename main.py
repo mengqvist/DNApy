@@ -53,7 +53,8 @@ import enzyme
 from base_class import DNApyBaseClass
 
 #GUI components
-import dnaeditor_GUI
+#import dnaeditor_GUI
+import dnaEditorCairo_GUI
 import featureedit_GUI
 import featurelist_GUI
 import plasmid_GUI
@@ -95,9 +96,26 @@ class DNAedit(DNApyBaseClass):
 		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)
 
 		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
-		self.dnaview = dnaeditor_GUI.TextEdit(splitter1, id=wx.ID_ANY)
 
-		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
+		
+		self.scroll  = wx.ScrolledWindow(splitter1, wx.ID_ANY, style= wx.FULL_REPAINT_ON_RESIZE )
+
+
+		self.dnaview = dnaEditorCairo_GUI.TextEdit(self.scroll , id=wx.ID_ANY)
+		#self.scroll.SetAutoLayout(True)
+		#self.scroll.Layout()
+		#self.scroll.Fit()
+		self.scroll.SetScrollbars(0,10, 1, 10)
+		self.scroll.SetScrollRate( 1, 15 )      # Pixels per scroll increment
+
+		scrollSizer = wx.BoxSizer()
+		scrollSizer.Add(self.dnaview,wx.ID_ANY,   wx.EXPAND|wx.ALL, 0)
+		self.scroll.SetSizer(scrollSizer)
+
+
+		
+
+		#self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
 		
 		self.parent = parent
 
@@ -106,7 +124,8 @@ class DNAedit(DNApyBaseClass):
 
 
 
-		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
+		splitter1.SplitHorizontally(self.feature_list, self.scroll, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
+
 		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
