@@ -95,38 +95,25 @@ class DNAedit(DNApyBaseClass):
 		splitter0 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
 		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)
 
-		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
 
 		
-		self.scroll  = wx.ScrolledWindow(splitter1, wx.ID_ANY, style= wx.FULL_REPAINT_ON_RESIZE )
+		self.scroll  = wx.ScrolledWindow(splitter0, wx.ID_ANY, style= wx.FULL_REPAINT_ON_RESIZE )
 
 
 		self.dnaview = dnaEditorCairo_GUI.TextEdit(self.scroll , id=wx.ID_ANY)
-		#self.scroll.SetAutoLayout(True)
-		#self.scroll.Layout()
-		#self.scroll.Fit()
+
 		self.scroll.SetScrollbars(0,10, 1, 10)
 		self.scroll.SetScrollRate( 1, 15 )      # Pixels per scroll increment
 
 		scrollSizer = wx.BoxSizer()
-		scrollSizer.Add(self.dnaview,wx.ID_ANY,   wx.EXPAND|wx.ALL, 0)
+		scrollSizer.Add(self.dnaview,wx.ID_ANY, wx.EXPAND|wx.ALL, 0)
 		self.scroll.SetSizer(scrollSizer)
 
-
-		
-
-		#self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
-		
 		self.parent = parent
-
 		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)
+				
 
-
-
-
-		splitter1.SplitHorizontally(self.feature_list, self.scroll, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
-
-		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))
+		splitter0.SplitVertically( self.scroll, self.plasmidview, sashPosition=(windowsize[0]/1.75))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(item=splitter0, proportion=-1, flag=wx.EXPAND)
@@ -146,7 +133,7 @@ class DNAedit(DNApyBaseClass):
 		'''
 		Update all UI panels.
 		'''
-		self.feature_list.update_ownUI()
+		#self.feature_list.update_ownUI()
 		self.dnaview.update_ownUI()
 		self.plasmidview.update_ownUI()
 
@@ -158,10 +145,10 @@ class DNAedit(DNApyBaseClass):
 		'''
 		#print(text) 	#debug only
 		if text == "Plasmid view says update!":
-			self.feature_list.update_ownUI()
+			#self.feature_list.update_ownUI()
 			self.dnaview.update_ownUI()
 		elif text == "DNA view says update!":
-			self.feature_list.update_ownUI()
+			#self.feature_list.update_ownUI()
 			self.plasmidview.update_ownUI()
 			#self.parent.update_statusbar(text) # also statusbar update
 		elif text == "Feature list says update!":
