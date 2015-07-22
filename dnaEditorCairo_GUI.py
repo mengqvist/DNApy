@@ -97,7 +97,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.cdna 			= genbank.gb.GetDNA()
 
 		# text styler
-		self.textSpacing 	= 50
+		self.sY				= 60
+		self.textSpacing 	= 60
 		self.fontsize 		= 9
 		self.lineGap 		= 5
 		self.lineHeight		= self.textSpacing +  self.fontsize 
@@ -157,8 +158,6 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
-		print self.get_selection()
-
 
 		# start dc
 		dc = wx.MemoryDC()
@@ -244,8 +243,7 @@ class TextEdit(DNApyBaseDrawingClass):
 	
 
 		# output sense strain
-		starty = 20
-		self.ctx.move_to(8,starty)
+		self.ctx.move_to(8,self.sY)
 		#layout.set_text(self.dna)
 		
 		
@@ -331,7 +329,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		#	self.sensLineCoord.append(((xb, yb),(wb, hb)))#/pango.SCALE )
 
 		# print anti sense strain
-		self.ctx.move_to(8,starty + self.fontsize + self.lineGap)
+		self.ctx.move_to(8,self.sY + self.fontsize + self.lineGap)
 		layout.set_markup(antiText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
@@ -340,7 +338,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		# update the height of the context, based on the dna stuff
 		w, h = layout.get_pixel_size()
-		self.minHeight = h + self.textSpacing + 50
+		self.minHeight = h + 2*self.sY
 
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
@@ -376,7 +374,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			nLines = math.ceil((len(self.dna)-1) / self.lineLength)
 		
 			n = 0 # counter
-			y = 8
+			y =  self.sY - self.fontsize - 2
 			while n <= nLines:
 				
 				self.ctx.move_to(8, y)
@@ -400,60 +398,110 @@ class TextEdit(DNApyBaseDrawingClass):
 		features 	= genbank.gb.get_all_feature_positions()
 		paths 		= {} # (color, path)
 		
+		featureheight = 10
+		
 		if self.cairoStorage['features'] != features :
 			# something changed, we have to draw the paths new
+			self.drawn_fw_locations = []
+			self.drawn_rv_locations = []
+			
+			# font settings
+			# draw the name somewhere at the start
+			nameheight = 9 # px
+			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+			self.ctx.set_font_size(nameheight)
+			
 			for feature in features:
 				 
 				featuretype, complement, start, finish, name, index = feature
 				
 				if featuretype != "source":
-					# hittets name
+				
+					# get names
 					hname 	= self.hitName(name, index)
 					name	= self.nameBeautiful(name)
-				
+					#get position
 					xs, ys, ws, hs = self.senseLayout.index_to_pos(start)
 					xf, yf, wf, hf = self.senseLayout.index_to_pos(finish)
-				
+					# linecount:
 					# if ys and yf are not the same, we have feature over multiple lines!
 					dy 		= abs(ys - yf) / pango.SCALE
-					ySteps 	= dy / self.lineHeight
+					ySteps 	= dy / self.lineHeight # number of lines!
 					xs 		= xs / pango.SCALE
 					xf 		= xf / pango.SCALE
-					ys 		= ys / pango.SCALE + self.lineHeight + self.fontsize - (0.5 * self.textSpacing)
+					#ys 		= ys / pango.SCALE + self.lineHeight + self.fontsize - (0.5 * self.textSpacing)
+					ys		= (ys / pango.SCALE) + self.sY 
 					yf		= yf / pango.SCALE
 					
-					# draw the name somewhere at the start
-					nameheight = 9 # px
-					self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-					self.ctx.set_font_size(nameheight)
-					xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)
-					self.ctx.move_to(xs + 10 , ys + nameheight + 2)
-					self.ctx.text_path(name)
-					textpath = self.ctx.copy_path()
-					self.ctx.new_path()
-					# end name
+					# first sense strain over the text
+					if complement == False:
+						self.drawn_fw_locations, l = self.find_overlap(self.drawn_fw_locations, (start, finish))				
+						level = l * (featureheight+6)
 					
-					# box for name
-					self.ctx.move_to(xs, ys+10)
-					self.ctx.rectangle(xs, ys, TextWidth + 20 , nameheight + 5)
-					
-					# lines below the dna
-					while ySteps >= 0:
-						if ySteps == 0:
-							xE = xf
-						else:
-							xE = self.w
 
-						# make the path
-						self.ctx.move_to(xs, ys)
-						self.ctx.line_to(xE, ys)
-						
-						xs = 8
-						ys = ys + self.lineHeight
-						ySteps = ySteps - 1
+						xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)				
+						ys = ys  - level
+						self.ctx.move_to(xs + 10, ys - 5 )
+						self.ctx.text_path(name)
+						textpath = self.ctx.copy_path()
+						self.ctx.new_path()
+						# end name
 					
-					# get color
-					color = eval(featuretype)['fw'] #get the color of feature (as string)
+						# box for name
+						self.ctx.move_to(xs, ys)
+						self.ctx.rectangle(xs, ys-featureheight-5, TextWidth + 20 , nameheight + 5)
+					
+						# lines below the dna
+						while ySteps >= 0:
+							if ySteps == 0:
+								xE = xf
+							else:
+								xE = self.w
+
+							# make the path
+							self.ctx.move_to(xs, ys)
+							self.ctx.line_to(xE, ys)
+						
+							xs = 8
+							ys = ys + self.lineHeight
+							ySteps = ySteps - 1
+					
+						# get color
+						color = eval(featuretype)['fw'] #get the color of feature (as string)
+					else:
+						self.drawn_rv_locations, l = self.find_overlap(self.drawn_rv_locations, (start, finish))				
+						level = l * (featureheight+6)
+					
+
+						xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)				
+						ys = ys + 2*self.fontsize + self.lineGap + 9 + level
+						self.ctx.move_to(xs + 10, ys + 10 )
+						self.ctx.text_path(name)
+						textpath = self.ctx.copy_path()
+						self.ctx.new_path()
+						# end name
+					
+						# box for name
+						self.ctx.move_to(xs, ys + featureheight)
+						self.ctx.rectangle(xs, ys, TextWidth + 20 , nameheight + 5)
+					
+						# lines below the dna
+						while ySteps >= 0:
+							if ySteps == 0:
+								xE = xf
+							else:
+								xE = self.w
+
+							# make the path
+							self.ctx.move_to(xs, ys)
+							self.ctx.line_to(xE, ys)
+						
+							xs = 8
+							ys = ys + self.lineHeight
+							ySteps = ySteps - 1
+					
+						# get color
+						color = eval(featuretype)['fw'] #get the color of feature (as string)
 
 					
 					paths[hname] = (color, self.ctx.copy_path(),textpath)
@@ -503,9 +551,9 @@ class TextEdit(DNApyBaseDrawingClass):
 			# turn index to x,y
 			x, y,w,h 	= self.senseLayout.index_to_pos(index)
 			x 			= x /pango.SCALE
-			y 			= y / pango.SCALE
-			y1 			= y + 0.25 * self.lineHeight
-			y2 			= y + 0.75 * self.lineHeight
+			y 			= (y / pango.SCALE) + self.sY
+			y1 			= y 
+			y2 			= y + 0.5 * self.lineHeight
 			self.ctx.move_to(x,y1)
 			self.ctx.line_to(x,y2)
 		
@@ -558,7 +606,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		# get position
 		x, y 				= self.ScreenToClient(wx.GetMousePosition())
 		xp 					= x * pango.SCALE
-		yp 					= int(y - 0.5 * self.lineHeight) * pango.SCALE 
+		yp 					= int(y - self.sY - self.fontsize) * pango.SCALE 
 		self.LeftDownIndex 	= None
 		index 				= self.senseLayout.xy_to_index(xp,yp)
 		
@@ -585,7 +633,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			# get position
 			x, y 				= self.ScreenToClient(wx.GetMousePosition())
 			xp 					= x * pango.SCALE
-			yp 					= (y - 20) * pango.SCALE  # TODO replace 20 with something calculated
+			yp 					= int(y - self.sY - self.fontsize) * pango.SCALE 
 			self.LeftMotionIndex 	= None
 			index 				=  self.senseLayout.xy_to_index(xp,yp)
 			if index != False:
@@ -614,6 +662,37 @@ class TextEdit(DNApyBaseDrawingClass):
 
 
 ####################################################################
+	def find_overlap(self, drawn_locations, new_range):
+		'''
+		Takes two ranges and determines whether the new range has overlaps with the old one.
+		If there are overlaps the overlap locations are returned.
+		This is used when drawing features. If two features overlap I want them drawn on different levels.
+		'''
+		assert type(drawn_locations) == list
+		assert type(new_range) == tuple
+
+		if drawn_locations == []:
+			drawn_locations.append([new_range])
+			return drawn_locations, 0
+		else:
+			i = 0
+			while i < len(drawn_locations):
+				overlap_found = False
+				for n in range(0,len(drawn_locations[i])):
+					if drawn_locations[i][n][0]<=new_range[0]<=drawn_locations[i][n][1] or drawn_locations[i][n][0]<=new_range[1]<=drawn_locations[i][n][1]: #if they overlap
+						overlap_found = True
+					elif new_range[0]<=drawn_locations[i][n][0]<=new_range[1] or new_range[0]<=drawn_locations[i][n][1]<=new_range[1]: #if they overlap
+						overlap_found = True
+				if overlap_found == False:
+					drawn_locations[i].append(new_range)
+					return drawn_locations, i
+					break
+				elif i+1==len(drawn_locations):
+					drawn_locations.append([new_range])
+					return drawn_locations, i+1
+					break
+				i += 1
+				
 	def hitName(self, name, index):
 		# unique and reproducible id for each feature
 		name 	= self.nameBeautiful(name)

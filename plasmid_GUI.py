@@ -598,7 +598,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					allFeatures[hitname] = [self.cairoFeature(feature), featuretype]
 				
 					# label handling
-
 					length 		= self.dnaLength
 					middle 		= start + (finish-start)/2 % length
 				
