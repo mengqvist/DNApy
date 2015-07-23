@@ -184,7 +184,7 @@ class gbobject(object):
 		
 		## compile regular expressions used for parsing ##
 		self._re_locus = re.compile(r'''
-				LOCUS \s+? ([a-zA-Z0-9_-]+?) \s+?												#match name
+				LOCUS \s+? ([a-zA-Z0-9:=_-]+?) \s+?												#match name
 				([0-9]+?)[ ](?:bp|aa) \s+														#match length
 				((?:ss-|ds-|ms-)*(?:NA|DNA|RNA|tRNA|rRNA|mRNA|uRNA))* \s+						#match type, zero or one time
 				(linear|circular)* \s+															#match topology, zero or one time
