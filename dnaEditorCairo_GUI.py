@@ -112,9 +112,11 @@ class TextEdit(DNApyBaseDrawingClass):
 		# storage dict, to prevent recalculating to much
 		self.cairoStorage = {
 				'features'	: None, # feature Object
-				'fPaths' 	: [], # path of alls features as List
+				'fPaths' 	: [], 	# path of alls features as List
 				'cursorPath': None,
-				'cursor'	: None
+				'cursor'	: None,
+				'enzymes'	: None,	# enzymes object
+				'ePaths'	: []	# enzymes drawn
 				
 		}
 		
@@ -159,6 +161,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
 
+		
 		# start dc
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
@@ -173,34 +176,27 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		self.dna = genbank.gb.GetDNA()
 		if self.dna != None:
-			self.cdna = dna.C(self.dna)
+			self.cdna 	= dna.C(self.dna)
 		else:
-			self.dna = ''	
-			self.cdna = ''
+			self.dna 	= ''	# no dna, if there is nothing
+			self.cdna 	= ''	# empty cdna
 			
 		# render the text
 		self.displayText()
-		# draw a cursor
-		self.drawCursor()
 		# create colorful features here
 		self.drawFeatures()
-
+		# draw enzymes
+		self.drawEnzymes()
+		# draw a cursor
+		self.drawCursor()
+		
+		# end of canvas handling
 		dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
 		self.Refresh()
 		self.Update()
 
-
 		return None
 
-		#sequence = genbank.gb.GetDNA()
-		#if sequence == None:
-		#	sequence = ''
-		#self.stc.SetText(sequence) #put the DNA in the editor
-		#start, finish, zero = genbank.dna_selection
-		#if finish == -1: #a caret insertion (and no selection). Will actually result in a selection where start is one larger than finish
-		#	self.stc.GotoPos(start-1) #set caret insertion
-		#else:
-		#	self.stc.SetSelection(start-1, finish) #update selection
 
 	def displayText(self):
 		
@@ -238,16 +234,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		layout.set_font_description(font)
 		
 
+		
 
-	
-	
-
-		# output sense strain
-		self.ctx.move_to(8,self.sY)
-		#layout.set_text(self.dna)
-		
-		
-		
 		# make some markup
 		# all markup should be performed here
 		start, end, zero = self.get_selection()
@@ -275,6 +263,8 @@ class TextEdit(DNApyBaseDrawingClass):
 			senseText = self.dna
 			antiText  = self.cdna
 		
+		# output dna
+		self.ctx.move_to(8,self.sY)
 		layout.set_markup(senseText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
@@ -284,58 +274,18 @@ class TextEdit(DNApyBaseDrawingClass):
 		# get the sense lines
 		self.senseLines = layout.get_iter()
 		
-		#while self.senseLines.next_line():
-		#	a,b = self.senseLines.get_line_extents()
-		#	line = self.senseLines.get_line()
-		
-		# determine the average width of a char
-		n = 0
-		w = 0
-		#self.lineLength =  self.senseLines.get_line().length
+		# determine the length and height of a line
 		self.lineLength =  layout.get_line(0).length
-		
 		x1, y1, w1, h1 	= self.senseLayout.index_to_pos(1)
 		x2, y2, w2, h2 	= self.senseLayout.index_to_pos(1+self.lineLength)
 		self.lineHeight = abs(y1 - y2) / pango.SCALE
 		
-		#print line.start_index, line.length
-		#self.lineLength = line.length
-		#lineWith = line.get_extents()[0][2]/pango.SCALE
-		#print lineWith
-		#while self.senseLines.next_char() and n < 20:
-		#	w = w + self.senseLines.get_char_extents()[3]
-		#	n = n + 1
-		#self.averageWidth = w/(n*pango.SCALE)
-		#self.nCharLine = lineWith/self.averageWidth
-		#print  n, self.averageWidth, lineWith, self.nCharLine
-		#print a, b
-		
-		
-		
-		
-		# make them in usefull cairo coordinates like (start, end) each as (x,y)
-		self.sensLineCoord = []
-		
-		#while self.senseLines.next_line():
-		#	a,b = self.senseLines.get_line_extents()
-		#	xa,ya,wa,ha = a
-		#	xb,yb,wb,hb = b
-		#	
-		#	# scale to pixels
-		#	xb = xb / pango.SCALE
-		#	yb = yb / pango.SCALE
-		#	wb = wb / pango.SCALE
-		#	hb = hb / pango.SCALE				
-		#	self.sensLineCoord.append(((xb, yb),(wb, hb)))#/pango.SCALE )
-
 		# print anti sense strain
 		self.ctx.move_to(8,self.sY + self.fontsize + self.lineGap)
 		layout.set_markup(antiText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
-		# get the lines
-		#self.antiLines = layout.get_lines_readonly()
-		
+
 		# update the height of the context, based on the dna stuff
 		w, h = layout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
@@ -343,13 +293,6 @@ class TextEdit(DNApyBaseDrawingClass):
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
 		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
-		
-		#cursor1s, cursor1w = layout.get_cursor_pos(4)
-		#cursor2s, cursor2w = layout.get_cursor_pos(8)
-		
-		#layout.move_cursor_visually(True, 4, 0, 10)
-
-		
 		
 		# make ticks:
 		#set font
@@ -386,13 +329,9 @@ class TextEdit(DNApyBaseDrawingClass):
 				n = n + 1
 				self.pango.update_layout(layout)
 				self.pango.show_layout(layout)
-		
-		
-		
-		
-		
 
 		return None
+	
 	
 	def drawFeatures(self):
 		features 	= genbank.gb.get_all_feature_positions()
@@ -541,7 +480,70 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 			
 		return None
+	
+	
+	def drawEnzymes(self):
+
+		enzmymesOld = self.cairoStorage['enzymes']
+		enzymes 	= genbank.restriction_sites
+
+		if enzmymesOld != enzymes:
+			nameheight = 9 # px
+			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+			self.ctx.set_font_size(nameheight)
+			dna 			= self.dna
+			length			= len(dna)
+			index			= 0	# same as in plasmid_GUI.py
+			enzymesPaths 	= {}
+			# loop enzymes ordered dict
+			for e in enzymes:
+				for site in enzymes[e].restrictionSites:
+					name, start, end, cut51, cut52, dnaMatch = site
+					hitname 	= self.hitName(name, index)
+					
+					# get position to draw
+					xs, ys, ws, hs = self.senseLayout.index_to_pos(start)
+					xs = xs / pango.SCALE
+					ys = ys / pango.SCALE + self.sY
+					hs = hs / pango.SCALE
+					# move there, but above the line
+					y = ys# - hs
+					self.ctx.move_to(xs,y)
+					# print text as path
+					self.ctx.text_path(name)
+					textpath = self.ctx.copy_path()
+					self.ctx.new_path()
+					# make a line, representing the cut
+					xC51, yC51, wC51, hC51 = self.senseLayout.index_to_pos(start + enzymes[e].c51)
+					xC31, yC31, wC31, hC31 = self.senseLayout.index_to_pos(start + enzymes[e].c31)
+					xC51 = xC51 / pango.SCALE + 1
+					yC51 = yC51 / pango.SCALE + self.sY
+					tHeight = hC51 / pango.SCALE
+					xC31 = xC31 / pango.SCALE + 1
+					yC31 = yC31 / pango.SCALE + self.sY
+					self.ctx.move_to(xC51, yC51)
+					self.ctx.line_to(xC51, yC51 + tHeight + 0.25 * self.lineGap)
+					self.ctx.line_to(xC31, yC31 + tHeight + 0.25 * self.lineGap)
+					self.ctx.line_to(xC31, yC31 + 2 * tHeight + 0.5* self.lineGap)
+					linepath = self.ctx.copy_path()
+					self.ctx.new_path()
+					enzymesPaths[hitname] = (textpath, linepath)
+					
+					# raise index
+					index = index + 1
+			# update storage
+			self.cairoStorage['enzymes'] 	= enzymes
+			self.cairoStorage['ePaths'] 	= enzymesPaths
 		
+		# draw enzymes:
+		self.ctx.set_line_width(1)
+		self.ctx.set_source_rgba(1,0.3,0.3 , 1) # Solid color
+		for e in self.cairoStorage['ePaths']:
+			path, pathc = self.cairoStorage['ePaths'][e]
+			self.ctx.append_path(path)
+			self.ctx.fill()
+			self.ctx.append_path(pathc)
+			self.ctx.stroke()
 	
 	def drawCursor(self):
 		''' draw and display cursor in the textfield'''
@@ -757,6 +759,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.set_cursor_position()
 		
 	def OnKeyPress(self, evt):
+
 		key = evt.GetUniChar()
 
 		index = self.PositionPointer

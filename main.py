@@ -143,7 +143,9 @@ class DNAedit(DNApyBaseClass):
 		When message is sent through the publisher system,
 		check who sent it and then update accordingly.
 		'''
-		#print(text) 	#debug only
+		genbank.restriction_sites =  genbank.restrictionEnzymes.getEnzymes(genbank.restriction_sites)
+
+
 		if text == "Plasmid view says update!":
 			#self.feature_list.update_ownUI()
 			self.dnaview.update_ownUI()
@@ -156,7 +158,7 @@ class DNAedit(DNApyBaseClass):
 			self.plasmidview.update_ownUI()
 
 
-class MyFrame(wx.Frame):
+class DNApy(wx.Frame):
 	'''Main frame of DNApy'''
 	tab_list=[] #list of tabs
 	current_tab=0 #contains the current tab
@@ -194,7 +196,11 @@ class MyFrame(wx.Frame):
 		genbank.feature_selection 	= False #variable for storing current feature selection
 		genbank.search_hits 		= []
 		genbank.gb.fileName 		= ''
-		genbank.restriction_sites 	= [] # variable for storing info about selected restriction enzymes
+	
+		# initialise the retriction enzyme:
+		genbank.restrictionEnzymes 		= enzyme.initRestriction()
+		# save the selected restriktion enzymes
+		genbank.restriction_sites 		= {} 
 
 		#build the UI using the pre-defined class
 		self.DNApy = DNAedit(self, -1)
@@ -207,10 +213,6 @@ class MyFrame(wx.Frame):
 		self.do_layout()
 		self.Centre()
 
-		# initialise the retriction enzyme:
-		self.restrictionEnzymes 		= enzyme.initRestriction()
-		# save the selected restriktion enzymes
-		self.RestriktioEnzymeSelection 	= []
 
 
 
@@ -234,26 +236,6 @@ class MyFrame(wx.Frame):
 		self.SetSizer(sizer)
 
 
-
-
-#	def generate_genbankview_tab(self, evt):
-#		'''
-#		This method generates the genbankview tab.
-#		It shows the current genbank file in text format.
-#		'''
-#		number=len(self.tab_list)
-#		self.panel.append(wx.Panel(self.DNApy, id=wx.ID_ANY))
-#
-#		self.genbankview = genbank_GUI.MyPanel(self.panel[number], style=wx.VSCROLL|wx.HSCROLL)
-#		self.genbankview.rtc.SetEditable(False)
-#
-#		self.tab_list.append(self.genbankview)
-#
-#		#add to sizer
-#		sizer_1=wx.BoxSizer(wx.HORIZONTAL)
-#		sizer_1.Add(self.tab_list[number], 1, wx.EXPAND, 0)
-#		self.DNApy.AddPage(self.panel[number], "GenBank")
-#		self.panel[number].SetSizer(sizer_1)
 
 ################ file functions #################
 
@@ -283,7 +265,7 @@ class MyFrame(wx.Frame):
 	def open_file(self, evt):
 		'''Function for opening file'''
 		self.dir_to_open = default_filepath
-		#self.dir_to_open = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) #current script directory
+		self.dir_to_open = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) #current script directory
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
 
 		if dlg.ShowModal() == wx.ID_CANCEL:
@@ -708,20 +690,15 @@ Put Table here
 		Make a popup with the enzyme selection window.
 		'''
 		#launch the dialog
-		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection,self.restrictionEnzymes)
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', genbank.restriction_sites,genbank.restrictionEnzymes)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 
 		# get the selected enzymes and restriction sites and save
-
 		if res == wx.ID_OK:
-			self.RestriktioEnzymeSelection = dlg.GetSelection()
+			genbank.restriction_sites = dlg.GetSelection()
 
-		# get the info who cuts where:
-		# the gui can then use this variable
-		genbank.restriction_sites = self.RestriktioEnzymeSelection
-		
-		
+	
 
 
 		#dlg.drawRestriction(self.RestriktioEnzymeSelection)
@@ -740,7 +717,7 @@ Put Table here
 		'''
 		if genbank.gb.gbfile["dna"]:
 			#launch the dialog
-			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection, self.restrictionEnzymes)
+			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', genbank.restriction_sites, genbank.restrictionEnzymes)
 			dlg.Center()
 			res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 
@@ -782,8 +759,10 @@ Put Table here
 		Actaually, with the new layout and the DNApy update_ownUI() everything should get refreshed.
 		I'll still put some thought into how to make it better.
 		'''
-		# reload the enzymes maybe?
-		self.restrictionEnzymes.reloadEnzymes()
+		# update the restriction enzymes:
+		genbank.restrictionEnzymes.reloadEnzymes()
+
+		
 		# then update
 		self.Refresh()
 
@@ -1267,7 +1246,7 @@ Put Table here
 ##### main loop
 class MyApp(wx.App):
 	def OnInit(self):
-		frame = MyFrame(None, -1, "DNApy")
+		frame = DNApy(None, -1, "DNApy")
 		frame.Show(True)
 		self.SetTopWindow(frame)
 		return True
