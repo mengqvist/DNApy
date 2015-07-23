@@ -286,6 +286,9 @@ class PlasmidView(DNApyBaseDrawingClass):
 			
 			# should we draw selection?
 			if len(self.selectionDrawing) > 1:
+				
+				#first update the selection range, the redraw may be a result of other parts of the UI having changed the selection
+				self.selectionDrawing = genbank.dna_selection[:]		
 				start_rad 	= self.selectionDrawing[0]
 				end_rad 	= self.selectionDrawing[1]
 				

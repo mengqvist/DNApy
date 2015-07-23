@@ -192,6 +192,38 @@ def ReverseTranslate(protein, table=1):
 	return dnalist
 
 
+def count_bases(seq):
+	'''
+	Counts the number of different bases in a DNA sequence.
+	Input should be a string comprising dna bases. These can be a, t, c, g or any of the ambiguous bases.
+	Output is a dictionary with DNA base keys and integer values.
+	'''
+	assert type(seq) == str or type(seq) == unicode, 'Error, input sequence must be a string or unicode'
+	seq = seq.upper()
+	assert all([s in 'GATCRYWSMKHBVDN' for s in seq]) is True, 'Error, unknown dna base(s) %s in sequence: %s' % (str([s for s in seq if s not in 'GATCRYWSMKHBVDN']), seq)
+
+	bases = {'G':seq.count('G'),
+	'A':seq.count('A'),
+	'T':seq.count('T'),
+	'C':seq.count('C'),
+	'R':seq.count('R'),
+	'Y':seq.count('Y'),
+	'W':seq.count('W'),
+	'S':seq.count('S'),
+	'M':seq.count('M'),
+	'K':seq.count('K'),
+	'H':seq.count('H'),
+	'B':seq.count('B'),
+	'P':seq.count('P'),
+	'H':seq.count('H'),
+	'V':seq.count('V'),
+	'D':seq.count('D'),
+	'N':seq.count('N')}	
+
+	assert sum([s[1] for s in bases.iteritems()]) == len(seq), 'Error, total number of counted bases is not the same as the sequence length'
+
+	return bases
+
 	
 def count_codons(seq):
 	'''
