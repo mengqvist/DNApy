@@ -66,18 +66,11 @@ import math
 
 import colcol
 
-#TODO
-#fix statusbar in general
-#fix save option
-#fix undo/redo on windows
 
-
-
-
-files={}   #list with all configuration files
-files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+files	=	{}   #list with all configuration files
+files['default_dir'] 	= os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+files['default_dir']	= string.replace(files['default_dir'], "\\", "/")
+files['default_dir']	= string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
 execfile(settings) #gets all the pre-assigned settings
 
@@ -106,8 +99,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		# interactive cursor
 		self.PositionPointer = 1
 		
-		# some helper varuiable #TODO remove this
-		self.minHeight = 1000
+		# some helper varuiable 
+		self.minHeight = 10
 		
 		# storage dict, to prevent recalculating to much
 		self.cairoStorage = {
@@ -123,6 +116,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		#self.drawinPanel = wx.Panel(self.parent)
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
+		self.Layout()
+
 		
 		# set a sizer
 		#sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -137,6 +132,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		#self.SetAutoLayout(True)
 		#wx.Panel.__init__(self, parent)
+		
 		
 
 ####### Modify methods from base calss to fit current needs #########
@@ -288,10 +284,14 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		# update the height of the context, based on the dna stuff
 		w, h = layout.get_pixel_size()
+		#w, h = self.senseLayout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
+		print "update own ui"
+		print "current Minheight:", self.minHeight
 
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
+		print "pango", w,h,self.minHeight
 		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
 		
 		# make ticks:
@@ -571,34 +571,29 @@ class TextEdit(DNApyBaseDrawingClass):
 ######################################################
 
 	def OnSize(self, event):
+
 		# remove buffered features, to force redraw:
 		self.cairoStorage['features'] = None
 		
 		# The Buffer init is done here, to make sure the buffer is always
 		# the same size as the Window
-		#Size  = self.GetClientSizeTuple()
-		w, h = self.GetSize()
-		Size = wx.Size(w,self.minHeight)
-		self.SetSizeWH(w,self.minHeight) # 
-		#self.SetSize(Size)
-		self.parent.SetVirtualSize(Size)
-		#self.SetSize(Size)
-
-
-
+		wC, hC = self.parent.GetClientSize()
+		wP, hP = self.parent.GetSize()
+		self.SetSize(wx.Size(wC,self.minHeight))
+		self.parent.SetVirtualSize(wx.Size(wC,self.minHeight))
 		
-		self.size  = self.parent.GetVirtualSize()
 
 		# Make new offscreen bitmap: this bitmap will always have the
 		# current drawing in it, so it can be used to save the image to
 		# a file, or whatever.
-		w, h = self.size
-
-		#self.SetSize(Size)		
-		self._Buffer = wx.EmptyBitmap(w, h)
-		#self.SetSize(Size)
+		if wC != 0 and hC !=0:
+			self._Buffer = wx.EmptyBitmap(wC, self.minHeight)
+		else:
+			self._Buffer = wx.EmptyBitmap(wP, hP)
+		# update gui
 		self.update_ownUI()	
-		self.SetSize(Size)  # must be here, so after ui update the size adjudust again correctly
+
+
 		
 	
 	def OnLeftDown(self, event):
@@ -656,8 +651,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 
-	def OnRightUp(self, event):
-		event.Skip() #very important to make the event propagate and fulfill its original function
+	#def OnRightUp(self, event):
+	#	event.Skip() #very important to make the event propagate and fulfill its original function
 
 
 	#### rendering
@@ -873,10 +868,10 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.set_cursor_position() # udpate cursor position, just in case
 
 ##########################
-	def make_outputpopup(self):
-		'''Creates a popup window in which output can be printed'''
-		self.outputframe = wx.Frame(None, title="Output Panel") # creation of a Frame with a title
-		self.output = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
+	#def make_outputpopup(self):
+	#	'''Creates a popup window in which output can be printed'''
+	#	self.outputframe = wx.Frame(None, title="Output Panel") # creation of a Frame with a title
+	#	self.output = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
 
 
 
@@ -904,10 +899,10 @@ class TextEdit(DNApyBaseDrawingClass):
 ################ genbank methods ###############
 	def select_all(self):
 		'''Select the entire dna sequence'''
-		start = 0
-		finish = len(genbank.gb.GetDNA())
-		self.stc.SetSelection(start, finish)
-		self.set_dna_selection()
+		start 	= 1
+		finish 	= len(genbank.gb.GetDNA())+1 # TODO figure the coorect way to select. Write it in some dokumentation
+		self.set_dna_selection((start, finish, -1))
+		#self.set_dna_selection()
 		self.update_ownUI()
 		self.update_globalUI()
 
@@ -1143,36 +1138,36 @@ class TextEdit(DNApyBaseDrawingClass):
 
 
 ##### main loop
-class MyApp(wx.App):
-	def OnInit(self):
-		frame = wx.Frame(None, -1, title="DNA Edit", size=(700,600))
-		panel = DNAedit(frame, -1)
-		frame.Centre()
-		frame.Show(True)
-		self.SetTopWindow(frame)
-		return True
+#class MyApp(wx.App):
+#	def OnInit(self):
+#		frame = wx.Frame(None, -1, title="DNA Edit", size=(700,600))
+#		panel = DNAedit(frame, -1)
+#		frame.Centre()
+#		frame.Show(True)
+#		self.SetTopWindow(frame)
+#		return True
 
 
-
-if __name__ == '__main__': #if script is run by itself and not loaded
-
-	files={}   #list with all configuration files
-	files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-	settings=files['default_dir']+"settings"   ##path to the file of the global settings
-	execfile(settings) #gets all the pre-assigned settings
-
-	genbank.dna_selection = (0, 0, -1)	 #variable for storing current DNA selection
-	genbank.feature_selection = False #variable for storing current feature selection
-	genbank.search_hits = []
-
-	import sys
-	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
-
-	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
-
-
-	app = MyApp(0)
-	app.MainLoop()
+#
+#if __name__ == '__main__': #if script is run by itself and not loaded
+#
+#	files={}   #list with all configuration files
+#	files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
+#	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
+#	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
+#	settings=files['default_dir']+"settings"   ##path to the file of the global settings
+#	execfile(settings) #gets all the pre-assigned settings
+#
+#	genbank.dna_selection = (0, 0, -1)	 #variable for storing current DNA selection
+##	genbank.feature_selection = False #variable for storing current feature selection
+#	genbank.search_hits = []
+#
+#	import sys
+#	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
+#	print('Opening %s' % str(sys.argv[1]))
+#
+#	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
+#
+#
+#	app = MyApp(0)
+#	app.MainLoop()

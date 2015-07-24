@@ -544,7 +544,7 @@ class DNApy(wx.Frame):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
-		elif control == self.DNApy.dnaview.stc: #the main dna window
+		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.select_all()
 
 ##########################################
