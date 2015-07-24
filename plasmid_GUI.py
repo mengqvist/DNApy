@@ -470,6 +470,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 
 		
+
 		# check if something is beneath the mousecursor
 		oldhit 	= self.Highlight
 		hit 	= self.HitTest()
@@ -478,6 +479,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		# only update after change
 		if oldhit != hit:
 			self.update_ownUI()
+
 				
 		
 		
