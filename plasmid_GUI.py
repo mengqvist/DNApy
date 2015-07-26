@@ -1107,6 +1107,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		enzmymesOld = self.plasmidstore.enzymes
 		enzymes 	= genbank.restriction_sites
 		labels = []
+		#print "update Plasmid Enzyme GUI"
 		if enzmymesOld != enzymes:
 			# we have new enzymes
 			index = 0
@@ -1118,8 +1119,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					name		= self.nameBeautiful(name)
 					name2		= "%s%s" %(name, self.enzymeGap)
 					hitname 	= self.hitName(name2, index)
-					
-					
 					y 			= None # to be populated
 					labels.append([middle, name, index, hitname, y])
 					

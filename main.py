@@ -495,7 +495,7 @@ class DNApy(wx.Frame):
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
 
-		elif control == self.DNApy.dnaview.stc: #the main dna window
+		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.cut()
 
 		self.update_globalUI()
@@ -507,7 +507,7 @@ class DNApy(wx.Frame):
 		if control == self.searchinput: #the searchbox
 			control.SetValue(pyperclip.paste())
 
-		elif control == self.DNApy.dnaview.stc: #the main dna window
+		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.paste()
 
 		self.update_globalUI()
@@ -520,7 +520,7 @@ class DNApy(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.DNApy.dnaview.stc: #the main dna window
+		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):

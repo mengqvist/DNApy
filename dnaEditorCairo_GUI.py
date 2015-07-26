@@ -64,6 +64,7 @@ import pango # for text
 import pangocairo # for glyphs and text
 import math
 
+
 import colcol
 
 
@@ -91,13 +92,14 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		# text styler
 		self.sY				= 60
-		self.textSpacing 	= 60
+		self.textSpacing 	= 80
 		self.fontsize 		= 9
 		self.lineGap 		= 5
 		self.lineHeight		= self.textSpacing +  self.fontsize 
 		
 		# interactive cursor
 		self.PositionPointer = 1
+		self.i = 0
 		
 		# some helper varuiable 
 		self.minHeight = 10
@@ -108,8 +110,10 @@ class TextEdit(DNApyBaseDrawingClass):
 				'fPaths' 	: [], 	# path of alls features as List
 				'cursorPath': None,
 				'cursor'	: None,
-				'enzymes'	: None,	# enzymes object
-				'ePaths'	: []	# enzymes drawn
+				'enzymes'	: {},	# enzymes object
+				'ePaths'	: [],	# enzymes drawn
+				'ticks'		: None,	# ticks object --> self.dna
+				'tPaths'	: [],	# ticks drawn
 				
 		}
 		
@@ -156,7 +160,9 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
+		self.i = self.i  + 1 # debug
 
+		
 		
 		# start dc
 		dc = wx.MemoryDC()
@@ -179,12 +185,18 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 		# render the text
 		self.displayText()
+
 		# create colorful features here
 		self.drawFeatures()
+		
 		# draw enzymes
 		self.drawEnzymes()
+		
 		# draw a cursor
 		self.drawCursor()
+		
+		# draw Tics above all!
+		self.drawTicks()
 		
 		# end of canvas handling
 		dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
@@ -284,51 +296,12 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		# update the height of the context, based on the dna stuff
 		w, h = layout.get_pixel_size()
-		#w, h = self.senseLayout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
-		print "update own ui"
-		print "current Minheight:", self.minHeight
-
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
-		print "pango", w,h,self.minHeight
 		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
 		
-		# make ticks:
-		#set font
-		font = pango.FontDescription("sans normal "+ "1")
-		font.set_size(pango.SCALE * 8)
-		layout.set_font_description(font)
 		
-		# new attr list for the ticks
-		ticksAttr = pango.AttrList()
-		# color
-		gray 		= 110 * 65535/255
-		fg_color	= pango.AttrForeground(gray,gray,gray, 0, len(self.dna))
-		spacing 	= pango.AttrLetterSpacing(1500, 0, len(self.dna))
-		# add attr
-		ticksAttr.insert(fg_color)
-		ticksAttr.insert(spacing)
-		# set attr
-		layout.set_attributes(ticksAttr)
-		
-		# number of lines:
-		if len(self.dna) != 0:
-			nLines = math.ceil((len(self.dna)-1) / self.lineLength)
-		
-			n = 0 # counter
-			y =  self.sY - self.fontsize - 2
-			while n <= nLines:
-				
-				self.ctx.move_to(8, y)
-				text = "%d" % (n *  self.lineLength + 1)
-				layout.set_text(text)
-				
-				y = y + self.lineHeight
-				
-				n = n + 1
-				self.pango.update_layout(layout)
-				self.pango.show_layout(layout)
 
 		return None
 	
@@ -368,7 +341,6 @@ class TextEdit(DNApyBaseDrawingClass):
 					ySteps 	= dy / self.lineHeight # number of lines!
 					xs 		= xs / pango.SCALE
 					xf 		= xf / pango.SCALE
-					#ys 		= ys / pango.SCALE + self.lineHeight + self.fontsize - (0.5 * self.textSpacing)
 					ys		= (ys / pango.SCALE) + self.sY 
 					yf		= yf / pango.SCALE
 					
@@ -379,8 +351,8 @@ class TextEdit(DNApyBaseDrawingClass):
 					
 
 						xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)				
-						ys = ys  - level
-						self.ctx.move_to(xs + 10, ys - 5 )
+						ys = ys  - level - 5
+						self.ctx.move_to(xs + 10, ys )
 						self.ctx.text_path(name)
 						textpath = self.ctx.copy_path()
 						self.ctx.new_path()
@@ -388,42 +360,35 @@ class TextEdit(DNApyBaseDrawingClass):
 					
 						# box for name
 						self.ctx.move_to(xs, ys)
-						self.ctx.rectangle(xs, ys-featureheight-5, TextWidth + 20 , nameheight + 5)
+						self.ctx.rectangle(xs, ys-featureheight, TextWidth + 20 , nameheight + 5)
 					
-						# lines below the dna
+						# lines above the dna
 						while ySteps >= 0:
 							if ySteps == 0:
 								xE = xf
 							else:
-								xE = self.w
-
-							# make the path
+								xE = self.w + 5 # TODO: figure out, why we need to add 5 px, to make it look correct
+ 
+							# make a box-path
 							self.ctx.move_to(xs, ys)
-							self.ctx.line_to(xE, ys)
-						
+							self.ctx.rectangle(xs, ys-5, xE-xs , 5)
+							
+							# the second x start is always 8px, or what we will opt for
 							xs = 8
 							ys = ys + self.lineHeight
 							ySteps = ySteps - 1
-					
+						
+						# path
+						fillpath = self.ctx.copy_path()
+						self.ctx.new_path()
 						# get color
 						color = eval(featuretype)['fw'] #get the color of feature (as string)
 					else:
 						self.drawn_rv_locations, l = self.find_overlap(self.drawn_rv_locations, (start, finish))				
 						level = l * (featureheight+6)
-					
+						# set y
+						ys = ys + 2*self.fontsize + self.lineGap + 9 + level 
 
-						xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)				
-						ys = ys + 2*self.fontsize + self.lineGap + 9 + level
-						self.ctx.move_to(xs + 10, ys + 10 )
-						self.ctx.text_path(name)
-						textpath = self.ctx.copy_path()
-						self.ctx.new_path()
-						# end name
-					
-						# box for name
-						self.ctx.move_to(xs, ys + featureheight)
-						self.ctx.rectangle(xs, ys, TextWidth + 20 , nameheight + 5)
-					
 						# lines below the dna
 						while ySteps >= 0:
 							if ySteps == 0:
@@ -432,21 +397,45 @@ class TextEdit(DNApyBaseDrawingClass):
 								xE = self.w
 
 							# make the path
+							#self.ctx.move_to(xs, ys)
+							#self.ctx.line_to(xE, ys)
 							self.ctx.move_to(xs, ys)
-							self.ctx.line_to(xE, ys)
+							self.ctx.rectangle(xs, ys+5, xE-xs , 5)
 						
 							xs = 8
 							ys = ys + self.lineHeight
 							ySteps = ySteps - 1
-					
+						
+						# change y:
+						ys = ys - self.lineHeight
+						# buffer path
+						bufferPath = self.ctx.copy_path()
+						self.ctx.new_path()
+						
+						# name at the end:
+						xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(name)	
+						self.ctx.move_to(xf - TextWidth - 10, ys + 10 )
+						self.ctx.text_path(name)
+						textpath = self.ctx.copy_path()
+						self.ctx.new_path()
+						# end name
+
+						# box for name
+						self.ctx.append_path(bufferPath)
+						self.ctx.move_to(xf - TextWidth, ys + featureheight)
+						self.ctx.rectangle(xf - TextWidth - 20, ys, TextWidth + 20 , nameheight + 5)
+
+						# get path
+						fillpath = self.ctx.copy_path()
+						self.ctx.new_path()
 						# get color
 						color = eval(featuretype)['fw'] #get the color of feature (as string)
 
 					
-					paths[hname] = (color, self.ctx.copy_path(),textpath)
+					paths[hname] = (color,fillpath ,textpath)
 					self.ctx.new_path() # clear canvas
 			# save the paths
-			self.cairoStorage['fPaths'] =paths
+			self.cairoStorage['fPaths'] =	paths
 			# update storage status
 			self.cairoStorage['features'] = features
 			
@@ -466,28 +455,23 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.ctx.append_path(path)
 			self.ctx.set_line_width(1)
 			self.ctx.set_source_rgba(r ,g ,b , 1) # Solid color
-			self.ctx.stroke_preserve()
+			#self.ctx.stroke_preserve()
 			self.ctx.fill()
 			# write text
 			self.ctx.append_path(tpath)
 			self.ctx.set_line_width(1)
 			self.ctx.set_source_rgba(1 ,1 ,1 , 1) # Solid color
 			self.ctx.fill()
-			
-			
-			
-		
-			
-			
+
 		return None
 	
 	
 	def drawEnzymes(self):
-
+		# get storage
 		enzmymesOld = self.cairoStorage['enzymes']
 		enzymes 	= genbank.restriction_sites
 
-		if enzmymesOld != enzymes:
+		if enzmymesOld is not enzymes: # != wont work, for some unknwon reason
 			nameheight = 9 # px
 			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			self.ctx.set_font_size(nameheight)
@@ -532,12 +516,12 @@ class TextEdit(DNApyBaseDrawingClass):
 					# raise index
 					index = index + 1
 			# update storage
-			self.cairoStorage['enzymes'] 	= enzymes
+			self.cairoStorage['enzymes'] 	= enzymes				
 			self.cairoStorage['ePaths'] 	= enzymesPaths
 		
 		# draw enzymes:
 		self.ctx.set_line_width(1)
-		self.ctx.set_source_rgba(1,0.3,0.3 , 1) # Solid color
+		self.ctx.set_source_rgba(0.6,0.3,0.3 , 1) # Solid color
 		for e in self.cairoStorage['ePaths']:
 			path, pathc = self.cairoStorage['ePaths'][e]
 			self.ctx.append_path(path)
@@ -545,6 +529,84 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.ctx.append_path(pathc)
 			self.ctx.stroke()
 	
+	def drawTicks(self):
+		''' draw the nice infos about the dna position in each line'''
+		nameheight = 9 # px
+		self.ctx.set_font_size(nameheight)
+		self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+		# number of lines:
+		if len(self.dna) != 0 and self.cairoStorage['ticks'] != self.dna:
+			# count the lines:
+			nLines = math.ceil((len(self.dna)-1) / self.lineLength)
+		
+			# empty paths:
+			self.cairoStorage['tPaths'] = []
+			
+			n = 0 # counter
+			y =  self.sY  -2 #- self.fontsize - 2
+			
+			# clear paths
+			self.ctx.new_path()
+			while n <= nLines:
+				
+				self.ctx.move_to(8 + 3, y)
+				# make the tick
+				text = "%d" % (n *  self.lineLength + 1)
+				xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(text)	
+				self.ctx.text_path(text)
+				textpath = self.ctx.copy_path()
+				self.ctx.new_path()
+				# make a box
+				boxPath = self.carioRoundBox(8,y  - TextHeight - 2, TextWidth + 6, TextHeight + 4, 0.6)
+				self.ctx.new_path()
+				
+				#save paths
+				self.cairoStorage['tPaths'].append((textpath, boxPath))
+				
+				# raise counter
+				y = y + self.lineHeight
+				
+				n = n + 1
+				
+			# set storage:
+			self.cairoStorage['ticks'] = self.dna
+			
+
+		# print the ticks:
+		self.ctx.set_line_width(0)
+
+		for i in self.cairoStorage['tPaths']:
+			textpath, boxPath = i
+			# draw box
+			self.ctx.set_source_rgba(1,1,1, 0.6) # white, transparent
+			self.ctx.append_path(boxPath)
+			self.ctx.fill()
+			# draw position
+			self.ctx.set_source_rgba(0,0,0,1) # dark black
+			self.ctx.append_path(textpath)
+			self.ctx.fill()
+
+		return None
+	
+	def carioRoundBox(self, x, y, width=10, height=10, aspect=0.8):
+		''' draw a box with rounded corners '''
+		# from http://cairographics.org/samples/rounded_rectangle/
+		corner_radius = height / 10.0   
+
+		radius = corner_radius / aspect
+		degrees = math.pi / 180.0
+
+		self.ctx.new_sub_path()
+		self.ctx.arc( x + width - radius, y + radius, radius, -90 * degrees, 0 * degrees)
+		self.ctx.arc( x + width - radius, y + height - radius, radius, 0 * degrees, 90 * degrees)
+		self.ctx.arc(x + radius, y + height - radius, radius, 90 * degrees, 180 * degrees)
+		self.ctx.arc(x + radius, y + radius, radius, 180 * degrees, 270 * degrees)
+		self.ctx.close_path()
+
+		path = self.ctx.copy_path()
+		self.ctx.new_path()
+		return path
+
 	def drawCursor(self):
 		''' draw and display cursor in the textfield'''
 		indexO 		= self.cairoStorage['cursor']
@@ -920,84 +982,83 @@ class TextEdit(DNApyBaseDrawingClass):
 
 	def uppercase(self):
 		'''Change selection to uppercase'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot modify an empty selection'
 		else:
 			genbank.gb.Upper(start, finish)
 			self.update_ownUI()
-			self.stc.SetSelection(start-1, finish)
+			self.set_dna_selection()
 
 	def lowercase(self):
 		'''Change selection to lowercase'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot modify an empty selection'
 		else:
 			genbank.gb.Lower(start, finish)
 			self.update_ownUI()
-			self.stc.SetSelection(start-1, finish)
+			self.set_dna_selection()
 
 	def reverse_complement_selection(self):
 		'''Reverse-complement current selection'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot modify an empty selection'
 		else:
 			genbank.gb.RCselection(start, finish)
 			self.update_ownUI()
 			self.update_globalUI()
-			self.stc.SetSelection(start-1, finish)
+			self.set_dna_selection()
 
 	def delete(self):
 		'''Deletes a selection and updates dna and features'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot delete an empty selection'
 		else:
 			genbank.gb.Delete(start, finish)
 			self.update_ownUI()
 			self.update_globalUI()
-			self.stc.SetSelection(start-1, start-1)
+			self.set_dna_selection()
 
 	def cut(self):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot cut an empty selection'
 		else:
 			genbank.gb.Cut(start, finish)
 			self.update_ownUI()
 			self.update_globalUI()
-			self.stc.SetSelection(start-1, start-1)
+			self.set_dna_selection()
 
 	def cut_reverse_complement(self):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot cut an empty selection'
 		else:
 			genbank.gb.CutRC(start, finish)
 			self.update_ownUI()
 			self.update_globalUI()
-			self.stc.SetSelection(start-1, start-1)
-
+			self.set_dna_selection()
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
-		start, finish = self.get_selection()
-		if finish == -1:
+		start, finish, zero = self.get_selection()
+		if finish == 0:
 			pass
 		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
 		#genbank.gb.Paste(start)
-		genbank.gb.RichPaste(start)
+		genbank.gb.RichPaste(genbank.cursor_position)
 		self.update_ownUI()
 		self.update_globalUI()
-		self.stc.SetSelection(start-1, start-1)
+		self.set_dna_selection() # reset selection
 
 	def paste_reverse_complement(self):
 		'''Paste reverse complement of DNA and any features present on that DNA'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			pass
 		else: #If a selection, remove sequence
@@ -1005,11 +1066,11 @@ class TextEdit(DNApyBaseDrawingClass):
 		genbank.gb.PasteRC(start)
 		self.update_ownUI()
 		self.update_globalUI()
-		self.stc.SetSelection(start-1, start-1)
+		self.set_dna_selection() # reset selection
 
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot copy an empty selection'
 		else:
@@ -1020,7 +1081,7 @@ class TextEdit(DNApyBaseDrawingClass):
 
 	def copy_reverse_complement(self):
 		'''Copy reverse complement of DNA'''
-		start, finish = self.get_selection()
+		start, finish, zero = self.get_selection()
 		if finish == -1:
 			raise ValueError, 'Cannot copy an empty selection'
 		else:
