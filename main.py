@@ -189,8 +189,8 @@ class DNApy(wx.Frame):
 		self.new_file(None) #create new genbank file
 
 
-		genbank.dna_selection 		= (0, 0, -1)	 	# variable for storing current DNA selection
-		genbank.cursor_position 	= 0 			# to save cursor position
+		genbank.dna_selection 		= (1, -1, -1)	 	# variable for storing current DNA selection
+		genbank.cursor_position 	= 1 			# to save cursor position
 
 
 		genbank.feature_selection 	= False #variable for storing current feature selection
@@ -417,7 +417,7 @@ class DNApy(wx.Frame):
 		selection = self.get_dna_selection()
 	
 		# set text
-		if selection[1] != 0:
+		if selection[1] != -1:
 			# it is a selection
 			length = abs(selection[0]-selection[1])+1 # length of the selected
 			

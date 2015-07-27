@@ -91,14 +91,16 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.cdna 			= genbank.gb.GetDNA()
 
 		# text styler
-		self.sY				= 60
-		self.textSpacing 	= 80
-		self.fontsize 		= 9
-		self.lineGap 		= 5
+		self.sY				= 60	# offset top
+		self.dX				= 8 	# border left and right
+		self.textSpacing 	= 80	# seperation of lines
+		self.fontsize 		= 9		# line size
+		self.lineGap 		= 6
 		self.lineHeight		= self.textSpacing +  self.fontsize 
 		
 		# interactive cursor
-		self.PositionPointer = 1
+		self.PositionPointer 		= 1
+		self.PositionPointerEnd 	= False
 		self.i = 0
 		
 		# some helper varuiable 
@@ -211,7 +213,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		# get extend to wrap text correct
 		width, height 	= self.parent.GetVirtualSize()
 		if width > 30:
-			w = width - 8
+			w = width - self.dX
 		else:
 			w = width
 		self.w = w # width for other drawing operators
@@ -251,20 +253,18 @@ class TextEdit(DNApyBaseDrawingClass):
 	
 		# correct direktion of selection
 		if start > end:
-			s 	= end
+			s 	= end - 1
 			e 	= start
 		else:
-			s 	= start
+			s 	= start - 1
 			e	= end
 
 		# make markup selection
-		if abs(end-start) > 0 and zero == -1:
-			s = s-1
-			e = e-1
+		if abs(end-start) >= 0 and zero == -1 and end != -1 :
 			senseText = self.dna[0:s] + '<span background="#0082ED">'+self.dna[s:e] + '</span>' + self.dna[e:]
 			antiText = self.cdna[0:s] + '<span background="#0082ED">'+self.cdna[s:e] + '</span>' + self.cdna[e:]	
 			
-		elif abs(end-start) > 0 and zero == 1:
+		elif abs(end-start) >= 0 and zero == 1 and end != -1:
 			senseText = '<span background="#0082ED">'+self.dna[0:s] + '</span>' + self.dna[s:e] + '<span background="#0082ED">'+self.dna[e:] + '</span>'
 			antiText = '<span background="#0082ED">'+self.cdna[0:s] + '</span>' + self.cdna[s:e] + '<span background="#0082ED">'+self.cdna[e:] + '</span>'
 		else:
@@ -272,7 +272,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			antiText  = self.cdna
 		
 		# output dna
-		self.ctx.move_to(8,self.sY)
+		self.ctx.move_to(self.dX,self.sY)
 		layout.set_markup(senseText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
@@ -289,7 +289,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.lineHeight = abs(y1 - y2) / pango.SCALE
 		
 		# print anti sense strain
-		self.ctx.move_to(8,self.sY + self.fontsize + self.lineGap)
+		self.ctx.move_to(self.dX,self.sY + self.fontsize + self.lineGap)
 		layout.set_markup(antiText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
@@ -374,7 +374,7 @@ class TextEdit(DNApyBaseDrawingClass):
 							self.ctx.rectangle(xs, ys-5, xE-xs , 5)
 							
 							# the second x start is always 8px, or what we will opt for
-							xs = 8
+							xs = self.dX
 							ys = ys + self.lineHeight
 							ySteps = ySteps - 1
 						
@@ -402,7 +402,7 @@ class TextEdit(DNApyBaseDrawingClass):
 							self.ctx.move_to(xs, ys)
 							self.ctx.rectangle(xs, ys+5, xE-xs , 5)
 						
-							xs = 8
+							xs = self.dX
 							ys = ys + self.lineHeight
 							ySteps = ySteps - 1
 						
@@ -549,7 +549,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.ctx.new_path()
 			while n <= nLines:
 				
-				self.ctx.move_to(8 + 3, y)
+				self.ctx.move_to(self.dX + 3, y)
 				# make the tick
 				text = "%d" % (n *  self.lineLength + 1)
 				xbearing, ybearing, TextWidth, TextHeight, xadvance, yadvance = self.ctx.text_extents(text)	
@@ -557,7 +557,7 @@ class TextEdit(DNApyBaseDrawingClass):
 				textpath = self.ctx.copy_path()
 				self.ctx.new_path()
 				# make a box
-				boxPath = self.carioRoundBox(8,y  - TextHeight - 2, TextWidth + 6, TextHeight + 4, 0.6)
+				boxPath = self.carioRoundBox(self.dX,y  - TextHeight - 2, TextWidth + 6, TextHeight + 4, 0.6)
 				self.ctx.new_path()
 				
 				#save paths
@@ -611,24 +611,35 @@ class TextEdit(DNApyBaseDrawingClass):
 		''' draw and display cursor in the textfield'''
 		indexO 		= self.cairoStorage['cursor']
 		index 		= self.PositionPointer
-		if indexO != index:	
+		pos1, pos2, zero = self.get_selection()
+		if indexO != index and pos2 == -1:
+			index = index - 1 # we save the genetic curors 1-len(), but mean the cursor 0-len()-1
+			
 			# turn index to x,y
-			x, y,w,h 	= self.senseLayout.index_to_pos(index)
-			x 			= x /pango.SCALE
+			x, y, w, h 	= self.senseLayout.index_to_pos(index)
+			x 			= x / pango.SCALE + self.dX
 			y 			= (y / pango.SCALE) + self.sY
 			y1 			= y 
 			y2 			= y + 0.5 * self.lineHeight
+			
+			# move cursor if its the line end:
+			if self.PositionPointerEnd == True:
+				x 		= x + self.dX
 			self.ctx.move_to(x,y1)
 			self.ctx.line_to(x,y2)
 		
 			self.cairoStorage['cursorPath'] = self.ctx.copy_path()
 			self.ctx.new_path()
+		elif pos2 != -1:
+			# there is a selection, so no cursor:
+			self.cairoStorage['cursorPath'] = None
 		
-		# draw cursor:
-		self.ctx.append_path(self.cairoStorage['cursorPath'])
-		self.ctx.set_line_width(0.3)
-		self.ctx.set_source_rgba(0,0,0, 1) # Solid color
-		self.ctx.stroke()
+		if self.cairoStorage['cursorPath'] != None:
+			# draw cursor:
+			self.ctx.append_path(self.cairoStorage['cursorPath'])
+			self.ctx.set_line_width(0.3)
+			self.ctx.set_source_rgba(0,0,0, 1) # Solid color
+			self.ctx.stroke()
 	
 ######################################################
 
@@ -664,23 +675,54 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		# get position
 		x, y 				= self.ScreenToClient(wx.GetMousePosition())
-		xp 					= x * pango.SCALE
+		xp 					= (x - self.dX) * pango.SCALE
 		yp 					= int(y - self.sY - self.fontsize) * pango.SCALE 
 		self.LeftDownIndex 	= None
 		index 				= self.senseLayout.xy_to_index(xp,yp)
 		
 		if index != False:
-			self.LeftDownIndex = index[0] 
+			# click can be left or right of the center of the char
+			if index[1] == 0:
+				self.LeftDownIndex = index[0] + 1 
+			else:
+				self.LeftDownIndex = index[0] + 2
 		
 		# update cursor
-		self.PositionPointer = index[0] 
+		self.PositionPointer = self.LeftDownIndex
+		self.set_cursor_position()
 			
 		
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 	def OnLeftUp(self, event):
-		#self.set_dna_selection() #update the varable keeping track of DNA selection
-		#self.set_cursor_position() # update cursor position
+		# get selection
+		pos1, pos2, zero 	= self.get_selection()
+		if pos2 == -1:
+			# reset selection
+			#self.set_dna_selection()
+
+			# maybe we cliked on a feature, label or a line?
+			hit = self.HitTest()
+			if hit != None:
+				self.hit = hit
+				# we hit one, so we need to draw the selection!
+				# wich feature was hit?
+				featurelist             = genbank.gb.get_all_feature_positions()
+				for i in range(0,len(featurelist)):
+					# load all the feature infos
+					featuretype, complement, start, finish, name, index = featurelist[i]
+					hName = self.hitName(name, index)
+					if hit == hName:
+						# a feature with start smaller then finish, is a featur laying over zero
+						if start > finish:
+							zero = 1 # 1 --> feature starts left and ends right of +1
+						# set selection 
+						self.set_dna_selection((start,finish-1, zero))
+						self.set_cursor_position(start)
+			else:
+				self.hit = None
+		
+		# update the UI maybe?
 		self.update_ownUI()
 		#self.update_globalUI()
 		event.Skip() #very important to make the event propagate and fulfill its original function
@@ -691,18 +733,36 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 			# get position
 			x, y 				= self.ScreenToClient(wx.GetMousePosition())
-			xp 					= x * pango.SCALE
+			xp 					= (x - self.dX) * pango.SCALE
 			yp 					= int(y - self.sY - self.fontsize) * pango.SCALE 
 			self.LeftMotionIndex 	= None
 			index 				=  self.senseLayout.xy_to_index(xp,yp)
+			# get motion cursor
 			if index != False:
-				self.LeftMotionIndex = index[0]
-				self.PositionPointer = index[0] 
+				if index[1] == 0:
+					self.LeftMotionIndex = index[0] + 1
+				else:
+					self.LeftMotionIndex = index[0] + 2 
+
+
+			# update cursor
+			if self.LeftMotionIndex >= self.LeftDownIndex:
+				self.PositionPointer = self.LeftMotionIndex + 1
+			else:
+				self.PositionPointer = self.LeftMotionIndex 
 			
-			if self.LeftDownIndex < self.LeftMotionIndex:
+			# end of line excepions
+			if (self.PositionPointer - 1)  % self.lineLength == 0 and self.PositionPointer >= self.lineLength :
+				self.PositionPointerEnd = True
+				self.PositionPointer = self.PositionPointer -1
+			else:
+				self.PositionPointerEnd = False
+				
+			# get selection
+			if self.LeftDownIndex <= self.LeftMotionIndex:
 				selection = (self.LeftDownIndex, self.LeftMotionIndex, -1)
 			else:
-				selection = (self.LeftMotionIndex, self.LeftDownIndex, -1)
+				selection = (self.LeftMotionIndex , self.LeftDownIndex , -1)
 			
 			if oldSel != selection:
 				self.set_dna_selection(selection) #update the varable keeping track of DNA selection
@@ -758,6 +818,39 @@ class TextEdit(DNApyBaseDrawingClass):
 		seq 	= "%s%s" % (name, index)
 		name 	= ''.join(seq.split())
 		return name
+		
+		
+	def HitTest(self):
+		'''Tests whether the mouse is over any feature or a enzyme'''
+		hit 	= None
+
+
+		# get the mouse positions
+		x, y 	= self.ScreenToClient(wx.GetMousePosition())
+		x2, y2 	= self.ctx.device_to_user(x,y)
+
+		
+		# list of all the paths:
+		loop = [self.cairoStorage['fPaths'], 	# features
+				self.cairoStorage['ePaths']]	# enzymes
+		# loop over all possible paths to find the one we have under the mouse
+		for paths in loop:
+			for i in paths:
+				path = paths[i]
+				if type(path) == list or type(path) == tuple:
+					path = path[1]
+				
+				# load the path
+				self.ctx.append_path(path)
+				self.ctx.set_line_width(0.1) # reduce linewith, so we can have nice clicking detection
+				inFill 		= self.ctx.in_fill(x2,y2)
+				inStroke 	= self.ctx.in_stroke(x2,y2)
+				# check if this path is hit
+				if inFill == True or inStroke == True:
+					hit = i
+				self.ctx.new_path()
+
+		return hit
 	
 	def nameBeautiful(self, name):
 		# remove any '"' in front or at the end
@@ -767,12 +860,16 @@ class TextEdit(DNApyBaseDrawingClass):
 			name = name[:-1]
 		return name
 	
-	def set_cursor_position(self):
+	def set_cursor_position(self, pointer=False):
+		if pointer == False:
+			pointer = self.PositionPointer
+		else:
+			self.PositionPointer = pointer
 		# set position of cursor for status bar:
-		genbank.cursor_position = self.PositionPointer+1 # +1 because we have no 0 position, A|CGA is pos 2
+		genbank.cursor_position = pointer
 
 
-	def set_dna_selection(self, selection = (0,0, -1)):
+	def set_dna_selection(self, selection = (1,-1, -1)): # standart selection
 		'''
 		Updates DNA selection.
 		'''
@@ -794,7 +891,15 @@ class TextEdit(DNApyBaseDrawingClass):
 		length = len(genbank.gb.GetDNA())
 
 		if linejump == False:
-			index = index + offset
+				# check if we moved to a Line end
+			# if so, we first do not increase the counter:
+			if self.PositionPointerEnd == False and index % self.lineLength == 0:
+				self.PositionPointerEnd = True
+			elif self.PositionPointerEnd == True and index % self.lineLength == 0:
+				self.PositionPointerEnd = False
+				index = index + offset
+			else:
+				index = index + offset
 		elif linejump == "up":
 			# jump to the last row, but keep index to the left: #TODO, not correctly behaving if jumping between start and end
 			index = index - self.lineLength
@@ -825,9 +930,9 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		if key in [97, 65, 116, 84, 99, 67, 103, 71]: # [a, A, t, T, c, C, g, G']
 			start, finish, null = self.get_selection()
-			if start != finish: # if a selection, delete it, then paste
+			if finish != -1: # if a selection, delete it, then paste
 				genbank.gb.Delete(start+1, finish, visible=False)
-				
+				self.PositionPointer = start
 			if shift == True:
 				genbank.gb.Paste(index, chr(key).upper())
 			elif shift == False:
@@ -835,9 +940,10 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 			# move pointer
 			self.PositionPointer = self.PositionPointer + 1
+			self.set_dna_selection()
 			self.update_ownUI()
 			self.update_globalUI()
-			#self.stc.SetSelection(start+1, start+1)
+
 
 		
 		elif key == 8: #backspace

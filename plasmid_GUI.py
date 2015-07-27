@@ -347,7 +347,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					if start > finish:
 						zero = 1 # 1 --> feature starts left and ends right of +1
 					# set selection for real!
-					self.set_dna_selection((start,finish, zero))
+					self.set_dna_selection((start,finish-1, zero))
 		else:
 			self.set_dna_selection((start,finish, zero))
 		
@@ -395,9 +395,10 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 	############### Inteaction with mosue and keyboard ################
 	def OnLeftUp(self, event):
-	
+		''' handle left ouseclick up'''
+		# get selection
 		pos1, pos2, zero 	= self.plasmidstore.interaction["selection"]
-		if self.plasmidstore.interaction["leftDown"] == True and pos2 != 0:
+		if self.plasmidstore.interaction["leftDown"] == True and pos2 != -1:
 			# selection is finish
 			self.plasmidstore.interaction["leftDown"] = False
 			# save the mouse position
@@ -407,8 +408,9 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			
 			self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 
-		elif pos2 == 0:
-			self.plasmidstore.interaction["selection"] = (0, 0, -1)
+		elif pos2 == -1:
+			# reset selection
+			self.plasmidstore.interaction["selection"] = (1, -1, -1)
 
 			# maybe we cliked on a feature, label or a line?
 			hit = self.HitTest()
@@ -416,7 +418,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 				self.plasmidstore.interaction["hit"] = hit
 				# we hit one, so we need to draw the selection!
 				# wich feature was hit?
-				self.saveSelection(0, 0, -1, hit)
+				self.saveSelection(1, -1, -1, hit)
 			else:
 				self.plasmidstore.interaction["hit"] = None
 		
@@ -435,13 +437,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			x2, y2 = self.ctx.device_to_user(x,y)
 			pos = self.cartesian2position(x2,y2)
 			self.plasmidstore.interaction["leftDown"] = True
-			self.plasmidstore.interaction["selection"] = (pos, 0, -1)
-			
-			# print ("startSelection")
+			self.plasmidstore.interaction["selection"] = (pos, -1, -1)
 		else:
 			# remove selection
 			self.plasmidstore.interaction["hit"] = None
-			self.saveSelection(0, 0, -1, False)
+			self.saveSelection(1, -1, -1, False)
 		
 		return None
 	
@@ -1135,7 +1135,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 		
 		if sel != selOld:
-			if sel[1] == 0:
+			if sel[1] == -1:
 				# remove selection arc
 				self.plasmidstore.drawnSelection = None
 			else:
