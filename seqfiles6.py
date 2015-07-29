@@ -458,8 +458,8 @@ class SeqAnalysis:
 					pass
 				else:
 					#get sequences
-					seq1 = contig
-					seq2 = seq_list[o][seq_type].getDNA()
+					seq1 = contig.replace('\r','')
+					seq2 = seq_list[o][seq_type].getDNA().replace('\r','')
 				
 					#align sequences in FW
 					forward = self.getOverlap(seq1, seq2)

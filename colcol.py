@@ -81,6 +81,7 @@ def is_hex(input):
 		return False
 	else:
 		return True
+
 	
 def hex_to_rgb(hex):
 	'''
@@ -145,6 +146,107 @@ def mix_colors(col1, col2):
 	color_dict = scale(col1, col2, white_mid=False)
 	return color_dict[50]
 	
+
+def complementary():
+	'''
+	Returns input color and its complementary color as a list of hex or rgb values, depending on what was submitted.
+	'''
+	pass
+
+
+def split_complementary():
+	'''
+	Returns input color and its split complementary colors (those adjecent to the complement) 
+	as a list of of hex or rgb values, depending on what was submitted.
+	'''
+	pass
+
+
+def triadic(in_color):
+	'''
+	Returns input color as well as the two triadic colors as a list of hex or rgb values, depending on what was submitted.
+	'''
+	rgb = False
+
+	#make sure it's in hex
+	if is_rgb(in_color):
+		color = rgb_to_hex(in_color)
+		rgb = True
+	else:
+		color = in_color	
+
+	#add the input color
+	color_list = [color]
+
+	#add first triadic color
+	color_list.append('#' + color.strip('#')[-2:] + color.strip('#')[:4])
+
+	#add second tridadic color
+	color_list.append('#' + color_list[-1].strip('#')[-2:] + color_list[-1].strip('#')[:4])
+
+	if rgb is True:
+		color_list = [hex_to_rgb(i) for i in color_list]	
+
+	return color_list
+
+
+def tetradic():
+	'''
+	'''
+	pass
+
+def monochromatic():
+	'''
+	Returns the input color as well as ....
+	'''
+	pass
+
+def tints():
+	'''
+	Returns input color as well as its tints.
+	'''
+	pass
+
+
+def shades():
+	'''
+	Returns input color as well as its shades.
+	'''
+	pass
+
+
+def saturate():
+	'''
+	Returns the input color as well as more saturated versions of that color.
+	'''
+	pass
+
+
+def desaturate():
+	'''
+	Returns the input color as well as less saturated versions of that color.
+	'''
+	pass
+
+
+def analagous():
+	'''
+	Returns the input color as well as its analagous colors.
+	'''
+	pass
+
+def similar():
+	'''
+	Returns the input color as well as similar colors.
+	'''
+
+
+def visualize():
+	'''
+	Takes a list of colors and visualizes them.
+	'''
+	raise NotImplementedError
+
 
 def NextRGB(color = (0,0,0)):
 	'''
@@ -250,8 +352,8 @@ def test_scale():
 
 	
 if __name__ == "__main__": 
-	test_scale()
-
-	
-	
+#	test_scale()
+	print(triadic('#ffa2b5'))
+	print(triadic((255, 162, 181)))
+	 	
 	

@@ -234,8 +234,8 @@ class gbobject(object):
 		line_list = [] #for collecting the dna
 		for line in infile:
 			line = line.replace('\r', '') #important for removing linux \r newline character
-
-			if re.match('^[ \t\n]+$', line): #get rid of blank lines
+#			print('line: ',line)
+			if re.match('^[ \t\n]+$', line) or line == '': #get rid of blank lines
 				pass
 
 			elif line[0] == ' ' and line[0:10] != '        1 ': #a line that starts with a space is a continuation of the previous line (and belongs to the previous keyword). I have to have a special case '        1 ' for where the DNA sequence starts.
@@ -1240,6 +1240,9 @@ class gbobject(object):
 		assert type(index) == int, "Index must be an integer."
 		assert (index>=0 and index<len(self.gbfile['features'])), "The index must be between 0 and %s" % str(len(self.gbfile['features'])-1)
 		DNA = ''
+#		print('index', index)
+#		print(self.gbfile['features'][index])
+#		print(self.gbfile['features'][index]['location'])
 		for entry in self.gbfile['features'][index]['location']:
 			start, finish = self.get_location(entry)
 			DNA += self.GetDNA(start, finish)
@@ -1308,7 +1311,7 @@ class gbobject(object):
 			else:
 				complement = 'leading'
 			currentfeature = '>[%s] %s at %s on %s strand' % (str(i), feature['qualifiers'][0], feature['location'], complement)
-			print(currentfeature)
+#			print(currentfeature)
 #			print('\n')
 			featurelist.append(currentfeature)
 		return featurelist
