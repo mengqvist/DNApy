@@ -185,6 +185,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 		self.Bind(wx.EVT_MOTION, self.OnMotion)
+		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
 
 		
@@ -437,15 +438,33 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			pos = self.cartesian2position(x2,y2)
 			self.plasmidstore.interaction["leftDown"] = True
 			self.plasmidstore.interaction["selection"] = (pos, 0, -1)
-			
-			print ("startSelection")
+		
 		else:
 			# remove selection
 			self.plasmidstore.interaction["hit"] = None
 			self.saveSelection(0, 0, -1, False)
 		
 		return None
-	
+		
+		
+	def OnLeftDouble(self, event):
+		'''When left button is double clicked, launch the feature edit dialog.'''
+		hit = self.HitTest() #this does not get the "true" feature index. Some featues are split and this is an index that accounts for that.
+		if hit is not False:
+			# get the index of this feature
+			featurelist             = genbank.gb.get_all_feature_positions()
+			for i in range(0,len(featurelist)):
+				# load all the feature infos
+				featuretype, complement, start, finish, name, index = featurelist[i]
+				hName = self.hitName(name, index)
+				if hit == hName:
+					genbank.feature_selection = copy.copy(index)
+
+			dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title
+			dlg.ShowModal()
+			dlg.Center()
+		
+		
 	def OnMotion(self, event):
 		'''When mouse is moved with the left button down determine the DNA selection from angle generated at mouse down and mouse move event.'''
 		
@@ -576,7 +595,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 		# compare old and new
 		if featuresOld != featuresNew:
-			print ("DO recalc features")
+
 			# we only have to redraw if the length, the color or direction changed
 			# calculate and save all the features
 			allFeatures = {} # storing list
@@ -614,8 +633,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			
 			# save label drawn outside as text
 			self.plasmidstore.LoF = labelFeature
-		else:
-			print("NOT recalc features")
+
 		
 		
 
@@ -793,7 +811,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		
 		# check if the labels changed, onyl recalculate everything, if they did
 		if LoF != self.plasmidstore.LoFold or LoE != self.plasmidstore.LoEold:
-			print("DO recalculate label")
 			# sort labels for their middle position:
 			LoF = sorted(LoF, key=lambda x: x[0]) 
 			LoE = sorted(LoE, key=lambda x: x[0])
@@ -885,7 +902,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			
 			return None
 		else:
-			print("NOT recalculate label")
 			return None
 
 	
@@ -1099,8 +1115,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 					# save y:
 					l[4] = y
-				
-			print("DO reposition labels, Round: ", i)
+			
 			i = i + 1
 	
 		# after n cycles stop calculations and return the positions
@@ -1189,7 +1204,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	# drawing functions
 
 	def draw(self):
-		''' print the stored elements on th canvas'''
+		''' paste the stored elements on the canvas'''
 		# prepare the canvas
 		width, height = self.GetVirtualSize()
 		if width < height:
@@ -1212,7 +1227,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		return None
 
 	def drawFeatures(self):
-		print("DO output path feature")
 		# only resize the canvas if software is loaded. This prevents error messages
 
 		# draw the helper plain white circle to make selection possible:
