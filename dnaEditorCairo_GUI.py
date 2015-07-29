@@ -40,7 +40,6 @@ from copy import deepcopy
 import string
 from os import access,listdir
 
-
 import sys, os
 import string
 
@@ -55,16 +54,16 @@ import dna
 from base_class import DNApyBaseClass
 from base_class import DNApyBaseDrawingClass
 
-import featurelist_GUI
-import plasmid_GUI
+import featureedit_GUI
 
+# drawing
 import cairo
 from wx.lib.wxcairo import ContextFromDC
 import pango # for text
 import pangocairo # for glyphs and text
 import math
 
-
+# for color function
 import colcol
 
 
@@ -76,35 +75,40 @@ settings=files['default_dir']+"settings"   ##path to the file of the global sett
 execfile(settings) #gets all the pre-assigned settings
 
 
-
-
 ########### class for text ######################
 class TextEdit(DNApyBaseDrawingClass):
+	'''
+		new Text editor that allows to display dna and
+		complementary dna in a usefull manner
+		
+		Also it can and should show:
+			- features (done, buggy)
+			- restriction enzymes (partly)
+			- dna modifications (todo)
+			- primer (todo)
+	'''
 	def __init__(self, parent, id):
 		
-
-		# initiate parent
+		#parent
 		self.parent = parent
 		
 		# get data
 		self.dna 			= genbank.gb.GetDNA()
 		self.cdna 			= genbank.gb.GetDNA()
 
-		# text styler
+		# settings for the editor 
 		self.sY				= 60	# offset top
 		self.dX				= 8 	# border left and right
 		self.textSpacing 	= 80	# seperation of lines
 		self.fontsize 		= 9		# line size
 		self.lineGap 		= 6
-		self.lineHeight		= self.textSpacing +  self.fontsize 
 		
 		# interactive cursor
 		self.PositionPointer 		= 1
 		self.PositionPointerEnd 	= False
-		self.i = 0
 		
-		# some helper varuiable 
-		self.minHeight = 10
+		# initial minimal height of the editor 
+		self.minHeight = 200
 		
 		# storage dict, to prevent recalculating to much
 		self.cairoStorage = {
@@ -115,30 +119,19 @@ class TextEdit(DNApyBaseDrawingClass):
 				'enzymes'	: {},	# enzymes object
 				'ePaths'	: [],	# enzymes drawn
 				'ticks'		: None,	# ticks object --> self.dna
-				'tPaths'	: [],	# ticks drawn
-				
+				'tPaths'	: []	# ticks drawn		
 		}
 		
 		
-		#self.drawinPanel = wx.Panel(self.parent)
+		# call window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
-		self.Layout()
 
-		
-		# set a sizer
-		#sizer = wx.BoxSizer(wx.HORIZONTAL)
-		#sizer.Add(item=self.drawinPanel)
-		#self.SetSizer(sizer)
-		
+		# bind events
+		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 		self.Bind(wx.EVT_MOTION, self.OnMotion) # drag and drop, selection etc.
 		self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress) #This is important for controlling the input into the editor
-		#wx.EVT_KEY_DOWN(self, self.OnKeyPress)
-		
-		#self.SetAutoLayout(True)
-		#wx.Panel.__init__(self, parent)
-		
 		
 
 ####### Modify methods from base calss to fit current needs #########
@@ -150,8 +143,6 @@ class TextEdit(DNApyBaseDrawingClass):
 		MSG_CHANGE_TEXT = "change.text"
 		pub.sendMessage(MSG_CHANGE_TEXT, text="DNA view says update!")
 
-
-
 	def update_ownUI(self):
 		"""
 		This would get called if the drawing needed to change, for whatever reason.
@@ -162,22 +153,19 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
-		self.i = self.i  + 1 # debug
 
-		
-		
 		# start dc
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
-		dc.SetBackground(wx.Brush("White"))	# start the DC and clear it
-		dc.Clear() 							# make sure you clear the bitmap!
+		dc.SetBackground(wx.Brush("White"))
+		dc.Clear() 
 		# make a cairo context
-		self.ctx = ContextFromDC(dc)		# load it into cairo
-		
+		self.ctx = ContextFromDC(dc)		
 		# start pango as a font backend
 		self.pango = pangocairo.CairoContext(self.ctx)
 		self.pango.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 		
+		# reload dna
 		self.dna = genbank.gb.GetDNA()
 		if self.dna != None:
 			self.cdna 	= dna.C(self.dna)
@@ -207,16 +195,19 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		return None
 
-
 	def displayText(self):
+		''' main function for the editors text capabilities
+			here the text gets positioned and all its color.
+			Also the selection highlight is done here'''
 		
-		# get extend to wrap text correct
+		# get window size to wrap text
 		width, height 	= self.parent.GetVirtualSize()
 		if width > 30:
 			w = width - self.dX
 		else:
 			w = width
-		self.w = w # width for other drawing operators
+		# save with for other functions
+		self.w = w
 
 		# start layout
 		layout 			= self.pango.create_layout()
@@ -243,22 +234,20 @@ class TextEdit(DNApyBaseDrawingClass):
 		font.set_size(pango.SCALE * self.fontsize)
 		layout.set_font_description(font)
 		
+		# font and color are prepared for the DNA
 
 		
 
-		# make some markup
-		# all markup should be performed here
+		# get selection, if any
 		start, end, zero = self.get_selection()
-		
-	
-		# correct direktion of selection
-		if start > end:
-			s 	= end - 1
-			e 	= start
-		else:
-			s 	= start - 1
-			e	= end
-
+		if end != -1:
+			# correct direktion of selection
+			if start > end:
+				s 	= end - 1
+				e 	= start
+			else:
+				s 	= start - 1
+				e	= end
 		# make markup selection
 		if abs(end-start) >= 0 and zero == -1 and end != -1 :
 			senseText = self.dna[0:s] + '<span background="#0082ED">'+self.dna[s:e] + '</span>' + self.dna[e:]
@@ -276,8 +265,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		layout.set_markup(senseText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
-		
-		self.senseLayout = layout.copy() # copy sense layout
+		# copy sense layout
+		self.senseLayout = layout.copy() 
 		
 		# get the sense lines
 		self.senseLines = layout.get_iter()
@@ -294,14 +283,12 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
 
-		# update the height of the context, based on the dna stuff
+		# update the height of the context, based on the inserted dna
 		w, h = layout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
 		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
-		
-		
 
 		return None
 	
@@ -726,7 +713,30 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.update_ownUI()
 		#self.update_globalUI()
 		event.Skip() #very important to make the event propagate and fulfill its original function
+	
+	def OnLeftDouble(self, event):
+		'''doubleclick aktion'''
+		# remove selection:
+		self.set_dna_selection()
+		# if we hit a feature, wen can open a dialog
+		hit = self.HitTest()
+		if hit != None:
+			# wich feature was hit?
+			featurelist             = genbank.gb.get_all_feature_positions()
+			for i in range(0,len(featurelist)):
+				# load all the feature infos
+				featuretype, complement, start, finish, name, index = featurelist[i]
+				hName = self.hitName(name, index)
+				if hit == hName:
+					genbank.feature_selection = copy.copy(index)
+					dlg = featureedit_GUI.FeatureEditDialog(None, 'Edit Feature') # creation of a dialog with a title'''
+					dlg.ShowModal()
+					dlg.Center()
+					# update the UI maybe?
+					self.update_ownUI()
+					self.update_globalUI()
 
+	
 	def OnMotion(self, event):
 		if event.Dragging() and event.LeftIsDown():
 			oldSel = genbank.dna_selection
@@ -948,9 +958,10 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		elif key == 8: #backspace
 			start, finish, null = self.get_selection()
-			if start != finish: # if a selection, delete it
+			if finish != -1: # if a selection, delete it
 				genbank.gb.Delete(start+1, finish)
 				self.set_dna_selection() # remove selection
+				self.PositionPointer = start
 				self.update_ownUI()
 				self.update_globalUI()
 
@@ -964,8 +975,9 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		elif key == 127: #delete
 			start, finish, null = self.get_selection()
-			if start != finish: # if a selection, delete it
+			if finish != -1: # if a selection, delete it
 				genbank.gb.Delete(start+1, finish)
+				self.PositionPointer = start
 			else:
 				genbank.gb.Delete(index, index)
 			self.set_dna_selection() # remove selection
@@ -1152,7 +1164,7 @@ class TextEdit(DNApyBaseDrawingClass):
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
 		start, finish, zero = self.get_selection()
-		if finish == 0:
+		if finish == -1:
 			pass
 		else: #If a selection, remove sequence
 			genbank.gb.Delete(start, finish, visible=False)
@@ -1195,38 +1207,6 @@ class TextEdit(DNApyBaseDrawingClass):
 
 
 #######################################################
-
-
-######### Functions for updating text and text highlighting #############
-#	def remove_styling(self):
-#		'''Removes background styling for whole document'''
-#		start = 0
-#		finish = self.stc.GetLastPosition() #last position in file
-#		self.attr = rt.RichTextAttr()
-#		self.attr.SetFlags(wx.TEXT_ATTR_BACKGROUND_COLOUR) #do I need this flag?
-#		self.attr.SetBackgroundColour('#FFFFFF')
-#		self.stc.SetStyleEx(rt.RichTextRange(start, finish), self.attr)
-
-#	def get_feature_lexer(self, featuretype, complement):
-#		'''Takes single feature and finds its lexer, if any'''
-#		#piece of code to check if there are assigned colors to the features
-
-
-
-
-
-####### Advanced DNA functions #######
-#	def align_dna(self, evt):
-#		'''Pass a list of dictionaries with name and dna to m_align to align sequences'''
-#		#this works sort of ok. Needs improvement though...
-#
-#		dna = str(genbank.gb.GetDNA())
-#
-#		self.seqlist.append(dict(name='Reference', dna=dna))
-#		print(self.seqlist)
-#		result = seqfiles.M_align(self.seqlist)
-#		self.output.write(result, 'text')
-
 
 ####### Protein functions #######
 	def translate_output(self, protein, DNA, info):
@@ -1303,38 +1283,3 @@ class TextEdit(DNApyBaseDrawingClass):
 ######################################
 ######################################
 
-
-##### main loop
-#class MyApp(wx.App):
-#	def OnInit(self):
-#		frame = wx.Frame(None, -1, title="DNA Edit", size=(700,600))
-#		panel = DNAedit(frame, -1)
-#		frame.Centre()
-#		frame.Show(True)
-#		self.SetTopWindow(frame)
-#		return True
-
-
-#
-#if __name__ == '__main__': #if script is run by itself and not loaded
-#
-#	files={}   #list with all configuration files
-#	files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
-#	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
-#	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
-#	settings=files['default_dir']+"settings"   ##path to the file of the global settings
-#	execfile(settings) #gets all the pre-assigned settings
-#
-#	genbank.dna_selection = (0, 0, -1)	 #variable for storing current DNA selection
-##	genbank.feature_selection = False #variable for storing current feature selection
-#	genbank.search_hits = []
-#
-#	import sys
-#	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
-#	print('Opening %s' % str(sys.argv[1]))
-#
-#	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
-#
-#
-#	app = MyApp(0)
-#	app.MainLoop()

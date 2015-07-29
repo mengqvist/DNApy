@@ -863,6 +863,7 @@ class gbobject(object):
 			The optional variable 'hidden' can be set to True or False. 
 			If set to True, no file versions are added to the undo/redo record.
 			If set to False, it does add file versions to the undo/redo record.'''
+		print "delete", start, finish, visible
 		assert (type(start) == int and type(finish) == int), 'Function requires two integers.'
 		assert start <= finish, 'Startingpoint must be before finish'
 		deletedsequence = self.GetDNA(start, finish)
