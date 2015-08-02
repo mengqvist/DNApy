@@ -106,6 +106,9 @@ class initRestriction():
 		self.oldDna 	= ''
 		self.currentDNA = genbank.gb.gbfile["dna"]
 		
+		# store for all enzymes and the sites
+		self.enzymeObj			= collections.OrderedDict()
+		
 		# load enzymes
 		self.loadEnzymes()
 		
@@ -125,13 +128,26 @@ class initRestriction():
 			
 			self.oldDna 			= genbank.gb.gbfile["dna"]
 		
-		
+		#return self.enzymeObj
+	
+	def getEnzymes(self, selection):
+		''' takes the current set of enzyme objects and generates a new list
+		so we can update the locations, without calling the gui'''
+		# update positions
+		self.reloadEnzymes()
+		newSelection = collections.OrderedDict()
+
+		for e in selection:
+			newSelection[e] = self.enzymeObj[e]
+			
+		return newSelection
 		
 		
 
+
 	def loadEnzymes(self):
 		''' load the restrictionenzymes from the emboss file, once. '''	
-		self.enzymeObj			= collections.OrderedDict()
+
 		
 		self.allEnzymes			= []
 
