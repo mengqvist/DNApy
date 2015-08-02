@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 
-#DNApy is a DNA editor written purely in python. 
-#The program is intended to be an intuitive, fully featured, 
-#extendable, editor for molecular and synthetic biology.  
+#DNApy is a DNA editor written purely in python.
+#The program is intended to be an intuitive, fully featured,
+#extendable, editor for molecular and synthetic biology.
 #Enjoy!
 #
-#copyright (C) 2014  Martin Engqvist | 
+#copyright (C) 2014  Martin Engqvist |
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
@@ -15,7 +15,7 @@
 #it under the terms of the GNU General Public License as published by
 #the Free Software Foundation; either version 3 of the License, or
 #(at your option) any later version.
-# 
+#
 #DNApy is distributed in the hope that it will be useful,
 #but WITHOUT ANY WARRANTY; without even the implied warranty of
 #MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -92,16 +92,22 @@ class DNAedit(DNApyBaseClass):
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
 		splitter0 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
-		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)	
+		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)
 
 		self.feature_list = featurelist_GUI.FeatureList(splitter1, id=wx.ID_ANY)
 		self.dnaview = dnaeditor_GUI.TextEdit(splitter1, id=wx.ID_ANY)
+
 		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)	
 		
-		
+		self.parent = parent
+
+		self.plasmidview = plasmid_GUI.PlasmidView2(splitter0, -1)
+
+
+
 
 		splitter1.SplitHorizontally(self.feature_list, self.dnaview, sashPosition=-(windowsize[1]-(windowsize[1]/3.0)))
-		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))	
+		splitter0.SplitVertically(splitter1, self.plasmidview, sashPosition=(windowsize[0]/2.0))
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(item=splitter0, proportion=-1, flag=wx.EXPAND)
@@ -134,10 +140,11 @@ class DNAedit(DNApyBaseClass):
 		#print(text) 	#debug only
 		if text == "Plasmid view says update!":
 			self.feature_list.update_ownUI()
-			self.dnaview.update_ownUI()			
+			self.dnaview.update_ownUI()
 		elif text == "DNA view says update!":
 			self.feature_list.update_ownUI()
 			self.plasmidview.update_ownUI()
+			#self.parent.update_statusbar(text) # also statusbar update
 		elif text == "Feature list says update!":
 			self.dnaview.update_ownUI()
 			self.plasmidview.update_ownUI()
@@ -145,23 +152,23 @@ class DNAedit(DNApyBaseClass):
 
 class MyFrame(wx.Frame):
 	'''Main frame of DNApy'''
-	tab_list=[] #list of tabs 
+	tab_list=[] #list of tabs
 	current_tab=0 #contains the current tab
 	panel=[] #list of panels for the textbox
-	
-	
+
+
 	def __init__(self, parent, id, title):
 		wx.Frame.__init__(self, parent, id, title, size=windowsize) #size of program
 		ID=wx.NewId()
 
 		#self.DNApy = wx.Notebook(self, ID, style=0) ######create blank notebook
-		
+
 
 
 		#create toolbars
 		self.__generate_toolbar()
 		self.__generate_searchandmutate_toolbar()
-		
+
 		#create Menu Bar
 		self.create_menu()
 
@@ -173,11 +180,15 @@ class MyFrame(wx.Frame):
 		self.fileopen = False #used to see if a file is open
 		self.new_file(None) #create new genbank file
 
-		genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
-		genbank.feature_selection = False #variable for storing current feature selection
-		genbank.search_hits = []
-		genbank.gb.fileName = ''
-		genbank.restriction_sites = [] # variable for storing info about selected restriction enzymes
+
+		genbank.dna_selection 		= (0, 0, -1)	 	# variable for storing current DNA selection
+		genbank.cursor_position 	= 0 			# to save cursor position
+
+
+		genbank.feature_selection 	= False #variable for storing current feature selection
+		genbank.search_hits 		= []
+		genbank.gb.fileName 		= ''
+		genbank.restriction_sites 	= [] # variable for storing info about selected restriction enzymes
 
 		#build the UI using the pre-defined class
 		self.DNApy = DNAedit(self, -1)
@@ -186,20 +197,20 @@ class MyFrame(wx.Frame):
 		#wx.EVT_NOTEBOOK_PAGE_CHANGED(self, ID, self.page_change)
 
 		self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-		
+
 		self.do_layout()
 		self.Centre()
-		
+
 		# initialise the retriction enzyme:
 		self.restrictionEnzymes 		= enzyme.initRestriction()
 		# save the selected restriktion enzymes
-		self.RestriktioEnzymeSelection 	= [] 
-	
-	
+		self.RestriktioEnzymeSelection 	= []
+
+
 
 
 	#######################################################################
-	
+
 
 
 	def do_layout(self):
@@ -214,8 +225,8 @@ class MyFrame(wx.Frame):
 			sizer.Add(self.frame_2_toolbar, 0, wx.EXPAND)
 		except:
 			pass
-		self.SetSizer(sizer)	
-		
+		self.SetSizer(sizer)
+
 
 
 
@@ -243,7 +254,7 @@ class MyFrame(wx.Frame):
 	def new_file(self, evt):
 		'''Create new gb file'''
 		if self.fileopen == False: #if no file is open, make blank gb file
-			genbank.gb = genbank.gbobject() #make new gb in panel	
+			genbank.gb = genbank.gbobject() #make new gb in panel
 
 
 			self.SetTitle('NewFile - DNApy')
@@ -258,7 +269,7 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(512, 1)
 			self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 			self.fileopen = True
-			
+
 
 		elif self.fileopen == True: #if a file IS open, make a new window
 			subprocess.Popen("python ~/Python_files/DNApy/main.py 1", shell=True) #this needs a fix for windows
@@ -268,20 +279,20 @@ class MyFrame(wx.Frame):
 		self.dir_to_open = default_filepath
 		#self.dir_to_open = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) #current script directory
 		dlg = wx.FileDialog( self, style=wx.OPEN|wx.FILE_MUST_EXIST,   defaultDir=self.dir_to_open ,wildcard='GenBank files (*.gb)|*|Any file (*)|*')
-		
+
 		if dlg.ShowModal() == wx.ID_CANCEL:
 			return     # the user does not want to open that file!
-			
+
 		genbank.gb.fileName = dlg.GetFilename()
 		all_path=dlg.GetPath()
 		dire=dlg.GetDirectory()
 		dlg.Destroy()
-		
+
 		if(genbank.gb.fileName == None or genbank.gb.fileName == "" ):
 			return 1
-	
-			
-		
+
+
+
 		name, extension = genbank.gb.fileName.split('.')
 		if extension.lower() == 'gb':
 			genbank.gb = genbank.gbobject(all_path) #make a genbank object and read file
@@ -304,17 +315,17 @@ class MyFrame(wx.Frame):
 			self.frame_1_toolbar.EnableTool(512, True)
 			self.fileopen = True
 
-			
+
 			self.DNApy.update_ownUI()
-			
+
 		else:
-			print("error, not a gb file")		
+			print("error, not a gb file")
 
 		self.Bind(wx.EVT_UPDATE_UI, self.update_statusbar)
 
 		# update gui to find eestriction sites etc
 		self.update_globalUI()
-	
+
 	def save_file(self, evt):
 		'''Function for saving file'''
 		result = genbank.gb.Save()
@@ -353,19 +364,19 @@ class MyFrame(wx.Frame):
 			self.SetTitle(genbank.gb.fileName+' - DNApy')
 			#except:
 			#	error_window(7, self)
-	
+
 	# export svg or png
 	def export_plasmid_map(self, evt):
-		
+
 		# show dialog
-		
+
 		# if we want export as png we have to make the wildcard so:
 		#filetypes = ['.png', '.svg']
 		#wildcard = "as .png file (*.png)|*.png | as .svg file (*.svg)|*.svg"
-		
+
 		filetypes = ['.svg']
 		wildcard = "as .svg file (*.svg)|*.svg"
-		
+
 		saveFileDialog = wx.FileDialog(self, "Save your image file", "", "/",
 				                       wildcard, wx.FD_SAVE )
 		# check if file was opened
@@ -374,30 +385,30 @@ class MyFrame(wx.Frame):
 
 		# proceed loading the file chosen by the user
 		# this can be done with e.g. wxPython input streams:
-		exportFilePath = saveFileDialog.GetPath()		
+		exportFilePath = saveFileDialog.GetPath()
 		filetype = filetypes[saveFileDialog.GetFilterIndex()]
-		
+
 		# add extension
 		if exportFilePath[-4:] != filetype and exportFilePath[-4:] != filetype.upper():
 			exportFilePath = "%s%s" %(exportFilePath,filetype)
-		
 
-		
+
+
 		# now draw the svg to the surface and get it:
 		exportfile = self.DNApy.plasmidview.plasmid_view.exportMapAs(exportFilePath,filetype)
-		
+
 		return True
 
 	def quit(self, evt):
 		'''Function for quiting program'''
 		self.Close()
-		self.Destroy()		
+		self.Destroy()
 
 
 	def OnCloseWindow(self, evt):
 		'''Function for when window is closed'''
 
-#		foo=self.GetSize()  ###except for the window size of file 
+#		foo=self.GetSize()  ###except for the window size of file
 #		if(self.IsMaximized()==0):
 #			file=open(files['size'], "w")
 #			file.write(str(foo[0])+"\n"+str(foo[1]))
@@ -412,58 +423,37 @@ class MyFrame(wx.Frame):
 
 	def update_statusbar(self, evt):
 		'''Updates statusbar'''
-		#this stuff is for the statusbar
-#		if len(self.tab_list) == 0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==0:
-#			string = 'File unmodified'
-#		elif self.DNApy.modify==1:
-#			string = 'File not yet saved'
-#		
-#		if self.current_tab == 0: #if dna editor is active
-
-##		mposition, Feature = self.DNApy.dnaview.mouse_position("") #get mouse position
-		mposition = 'None'
-		Feature = "None"
-	
-		try:
-			Position = str(mposition+1)
-		except:
-			Position = ""
-	
-		try:
-			Feature = str(Feature)
-		except:
-			Feature = ""
-	
-		try:		
-			SelectionFrom, SelectionTo = (str(self.DNApy.dnaview.stc.GetSelection()[0]+1), str(self.DNApy.dnaview.stc.GetSelection()[1]))
-			if SelectionFrom == '-1' and SelectionTo == '-2': #no selection if true
-				SelectionFrom, SelectionTo = ("0", "0")
-		except:
-			SelectionFrom, SelectionTo = ("0", "0")
-		try:	
-			Length = str(self.DNApy.dnaview.stc.GetSelection()[1] - self.DNApy.dnaview.stc.GetSelection()[0])
-		except:
-			Length = ""
-
-
-		self.SetStatusText('Position: %s      Feature: %s' % (Position, Feature), 0) #text in first field
-	
-	
-		#this is broken... FIX!!
-#		if float(Length)/3 == 1: #if one triplet is selected, show the AA
-#			AA = ': %s' % dna.Translate(self.DNApy.dnaview.stc.GetSelectedText())
-#		else:
-#			AA = ''
-
 
 		
-#		self.SetStatusText('Selection: %s to %s,   %s bp,   %.1f AA%s' % (SelectionFrom, SelectionTo, Length, float(Length)/3, AA), 1) #text in second field
+		Position = genbank.cursor_position
+		selection = self.get_dna_selection()
+	
+		# set text
+		if selection[1] != 0:
+			# it is a selection
+			length = abs(selection[0]-selection[1])+1 # length of the selected
+			
+			if length == 3:
+				# if its just one codo show full name of amino acid
+				dnaSq 			= genbank.gb.GetDNA()
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				AAoneLetter 	= dna.Translate(selDNA)
+				AAFull 			= dna.protein.one_to_full(AAoneLetter)
+				AA = " amino acid: %s (%s)" %(AAFull, AAoneLetter)
 
-#		else:
-#			self.SetStatusText('', 0)
-#			self.SetStatusText('', 1)		
+			elif length % 3 == 0:
+				# if partable trough 3 show all amino acids that fit
+				dnaSq 			= genbank.gb.GetDNA()
+				selDNA 			= dnaSq[selection[0]-1:selection[1]]
+				fullProtein = dna.Translate(selDNA)
+				AA = " amino acid: %s" %(fullProtein)
+				
+			else:
+				AA = ""
+			self.SetStatusText('Selection: %d to %d, %d bp %s' % (selection[0], selection[1], length,AA), 0) #text in first field
+		else:
+			self.SetStatusText('Position: %s bp' % (Position), 0) #text in first field
+		
 
 
 ######### get and set methods #########
@@ -473,11 +463,14 @@ class MyFrame(wx.Frame):
 		'''Method for getting which DNA range is currently selected'''
 		return genbank.dna_selection
 
-		## I should probably modify this method to broadcast by pypub		
+		## I should probably modify this method to broadcast by pypub
 
 	def set_dna_selection(self, selection):
 		'''Method for selecting a certain DNA range'''
 		#input needs to be a touple of two values
+		if len(selection) == 2:
+			a, b = selection
+			selection = (a,b,-1)
 		genbank.dna_selection = selection
 
 
@@ -496,7 +489,7 @@ class MyFrame(wx.Frame):
 #		num_features = len(genbank.gb.get_all_features()) #number of features already present
 #		if index == -1 and num_features == 0: #just so that it is easier to select the last feature
 #			index = 0
-#		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature			
+#		elif index == -1 and num_features != 0: #just so that it is easier to select the last feature
 #			index = num_features-1
 
 #		genbank.feature_selection = int(copy.copy(index))
@@ -514,9 +507,9 @@ class MyFrame(wx.Frame):
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 				control.SetValue(self.searchinput.GetValue()[:start]+self.searchinput.GetValue()[finish:])
 
-		elif control == self.DNApy.dnaview.stc: #the main dna window	
+		elif control == self.DNApy.dnaview.stc: #the main dna window
 			self.DNApy.dnaview.cut()
-		
+
 		self.update_globalUI()
 
 
@@ -527,9 +520,9 @@ class MyFrame(wx.Frame):
 			control.SetValue(pyperclip.paste())
 
 		elif control == self.DNApy.dnaview.stc: #the main dna window
-			self.DNApy.dnaview.paste()		
+			self.DNApy.dnaview.paste()
 
-		self.update_globalUI()		
+		self.update_globalUI()
 
 
 	def copy(self, evt):
@@ -539,7 +532,7 @@ class MyFrame(wx.Frame):
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
-		elif control == self.DNApy.dnaview.stc: #the main dna window	
+		elif control == self.DNApy.dnaview.stc: #the main dna window
 			self.DNApy.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):
@@ -563,7 +556,7 @@ class MyFrame(wx.Frame):
 		control = wx.Window.FindFocus() #which field is selected?
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
-		elif control == self.DNApy.dnaview.stc: #the main dna window	
+		elif control == self.DNApy.dnaview.stc: #the main dna window
 			self.DNApy.dnaview.select_all()
 
 ##########################################
@@ -572,18 +565,18 @@ class MyFrame(wx.Frame):
 		'''Creates a popup window in which output can be printed'''
 		self.outputframe = wx.Frame(None, title="Output Panel") # creation of a Frame with a title
 		self.output = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
-		
+
 
 ############## Info methods
 
 	def info(self, event):
 		string = '''
-This file is part of DNApy. DNApy is a DNA editor written purely in python. 
-The program is intended to be an intuitive, fully featured, 
-extendable, editor for molecular and synthetic biology.  
+This file is part of DNApy. DNApy is a DNA editor written purely in python.
+The program is intended to be an intuitive, fully featured,
+extendable, editor for molecular and synthetic biology.
 Enjoy!
 
-copyright (C) 2014  Martin Engqvist | 
+copyright (C) 2014  Martin Engqvist |
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 LICENSE:
@@ -592,7 +585,7 @@ DNApy is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
- 
+
 DNApy is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -606,10 +599,10 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 Get source code at: https://github.com/0b0bby0/DNApy
 
 '''
-		self.make_outputpopup()		
+		self.make_outputpopup()
 		self.output.write(string+'\n', 'Text')
 		self.outputframe.Show()
-		
+
 	def IUPAC_codes(self, event):
 		'''Prints info about the IUPAC codes for DNA and amino acids'''
 		string = '''
@@ -654,25 +647,25 @@ W 			Trp 			Tryptophan
 Y 			Tyr 			Tyrosine
 '''
 
-		self.make_outputpopup()		
+		self.make_outputpopup()
 		self.output.write(string+'\n', 'Text')
 		self.outputframe.Show()
 
 
-	
+
 	def codon_table(self, event):
 		'''Prints the standard codon table for translating DNA to protein'''
 		string = '''
 Put Table here
 '''
-		self.make_outputpopup()	
+		self.make_outputpopup()
 		self.output.write(string+'\n', 'Text')
 		self.outputframe.Show()
 
 	def mixed_base_codon_dlg(self, event):
 		"""Make popup dialog where amino acids can be chosen and the resulting mixed base codon is computed"""
 		self.dlg = wx.Frame(None, title="Find mixed base codons", size=(400, 500)) # creation of a Frame with a title
-		self.mixed_base_codon = mixed_base_codons_GUI.MixedBaseCodon(self.dlg)	
+		self.mixed_base_codon = mixed_base_codons_GUI.MixedBaseCodon(self.dlg)
 		self.dlg.Show()
 		self.dlg.Center()
 
@@ -712,29 +705,29 @@ Put Table here
 		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', self.RestriktioEnzymeSelection,self.restrictionEnzymes)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
-		
-		# get the selected enzymes and restriction sites and save 
+
+		# get the selected enzymes and restriction sites and save
 
 		if res == wx.ID_OK:
 			self.RestriktioEnzymeSelection = dlg.GetSelection()
-		
+
 		# get the info who cuts where:
 		# the gui can then use this variable
 		genbank.restriction_sites = self.RestriktioEnzymeSelection
 		
+		
 
-		
-		
+
 		#dlg.drawRestriction(self.RestriktioEnzymeSelection)
-		
-		
+
+
 		#kill it
 		dlg.Destroy()
 
 		#update the GUI to display the position of chosen restriction enzymes
 		self.update_globalUI()
-		
-	
+
+
 	def digestDna(self, evt):
 		'''
 		Make a popup width the digested dna as a ladder
@@ -744,12 +737,12 @@ Put Table here
 			dlg = enzyme_GUI.EnzymeDigestionDialog(self, 'digestion', self.RestriktioEnzymeSelection, self.restrictionEnzymes)
 			dlg.Center()
 			res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
-		
+
 			#kill it
 			dlg.Destroy()
-		
-		
-		
+
+
+
 ##########################################
 	def listen_to_updateUI(self, msg):
 		self.update_ownUI()
@@ -757,7 +750,7 @@ Put Table here
 
 
 
-		
+
 	def update_ownUI(self):
 		#and now actually update the UI
 		print('filever index', genbank.gb.get_file_version_index())
@@ -770,10 +763,10 @@ Put Table here
 			self.frame_1_toolbar.EnableTool(514, False)
 		else:
 			self.frame_1_toolbar.EnableTool(514, True)
-			
+
 
 		#update whatever tab is currently active
-		
+
 
 	def update_globalUI(self):
 		'''
@@ -783,13 +776,15 @@ Put Table here
 		Actaually, with the new layout and the DNApy update_ownUI() everything should get refreshed.
 		I'll still put some thought into how to make it better.
 		'''
-		self.Refresh()
-	
-		self.DNApy.update_ownUI()
-
-		
 		# reload the enzymes maybe?
 		self.restrictionEnzymes.reloadEnzymes()
+		# then update
+		self.Refresh()
+
+		self.DNApy.update_ownUI()
+
+
+		
 
 
 
@@ -810,33 +805,33 @@ Put Table here
 		'''View the genbank file as text'''
 		dlg = wx.Frame(self, id=wx.ID_ANY, title="Edit Qualifier", size=(600,600)) #make frame
 		genbankview = genbank_GUI.MyPanel(dlg, style=wx.VSCROLL|wx.HSCROLL) #put the genbank view panel inside
-		genbankview.rtc.SetEditable(False)	
+		genbankview.rtc.SetEditable(False)
 		sizer = wx.BoxSizer(wx.VERTICAL) #make sizer
 		sizer.Add(item=genbankview, proportion=-1, flag=wx.EXPAND)	#put panel in sizer
 		dlg.SetSizer(sizer) #assign sizer to window
 		dlg.Show()
 
-	def view_output(self, evt):	
+	def view_output(self, evt):
 		'''Make an output window in which things can be printed'''
 		self.outputframe = wx.Frame(self, title="Output Panel") # creation of a Frame with a title
 		self.outputwindow = output.create(self.outputframe, style=wx.VSCROLL|wx.HSCROLL) # creation of a richtextctrl in the frame
 		sizer = wx.BoxSizer(wx.VERTICAL) #make sizer
 		sizer.Add(item=self.outputwindow, proportion=-1, flag=wx.EXPAND)	#put panel in sizer
 		self.outputframe.SetSizer(sizer) #assign sizer to window
-		self.outputframe.Show()		
+		self.outputframe.Show()
 
 ######### Toolbar and Menu ############
 
 	def __generate_toolbar(self):
 		'''For generating toolbar with buttons'''
-				
+
 		self.frame_1_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
 
    		#syntax for toolbar
-   		#AddLabelTool(self, id, label, bitmap, bmpDisabled, kind, shortHelp, longHelp, clientData) 
-   		
+   		#AddLabelTool(self, id, label, bitmap, bmpDisabled, kind, shortHelp, longHelp, clientData)
 
-   		
+
+
    		#New Document
    		self.frame_1_toolbar.AddLabelTool(500, "New Document", wx.Bitmap(files['default_dir']+"/icon/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'New File', "New File") #last one is the one displayed in status bar
    		wx.EVT_TOOL(self, 500, self.new_file)
@@ -860,10 +855,10 @@ Put Table here
    		wx.EVT_TOOL(self, 506, self.paste)
    		#Undo
    		self.frame_1_toolbar.AddLabelTool(513, "Undo", wx.Bitmap(files['default_dir']+"/icon/undo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Undo', 'Undo')
-   		wx.EVT_TOOL(self, 513, self.Undo)   
+   		wx.EVT_TOOL(self, 513, self.Undo)
    		#Redo
    		self.frame_1_toolbar.AddLabelTool(514, "Redo", wx.Bitmap(files['default_dir']+"/icon/redo.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Redo', 'Redo')
-   		wx.EVT_TOOL(self, 514, self.Redo) 
+   		wx.EVT_TOOL(self, 514, self.Redo)
 		#Print current window
 #   	self.frame_1_toolbar.AddLabelTool(510, "Print current window", wx.Bitmap(files['default_dir']+"/icon/print.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Print Current Window', 'Print Current Window')
 #  		wx.EVT_TOOL(self, 510, self.print_setup)
@@ -874,17 +869,17 @@ Put Table here
    		self.frame_1_toolbar.AddCheckTool(512, wx.Bitmap(files['default_dir']+"/icon/mutate.png", wx.BITMAP_TYPE_ANY), wx.Bitmap(files['default_dir']+"/icon/search.png", wx.BITMAP_TYPE_ANY), 'Mutate', 'Mutate')
    		wx.EVT_TOOL(self, 512, self.toggle_searchandmutate_toolbar)
 
-		
+
 		#enzyme selector
    		self.frame_1_toolbar.AddLabelTool(515, "Restriction Enzymes", wx.Bitmap(files['default_dir']+"/icon/restrictionEnzyme.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, 'Restriction Enzymes', 'Restriction Enzymes')
-   		wx.EVT_TOOL(self, 515, self.SelectEnzymes)		
-		
-		
-		
-		
-		
+   		wx.EVT_TOOL(self, 515, self.SelectEnzymes)
+
+
+
+
+
 		self.frame_1_toolbar.Realize()
-		
+
 		self.frame_1_toolbar.EnableTool(502, 0) #save current file button
 		self.frame_1_toolbar.EnableTool(503, 0) #save as button
 		self.frame_1_toolbar.EnableTool(504, 0) #cut button
@@ -900,10 +895,10 @@ Put Table here
 		self.nucleotideoraminoacidSelection = 0
 
 		self.frame_2_toolbar = wx.ToolBar(self, wx.ID_ANY, style=wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_DOCKABLE)
-		
+
 		self.findormutSelection = 'Find'
 		self.add_search_tools(self.findormutSelection)
-			
+
 		self.frame_2_toolbar.Realize()
 		self.frame_2_toolbar.Hide()
 
@@ -911,7 +906,7 @@ Put Table here
 
 	def add_search_tools(self, typeof):
 		'''
-		Adds tools to the find/mutate toolbar. 
+		Adds tools to the find/mutate toolbar.
 		A string "find" or "mutate" is passed to determine which toolbar to build
 		'''
 		featurelist = ['Molecule']
@@ -934,7 +929,7 @@ Put Table here
 		#'input'
 		self.searchinput=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(250, 28), value="")
 		self.frame_2_toolbar.AddControl(self.searchinput)
-	
+
 
 		#'in'
 		nucleotideoraa = self.nucleotideoraminoacid.GetValue()
@@ -942,7 +937,7 @@ Put Table here
 			self.inbox=wx.TextCtrl(self.frame_2_toolbar, id=wx.ID_ANY, size=(25, 28), value="in")
 			self.frame_2_toolbar.AddControl(self.inbox)
 			self.inbox.SetEditable(False)
-			
+
 		#featurebox
 		if nucleotideoraa == 'Nucleotide' or nucleotideoraa == 'Amino Acid':
 			try:
@@ -952,7 +947,7 @@ Put Table here
 				self.featurebox = wx.ComboBox(self.frame_2_toolbar, id=603, size=(120, 28), choices=featurelist, style=wx.CB_READONLY)
 			self.frame_2_toolbar.AddControl(self.featurebox)
 			self.featurebox.SetSelection(0)
-		
+
 		#'go'
 		if typeof == 'Find':
 			#find previous
@@ -982,17 +977,17 @@ Put Table here
 			genbank.search_hits = genbank.gb.FindAminoAcid(searchstring, searchframe)
 		elif searchtype == 'Feature':
 			genbank.search_hits = genbank.gb.FindFeature(searchstring)
-		
+
 		#update the dna selection to the first search hit, if there is at least one.
 		if len(genbank.search_hits) > 0:
 			self.set_dna_selection(genbank.search_hits[0])
 		self.update_globalUI()
 
 
-	
+
 	def find_previous(self, evt):
 		'''Select prevous search hit'''
-		start, finish = self.get_dna_selection()
+		start, finish, zero = self.get_dna_selection()
 		for i in range(len(genbank.search_hits)):
 			if start < genbank.search_hits[0][0]:
 				self.set_dna_selection(genbank.search_hits[-1])
@@ -1021,7 +1016,7 @@ Put Table here
 		mutationtype = self.nucleotideoraminoacid.GetValue() #type of mutation
 		mutationframe = int(self.featurebox.GetSelection())-1 #where to mutate (feature or molecule)
 		mutationinput = self.searchinput.GetValue() #which mutation to perform
-		
+
 		mutationinput = re.sub(r'\s+', '', mutationinput) #remove all whitespace
 		if ',' in mutationinput: #input allows for many comma-seperated mutations
 			mutation_list = mutationinput.split(',')
@@ -1032,7 +1027,7 @@ Put Table here
 			genbank.gb.mutate('D', mutationframe, mutation_list)
 		elif mutationtype == 'Amino Acid':
 			genbank.gb.mutate('A', mutationframe, mutation_list)
-		
+
 		self.update_globalUI()
 
 	def OnChangeSearchParams(self, evt):
@@ -1072,7 +1067,7 @@ Put Table here
 	def create_menu(self):     #method for creating menu
 		self.menubar = wx.MenuBar()
 		fileitem = wx.Menu()
-			
+
 		#new document
 		fileitem.Append(1, "New\tCtrl+Q", "New File")
 		wx.EVT_MENU(self, 1, self.new_file)
@@ -1089,7 +1084,7 @@ Put Table here
 		#save document as
 		fileitem.Append(4, "Save as\tShift+Ctrl+S", "Save a copy of current file")
 		wx.EVT_MENU(self, 4, self.save_as_file)
-		
+
 		# export plasmid map as svg or png
 		fileitem.Append(5, "Export plasmid map\tShift+Ctrl+E", "Export the plasmid map only")
 		wx.EVT_MENU(self, 5, self.export_plasmid_map)
@@ -1114,7 +1109,7 @@ Put Table here
 
 		self.menubar.Append(fileitem, "&File")
 
-		######################### For 'View' menu item #############################################		
+		######################### For 'View' menu item #############################################
 		self.view = wx.Menu()
 
 		#view genbank file
@@ -1124,7 +1119,7 @@ Put Table here
 		#view output panel
 		self.view.Append(202, "View Output", "View Output")
 		wx.EVT_MENU(self, 202, self.view_output)
-		
+
 
 		self.menubar.Append(self.view, "&View")
 
@@ -1150,15 +1145,15 @@ Put Table here
 		#paste
 		self.edit.Append(13, "Paste\tCtrl+V", "paste DNA")
 		wx.EVT_MENU(self, 13, self.paste)
-		
+
 		#cut reverse complement
 		self.edit.Append(111, "Cut Rev-Comp\tCtrl+Shift+X", "cut reverse-complement of selected DNA")
 		wx.EVT_MENU(self,111, self.cut_reverse_complement)
 
 		#copy reverse complement
 		self.edit.Append(121, "Copy Rev-Comp\tCtrl+Shift+C", "copy reverse-complement of selected DNA")
-		wx.EVT_MENU(self, 121, self.copy_reverse_complement)		
-		
+		wx.EVT_MENU(self, 121, self.copy_reverse_complement)
+
 		#paste reverse complement
 		self.edit.Append(131, "Paste Rev-Comp\tCtrl+Shift+V", "paste reverse-complement of DNA")
 		wx.EVT_MENU(self, 131, self.paste_reverse_complement)
@@ -1167,7 +1162,7 @@ Put Table here
 		self.edit.Append(141, "Rev-Comp selection\tCtrl+R", "Reverse-complement seleected DNA")
 		wx.EVT_MENU(self,141, self.reverse_complement_selection)
 		self.edit.AppendSeparator() #________________________devider
-		
+
 		#select all
 		self.edit.Append(14, "Select all\tCtrl+A", "Select all text")
 		wx.EVT_MENU(self, 14, self.select_all)
@@ -1186,43 +1181,43 @@ Put Table here
 		#Find mixed base codon
 		self.edit.Append(135, "Find mixed base codon", "Find mixed base codon")
 		wx.EVT_MENU(self, 135, self.mixed_base_codon_dlg)
-		
+
 
 
 
 		self.menubar.Append(self.edit, "Edit DNA")
-		
-			
-	
+
+
+
 		######## Features menu item ########
 		self.features = wx.Menu()
-		
+
 		self.features.Append(40, "List Features", "List all features in file")
 		wx.EVT_MENU(self,40, self.list_features)
-		
+
 #		self.features.Append(41, "Edit Features", "Edit features in file")
-#		wx.EVT_MENU(self,41, self.edit_features)		
-		
+#		wx.EVT_MENU(self,41, self.edit_features)
+
 		self.menubar.Append(self.features, "Features")
-		
+
 
 		######## enzymes menu item ########
 		self.enzymes = wx.Menu()
-		
+
 		self.enzymes.Append(50, "Select restriction enzymes\tCtrl+E", "select restriction enzymes")
-		wx.EVT_MENU(self,50,  self.SelectEnzymes)		
+		wx.EVT_MENU(self,50,  self.SelectEnzymes)
 
 		self.enzymes.Append(51, "Digest\tCtrl+D", "digest dna with selected enzymes")
-		wx.EVT_MENU(self,51,  self.digestDna)		
+		wx.EVT_MENU(self,51,  self.digestDna)
 
-		
+
 		self.menubar.Append(self.enzymes, "Enzymes")
-		
+
 
 
 		######## Protein menu item #########
 		self.protein = wx.Menu()
-		
+
 		#translate
 		self.protein.Append(30, "Translate\tCtrl+T", "Translate DNA to protein")
 		wx.EVT_MENU(self,30, self.translate_selection)
@@ -1273,6 +1268,6 @@ class MyApp(wx.App):
 
 
 
-if __name__ == '__main__': #if script is run by itself and not loaded	
+if __name__ == '__main__': #if script is run by itself and not loaded
 	app = MyApp(0)
 	app.MainLoop()

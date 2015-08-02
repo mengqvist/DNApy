@@ -33,6 +33,7 @@
 import fasta
 import string
 import random
+import protein # for conversion from dna to amino acid name
 
 
 ############# Basic DNA functions #####################
@@ -147,7 +148,9 @@ def Translate(DNA, table=1):
 			elif any(DNA[i:(i+3)] in s for s in codons['G']):
 				protein.append('G')
 			else:
-				raise Error, '"%s" is not a valid codon' % DNA[i:(i+3)]
+				protein.append('X')
+				#raise Exception('"%s" is not a valid codon' % DNA[i:(i+3)])
+				# better just ignore it, because else we destroy usability
 	return ''.join(protein)	
 
 

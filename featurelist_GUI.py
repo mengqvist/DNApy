@@ -198,7 +198,7 @@ class FeatureList(DNApyBaseClass):
 		locations = genbank.gb.get_feature_location(index)
 		start = genbank.gb.get_location(locations[0])[0]
 		finish = genbank.gb.get_location(locations[-1])[1]
-		genbank.dna_selection = copy.copy((start-1, finish))
+		genbank.dna_selection = copy.copy((start, finish))
 		self.update_globalUI()
 
 ######
@@ -346,7 +346,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
 	execfile(settings) #gets all the pre-assigned settings
 
-	genbank.dna_selection = (1, 1)	 #variable for storing current DNA selection
+	genbank.dna_selection = (1, -1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
 
 	import sys
