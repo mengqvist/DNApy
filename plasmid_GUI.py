@@ -187,8 +187,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		self.Bind(wx.EVT_MOTION, self.OnMotion)
 		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
-
-		
+	
 		
 		return None
 	
@@ -349,7 +348,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					if start > finish:
 						zero = 1 # 1 --> feature starts left and ends right of +1
 					# set selection for real!
-					self.set_dna_selection((start,finish, zero))
+					self.set_dna_selection((start,finish-1, zero))
 		else:
 			self.set_dna_selection((start,finish, zero))
 		
@@ -397,9 +396,10 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 	############### Inteaction with mosue and keyboard ################
 	def OnLeftUp(self, event):
-	
+		''' handle left ouseclick up'''
+		# get selection
 		pos1, pos2, zero 	= self.plasmidstore.interaction["selection"]
-		if self.plasmidstore.interaction["leftDown"] == True and pos2 != 0:
+		if self.plasmidstore.interaction["leftDown"] == True and pos2 != -1:
 			# selection is finish
 			self.plasmidstore.interaction["leftDown"] = False
 			# save the mouse position
@@ -409,8 +409,9 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			
 			self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 
-		elif pos2 == 0:
-			self.plasmidstore.interaction["selection"] = (0, 0, -1)
+		elif pos2 == -1:
+			# reset selection
+			self.plasmidstore.interaction["selection"] = (1, -1, -1)
 
 			# maybe we cliked on a feature, label or a line?
 			hit = self.HitTest()
@@ -418,7 +419,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 				self.plasmidstore.interaction["hit"] = hit
 				# we hit one, so we need to draw the selection!
 				# wich feature was hit?
-				self.saveSelection(0, 0, -1, hit)
+				self.saveSelection(1, -1, -1, hit)
 			else:
 				self.plasmidstore.interaction["hit"] = None
 		
@@ -437,12 +438,11 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			x2, y2 = self.ctx.device_to_user(x,y)
 			pos = self.cartesian2position(x2,y2)
 			self.plasmidstore.interaction["leftDown"] = True
-			self.plasmidstore.interaction["selection"] = (pos, 0, -1)
-		
+			self.plasmidstore.interaction["selection"] = (pos, -1, -1)
 		else:
 			# remove selection
 			self.plasmidstore.interaction["hit"] = None
-			self.saveSelection(0, 0, -1, False)
+			self.saveSelection(1, -1, -1, False)
 		
 		return None
 		
@@ -596,6 +596,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		# compare old and new
 		if featuresOld != featuresNew:
 
+			# print ("DO recalc features")
 			# we only have to redraw if the length, the color or direction changed
 			# calculate and save all the features
 			allFeatures = {} # storing list
@@ -620,7 +621,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					allFeatures[hitname] = [self.cairoFeature(feature), featuretype]
 				
 					# label handling
-
 					length 		= self.dnaLength
 					middle 		= start + (finish-start)/2 % length
 				
@@ -811,6 +811,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		
 		# check if the labels changed, onyl recalculate everything, if they did
 		if LoF != self.plasmidstore.LoFold or LoE != self.plasmidstore.LoEold:
+			# print("DO recalculate label")
 			# sort labels for their middle position:
 			LoF = sorted(LoF, key=lambda x: x[0]) 
 			LoE = sorted(LoE, key=lambda x: x[0])
@@ -902,6 +903,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			
 			return None
 		else:
+			# print("NOT recalculate label")
 			return None
 
 	
@@ -928,7 +930,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		elif nFL <= nL:
 			# reduce the nTL so, that it may work.
 			# reduce most populated areas
-			print("group some Restrictionsite labels agressivly")
+			# print("group some Restrictionsite labels agressivly")
 			# call function and check again if we can fit everything in
 			# if it did work--> fine
 			# else show it anyway --> or figure something out
@@ -936,10 +938,10 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		elif nFL > nL:
 			# we have to many feature labels.
 			# so we hide all TL and remove the labels of the smallest features!
-			print("delete some Restrictionsite labels")
+			# print("delete some Restrictionsite labels")
 			return LoF, LoE # return feature Label and Text Label
 		else:
-			print("check Number of labels: undefined")
+			# print("check Number of labels: undefined")
 			return LoF, LoE # return feature Label and Text Label
 	
 
@@ -1115,7 +1117,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 					# save y:
 					l[4] = y
-			
+	
+			# print("DO reposition labels, Round: ", i)
 			i = i + 1
 	
 		# after n cycles stop calculations and return the positions
@@ -1127,6 +1130,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		enzmymesOld = self.plasmidstore.enzymes
 		enzymes 	= genbank.restriction_sites
 		labels = []
+		#print "update Plasmid Enzyme GUI"
 		if enzmymesOld != enzymes:
 			# we have new enzymes
 			index = 0
@@ -1138,8 +1142,6 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					name		= self.nameBeautiful(name)
 					name2		= "%s%s" %(name, self.enzymeGap)
 					hitname 	= self.hitName(name2, index)
-					
-					
 					y 			= None # to be populated
 					labels.append([middle, name, index, hitname, y])
 					
@@ -1156,7 +1158,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 		
 		if sel != selOld:
-			if sel[1] == 0:
+			if sel[1] == -1:
 				# remove selection arc
 				self.plasmidstore.drawnSelection = None
 			else:
@@ -1204,7 +1206,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	# drawing functions
 
 	def draw(self):
-		''' paste the stored elements on the canvas'''
+		''' # print the stored elements on th canvas'''
 		# prepare the canvas
 		width, height = self.GetVirtualSize()
 		if width < height:
@@ -1227,6 +1229,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		return None
 
 	def drawFeatures(self):
+		# print("DO output path feature")
 		# only resize the canvas if software is loaded. This prevents error messages
 
 		# draw the helper plain white circle to make selection possible:
@@ -1361,7 +1364,14 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	def drawSelection(self):
 		''' draw arc for selection '''
 		if self.plasmidstore.drawnSelection != None:
-			self.ctx.set_source_rgba (0.2, 0.3, 0.75, 0.6) 			# Solid color
+			#0082ED
+			r,g,b = colcol.hex_to_rgb('#0082ED') 
+
+			r = float(r)/255
+			g = float(g) /255
+			b = float(b) /255
+
+			self.ctx.set_source_rgba (r,g,b, 0.6) 			# Solid color
 			self.ctx.set_line_width(3)
 			path = self.plasmidstore.drawnSelection
 			self.ctx.append_path(path)
@@ -1515,7 +1525,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
+	# print('Opening %s' % str(sys.argv[1]))
 
 	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
 
