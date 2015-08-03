@@ -348,7 +348,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					if start > finish:
 						zero = 1 # 1 --> feature starts left and ends right of +1
 					# set selection for real!
-					self.set_dna_selection((start,finish-1, zero))
+					self.set_dna_selection((start,finish, zero))
 		else:
 			self.set_dna_selection((start,finish, zero))
 		

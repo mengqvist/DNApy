@@ -95,10 +95,7 @@ class DNAedit(DNApyBaseClass):
 		splitter0 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
 		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)
 
-
-		
 		self.scroll  = wx.ScrolledWindow(splitter0, wx.ID_ANY, style= wx.FULL_REPAINT_ON_RESIZE )
-
 
 		self.dnaview = dnaEditorCairo_GUI.TextEdit(self.scroll , id=wx.ID_ANY)
 
@@ -497,6 +494,9 @@ class DNApy(wx.Frame):
 
 		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.cut()
+		else:
+			# fallback for no focus
+			self.DNApy.dnaview.cut()
 
 		self.update_globalUI()
 
@@ -509,6 +509,9 @@ class DNApy(wx.Frame):
 
 		elif control == self.DNApy.dnaview: #the main dna window
 			self.DNApy.dnaview.paste()
+		else:
+			# fallback for no focus
+			self.DNApy.dnaview.paste()
 
 		self.update_globalUI()
 
@@ -516,11 +519,15 @@ class DNApy(wx.Frame):
 	def copy(self, evt):
 		'''Check which panel is select and copy accordingly'''
 		control = wx.Window.FindFocus() #which field is selected?
+
 		if control == self.searchinput: #the searchbox
 			start, finish = self.searchinput.GetSelection()
 			if start != -2 and finish != -2: #must be a selection
 				pyperclip.copy(self.searchinput.GetValue()[start:finish])
 		elif control == self.DNApy.dnaview: #the main dna window
+			self.DNApy.dnaview.copy()
+		else:
+			# fallback for no focus
 			self.DNApy.dnaview.copy()
 
 	def cut_reverse_complement(self, evt):
@@ -545,6 +552,9 @@ class DNApy(wx.Frame):
 		if control == self.searchinput: #the searchbox
 			self.searchinput.SetSelection(0,len(self.searchinput.GetValue()))
 		elif control == self.DNApy.dnaview: #the main dna window
+			self.DNApy.dnaview.select_all()
+		else:
+			# fallback for no focus
 			self.DNApy.dnaview.select_all()
 
 ##########################################
@@ -1163,6 +1173,11 @@ Put Table here
 		wx.EVT_MENU(self, 35, self.lowercase)
 		self.edit.AppendSeparator() #________________________devider
 
+
+		# search in dna # TODO enable search in DNA, does not work yet
+		#self.edit.Append(134, "Seach in DNA", "Search in DNA")
+		#wx.EVT_MENU(self, 134, self.toggle_searchandmutate_toolbar)
+		
 		#Find mixed base codon
 		self.edit.Append(135, "Find mixed base codon", "Find mixed base codon")
 		wx.EVT_MENU(self, 135, self.mixed_base_codon_dlg)
