@@ -321,7 +321,7 @@ class TextEdit(DNApyBaseDrawingClass):
 					name	= self.nameBeautiful(name)
 					#get position
 					xs, ys, ws, hs = self.senseLayout.index_to_pos(start)
-					xf, yf, wf, hf = self.senseLayout.index_to_pos(finish)
+					xf, yf, wf, hf = self.senseLayout.index_to_pos(finish+1)
 					# linecount:
 					# if ys and yf are not the same, we have feature over multiple lines!
 					dy 		= abs(ys - yf) / pango.SCALE
@@ -704,7 +704,7 @@ class TextEdit(DNApyBaseDrawingClass):
 						if start > finish:
 							zero = 1 # 1 --> feature starts left and ends right of +1
 						# set selection 
-						self.set_dna_selection((start,finish-1, zero))
+						self.set_dna_selection((start,finish, zero))
 						self.set_cursor_position(start)
 			else:
 				self.hit = None
@@ -1147,6 +1147,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			raise ValueError, 'Cannot cut an empty selection'
 		else:
 			genbank.gb.Cut(start, finish)
+			self.set_cursor_position(start)
 			self.update_ownUI()
 			self.update_globalUI()
 			self.set_dna_selection()
@@ -1189,6 +1190,7 @@ class TextEdit(DNApyBaseDrawingClass):
 	def copy(self):
 		'''Copy DNA and features into clipboard'''
 		start, finish, zero = self.get_selection()
+
 		if finish == -1:
 			raise ValueError, 'Cannot copy an empty selection'
 		else:
