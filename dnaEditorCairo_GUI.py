@@ -992,8 +992,10 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		elif key == 314 and shift == True: #left + select
 			start, finish, null = self.get_selection()
-			if start == 0:
-				start = self.PositionPointer
+			# start a selection
+			if finish == -1:
+				start = self.PositionPointer - 1
+				finish = self.PositionPointer
 			if finish == self.PositionPointer:
 				self.moveCursor(-1)
 				finish = self.PositionPointer
@@ -1013,8 +1015,10 @@ class TextEdit(DNApyBaseDrawingClass):
 
 		elif key == 316 and shift == True: #right + select
 			start, finish, null = self.get_selection()
-			if start == 0:
+			# start a selection
+			if finish == -1:
 				start = self.PositionPointer
+				finish = self.PositionPointer
 			
 			if finish == self.PositionPointer:
 				self.moveCursor(1)
@@ -1162,14 +1166,15 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.update_ownUI()
 			self.update_globalUI()
 			self.set_dna_selection()
+			
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
 			pass
-		else: #If a selection, remove sequence
+		else: #If a selection, remove sequence, reposition pointer
 			genbank.gb.Delete(start, finish, visible=False)
-		#genbank.gb.Paste(start)
+			self.set_cursor_position(start)
 		genbank.gb.RichPaste(genbank.cursor_position)
 		self.update_ownUI()
 		self.update_globalUI()
@@ -1180,9 +1185,10 @@ class TextEdit(DNApyBaseDrawingClass):
 		start, finish, zero = self.get_selection()
 		if finish == -1:
 			pass
-		else: #If a selection, remove sequence
+		else: #If a selection, remove sequence, reposition pointer
 			genbank.gb.Delete(start, finish, visible=False)
-		genbank.gb.PasteRC(start)
+			self.set_cursor_position(start)
+		genbank.gb.PasteRC(genbank.cursor_position)
 		self.update_ownUI()
 		self.update_globalUI()
 		self.set_dna_selection() # reset selection
