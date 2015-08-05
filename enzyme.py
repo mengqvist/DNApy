@@ -134,13 +134,16 @@ class initRestriction():
 		''' takes the current set of enzyme objects and generates a new list
 		so we can update the locations, without calling the gui'''
 		# update positions
-		self.reloadEnzymes()
-		newSelection = collections.OrderedDict()
+		if len(selection) > 0:
+			self.reloadEnzymes()
+			newSelection = collections.OrderedDict()
 
-		for e in selection:
-			newSelection[e] = self.enzymeObj[e]
+			for e in selection:
+				newSelection[e] = self.enzymeObj[e]
 			
-		return newSelection
+			return newSelection
+		else:
+			return []
 		
 		
 

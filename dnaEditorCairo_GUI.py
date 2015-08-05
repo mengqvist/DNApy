@@ -237,7 +237,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		# font and color are prepared for the DNA
 
 		
-
+		
 		# get selection, if any
 		start, end, zero = self.get_selection()
 		if end != -1:
@@ -265,11 +265,10 @@ class TextEdit(DNApyBaseDrawingClass):
 		layout.set_markup(senseText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
+		
 		# copy sense layout
 		self.senseLayout = layout.copy() 
-		
-		# get the sense lines
-		self.senseLines = layout.get_iter()
+
 		
 		# determine the length and height of a line
 		self.lineLength =  layout.get_line(0).length
@@ -282,14 +281,14 @@ class TextEdit(DNApyBaseDrawingClass):
 		layout.set_markup(antiText)
 		self.pango.update_layout(layout)
 		self.pango.show_layout(layout)
-
+		
 		# update the height of the context, based on the inserted dna
 		w, h = layout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
 		# resize window
 		w,h = self.GetSize()					# prevents missfomration on resize
 		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
-
+		
 		return None
 	
 	
@@ -631,7 +630,6 @@ class TextEdit(DNApyBaseDrawingClass):
 ######################################################
 
 	def OnSize(self, event):
-
 		# remove buffered features, to force redraw:
 		self.cairoStorage['features'] = None
 		
@@ -648,10 +646,13 @@ class TextEdit(DNApyBaseDrawingClass):
 		# a file, or whatever.
 		if wC != 0 and hC !=0:
 			self._Buffer = wx.EmptyBitmap(wC, self.minHeight)
+			# update gui
+			self.update_ownUI()
 		else:
 			self._Buffer = wx.EmptyBitmap(wP, hP)
-		# update gui
-		self.update_ownUI()	
+				
+		
+		return True
 
 
 		
@@ -659,6 +660,7 @@ class TextEdit(DNApyBaseDrawingClass):
 	def OnLeftDown(self, event):
 		# remove selection:
 		self.set_dna_selection()
+		
 		
 		# get position
 		x, y 				= self.ScreenToClient(wx.GetMousePosition())
@@ -711,7 +713,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		# update the UI maybe?
 		self.update_ownUI()
-		#self.update_globalUI()
+		self.update_globalUI()
 		event.Skip() #very important to make the event propagate and fulfill its original function
 	
 	def OnLeftDouble(self, event):
@@ -776,6 +778,8 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 			if oldSel != selection:
 				self.set_dna_selection(selection) #update the varable keeping track of DNA selection
+				self.update_ownUI()
+				self.update_globalUI()
 				
 			
 
@@ -887,8 +891,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		a, b, none = selection			# new to enable selections over 0
 		selection = (a, b , -1)
 		genbank.dna_selection = selection
-		self.update_globalUI()
-		self.update_ownUI()
+		#self.update_globalUI()
+		#self.update_ownUI()
 
 	def moveCursor(self, offset, linejump = False):
 		### handle cursor movement:
@@ -931,7 +935,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.set_cursor_position()
 		
 	def OnKeyPress(self, evt):
-
+		
 		key = evt.GetUniChar()
 
 		index = self.PositionPointer
@@ -950,9 +954,13 @@ class TextEdit(DNApyBaseDrawingClass):
 			
 			# move pointer
 			self.PositionPointer = self.PositionPointer + 1
-			self.set_dna_selection()
+			
+			if finish != -1:
+				self.set_dna_selection()
 			self.update_ownUI()
 			self.update_globalUI()
+			
+			
 
 
 		
@@ -1162,6 +1170,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.update_ownUI()
 			self.update_globalUI()
 			self.set_dna_selection()
+			
 	def paste(self):
 		'''Paste DNA and any features present on that DNA'''
 		start, finish, zero = self.get_selection()

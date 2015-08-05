@@ -207,8 +207,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		be updated.
 
 		This code re-draws the buffer, then calls Update, which forces a paint event.
-		"""
-		
+		"""	
 
 		# update selection from editor
 		self.updateSelection() 
@@ -233,8 +232,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 
 		
 		# glyphs
-		self.pango = pangocairo.CairoContext(self.ctx)
-		self.pango.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+		#self.pango = pangocairo.CairoContext(self.ctx)
+		#self.pango.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 
 		self.draw()
 
