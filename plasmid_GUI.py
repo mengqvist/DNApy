@@ -478,7 +478,7 @@ class drawPlasmid(DNApyBaseDrawingClass):
 			self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 			
 			# if we have a sudden increase, we might have moven over zero
-			if abs(pos2 - pos) > self.dnaLength/2 and pos2 != 0:
+			if abs(pos2 - pos) > self.dnaLength/2 and pos2 != -1:
 				zero = zero * -1 # turn zero around
 				self.plasmidstore.interaction["selection"] = (pos1, pos, zero)
 
