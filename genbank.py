@@ -417,6 +417,10 @@ class gbobject(object):
 			#the DNA/RNA/protein sequence
 			self.gbfile['dna'] = ''.join([re.match('[a-zA-Z]', b).group(0) for b in line if re.match('[a-zA-Z]', b) is not None]) #make the DNA string while skipping anything that is not a-z
 
+			#sometimes I get a \t inside there. I don't know why. This is a temporary fix.
+			self.gbfile['dna'] = "".join(self.gbfile['dna'].split())
+
+
 		elif 'CONTIG' in line[0:12]:
 			#This linetype provides information about how individual sequence
 			#records can be combined to form larger-scale biological objects, such as

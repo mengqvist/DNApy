@@ -92,12 +92,14 @@ class DNAedit(DNApyBaseClass):
 	'''
 	def __init__(self, parent, id):
 		wx.Panel.__init__(self, parent)
-		splitter0 = wx.SplitterWindow(self, 0, style=wx.SP_3D)
-		splitter1 = wx.SplitterWindow(splitter0, 0, style=wx.SP_3D)
+		splitter0 = wx.SplitterWindow(self, id=0, style=wx.SP_3D)
+		splitter1 = wx.SplitterWindow(splitter0, id=0, style=wx.SP_3D)
 
 		self.scroll  = wx.ScrolledWindow(splitter0, wx.ID_ANY, style= wx.FULL_REPAINT_ON_RESIZE )
 
-		self.dnaview = dnaEditorCairo_GUI.TextEdit(self.scroll , id=wx.ID_ANY)
+
+
+		self.dnaview = dnaEditorCairo_GUI.TextEdit(self.scroll, id=wx.ID_ANY) # This generates 8 OnSize draw events
 
 		self.scroll.SetScrollbars(0,10, 1, 10)
 		self.scroll.SetScrollRate( 1, 15 )      # Pixels per scroll increment
@@ -301,7 +303,7 @@ class DNApy(wx.Frame):
 			self.fileopen = True
 
 
-			self.DNApy.update_ownUI()
+			#self.DNApy.update_ownUI()
 
 		else:
 			print("error, not a gb file")

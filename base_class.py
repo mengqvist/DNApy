@@ -76,7 +76,7 @@ class DNApyBaseDrawingClass(DNApyBaseClass):
 	Other code by Martin K. M. Engqvist for the DNApy project.
 	'''
 	def __init__(self, parent, id):
-		wx.Panel.__init__(self, parent)
+		wx.Panel.__init__(self, parent, id = 666)
 		self.parent = parent
 		
 		self.Bind(wx.EVT_PAINT, self.OnPaint)

@@ -154,6 +154,30 @@ class TextEdit(DNApyBaseDrawingClass):
 		This code re-draws the buffer, then calls Update, which forces a paint event.
 		"""
 
+		#####################
+		# remove buffered features, to force redraw:
+		self.cairoStorage['features'] = None
+		
+		# The Buffer init is done here, to make sure the buffer is always
+		# the same size as the Window
+		wC, hC = self.parent.GetClientSize()
+		print('wC', wC)
+		wP, hP = self.parent.GetSize()
+		self.SetSize(wx.Size(wC, self.minHeight))
+		self.parent.SetVirtualSize(wx.Size(wC-30, self.minHeight))
+		
+
+		# Make new offscreen bitmap: this bitmap will always have the
+		# current drawing in it, so it can be used to save the image to
+		# a file, or whatever.
+#		if wC != 0 and hC !=0:
+#			self._Buffer = wx.EmptyBitmap(wC, self.minHeight)
+
+#		else:
+#			self._Buffer = wx.EmptyBitmap(wP, hP)
+				
+		##########################
+
 		# start dc
 		dc = wx.MemoryDC()
 		dc.SelectObject(self._Buffer)
@@ -286,8 +310,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		w, h = layout.get_pixel_size()
 		self.minHeight = h + 2*self.sY
 		# resize window
-		w,h = self.GetSize()					# prevents missfomration on resize
-		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
+#		w,h = self.GetSize()					# prevents missfomration on resize
+#		self.SetSize(wx.Size(w,self.minHeight)) # prevents missfomration on resize
 		
 		return None
 	
@@ -629,30 +653,6 @@ class TextEdit(DNApyBaseDrawingClass):
 	
 ######################################################
 
-	def OnSize(self, event):
-		# remove buffered features, to force redraw:
-		self.cairoStorage['features'] = None
-		
-		# The Buffer init is done here, to make sure the buffer is always
-		# the same size as the Window
-		wC, hC = self.parent.GetClientSize()
-		wP, hP = self.parent.GetSize()
-		self.SetSize(wx.Size(wC,self.minHeight))
-		self.parent.SetVirtualSize(wx.Size(wC,self.minHeight))
-		
-
-		# Make new offscreen bitmap: this bitmap will always have the
-		# current drawing in it, so it can be used to save the image to
-		# a file, or whatever.
-		if wC != 0 and hC !=0:
-			self._Buffer = wx.EmptyBitmap(wC, self.minHeight)
-			# update gui
-			self.update_ownUI()
-		else:
-			self._Buffer = wx.EmptyBitmap(wP, hP)
-				
-		
-		return True
 
 
 		
@@ -787,8 +787,8 @@ class TextEdit(DNApyBaseDrawingClass):
 		event.Skip() #very important to make the event propagate and fulfill its original function
 
 
-	#def OnRightUp(self, event):
-	#	event.Skip() #very important to make the event propagate and fulfill its original function
+#	def OnRightUp(self, event):
+#		event.Skip() #very important to make the event propagate and fulfill its original function
 
 
 	#### rendering
