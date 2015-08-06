@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 ##################################################################################
 #   An oligo or motif finder written by Andrea Cabibbo           #      ######   #

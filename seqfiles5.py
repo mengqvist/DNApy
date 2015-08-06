@@ -1,25 +1,33 @@
 #!/usr/bin/env python
 
 
-
-###
-# name        : seqfiles.py
-# description : Script for analyzing sequencing results
+#DNApy is a DNA editor written purely in python.
+#The program is intended to be an intuitive and fully featured 
+#editor for molecular and synthetic biology.
+#Enjoy!
 #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# LICENSE:
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
-# (at your option) any later version.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Library General Public License for more details.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#copyright (C) 2014-2015  Martin Engqvist |
 #
-#Copyright (C) 2014  Martin K. M. Engqvist | 
-###
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#LICENSE:
+#
+#DNApy is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 3 of the License, or
+#(at your option) any later version.
+#
+#DNApy is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU Library General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program; if not, write to the Free Software Foundation,
+#Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#Get source code at: https://github.com/mengqvist/DNApy
+#
 
 
 import os

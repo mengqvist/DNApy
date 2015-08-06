@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
 
-#This file is part of DNApy. DNApy is a DNA editor written purely in python.
-#The program is intended to be an intuitive, fully featured,
-#extendable, editor for molecular and synthetic biology.
+#DNApy is a DNA editor written purely in python.
+#The program is intended to be an intuitive and fully featured 
+#editor for molecular and synthetic biology.
 #Enjoy!
 #
-#Copyright (C) 2014  Martin Engqvist |
+#copyright (C) 2014-2015  Martin Engqvist |
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
-#This file is part of DNApy.
 #
 #DNApy is free software; you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -27,7 +26,7 @@
 #Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-#Get source code at: https://github.com/0b0bby0/DNApy
+#Get source code at: https://github.com/mengqvist/DNApy
 #
 
 #TODO

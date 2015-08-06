@@ -1,12 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 
-#DNApy is a DNA editor written purely in python. 
-#The program is intended to be an intuitive, fully featured, 
-#extendable, editor for molecular and synthetic biology.  
+#DNApy is a DNA editor written purely in python.
+#The program is intended to be an intuitive and fully featured 
+#editor for molecular and synthetic biology.
 #Enjoy!
 #
-#copyright (C) 2014  Martin Engqvist 
+#copyright (C) 2014-2015  Martin Engqvist |
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
@@ -15,7 +15,7 @@
 #it under the terms of the GNU General Public License as published by
 #the Free Software Foundation; either version 3 of the License, or
 #(at your option) any later version.
-# 
+#
 #DNApy is distributed in the hope that it will be useful,
 #but WITHOUT ANY WARRANTY; without even the implied warranty of
 #MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,7 +26,7 @@
 #Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-#Get source code at: https://github.com/0b0bby0/DNApy
+#Get source code at: https://github.com/mengqvist/DNApy
 #
 #
 
