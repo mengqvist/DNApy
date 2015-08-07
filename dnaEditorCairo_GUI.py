@@ -159,7 +159,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		# The Buffer init is done here, to make sure the buffer is always
 		# the same size as the Window
 		wC, hC = self.parent.GetClientSize()
-		print('wC', wC)
+
 		wP, hP = self.parent.GetSize()
 		self.SetSize(wx.Size(wC, self.minHeight))
 		self.parent.SetVirtualSize(wx.Size(wC-30, self.minHeight))
@@ -887,6 +887,9 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''
 		##selection = self.get_selection()
 		a, b, none = selection			# new to enable selections over 0
+		# if start after end, swap them
+		if a > b and b != -1:
+			a,b = b,a
 		selection = (a, b , -1)
 		genbank.dna_selection = selection
 		#self.update_globalUI()
@@ -982,7 +985,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		elif key == 127: #delete
 			start, finish, null = self.get_selection()
 			if finish != -1: # if a selection, delete it
-				genbank.gb.Delete(start+1, finish)
+				genbank.gb.Delete(start, finish)
 				self.PositionPointer = start
 			else:
 				genbank.gb.Delete(index, index)
