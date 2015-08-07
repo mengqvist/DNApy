@@ -34,14 +34,15 @@
 
 import re
 import wsvg
+import colorsys
 
-def is_rgb(input):
+def is_rgb(in_col):
 	'''
 	Check whether input is a valid RGB color.
 	Return True if it is, otherwise False.
 	'''
-	if len(input) == 3 and type(input) == tuple:
-		if 0<=input[0]<=255 and 0<=input[1]<=255 and 0<=input[2]<=255:
+	if len(in_col) == 3 and type(in_col) == tuple:
+		if 0<=in_col[0]<=255 and 0<=in_col[1]<=255 and 0<=in_col[2]<=255:
 			return True
 		else:
 			return False
@@ -62,12 +63,12 @@ def rgb_to_hex(rgb):
 
 	
 	
-def is_hex(input):
+def is_hex(in_col):
 	'''
 	Check whether an input string is a valid hex value.
 	Return True if it is, otherwise False.
 	'''
-	if type(input) is not str:
+	if type(in_col) is not str:
 		return False
 		
 	regular_expression = re.compile(r'''^							#match beginning of string
@@ -76,24 +77,24 @@ def is_hex(input):
 										$							#match end of string
 										''', re.VERBOSE)	
 	
-	if regular_expression.match(input) == None:
+	if regular_expression.match(in_col) == None:
 		return False
 	else:
 		return True
 
 	
-def hex_to_rgb(hex):
+def hex_to_rgb(in_col):
 	'''
 	Convert a hex color to RGB.
 	Input should be a string. For example '#FFFFFF'.
 	Output is a tuple of integers (R, G, B).
 	'''
 	#make sure input is ok
-	assert is_hex(hex) is True, 'Error, %s is not a valid hex color.' % hex
+	assert is_hex(in_col) is True, 'Error, %s is not a valid hex color.' % in_col
 	
 	#make the conversion
-	hex = hex.lstrip('#')
-	return tuple([int(hex[s:s+2], 16) for s in range(0, len(hex), 2)])
+	in_col = in_col.lstrip('#')
+	return tuple([int(in_col[s:s+2], 16) for s in range(0, len(in_col), 2)])
 	
 
 def scale(col1, col2, white_mid=False):
@@ -146,24 +147,107 @@ def mix_colors(col1, col2):
 	return color_dict[50]
 	
 
-def complementary():
+def complementary(in_col):
 	'''
 	Returns input color and its complementary color as a list of hex or rgb values, depending on what was submitted.
+
+		O
+	   x x
+	  x   x
+	 x     x
+	  x   x
+	   x x
+		O
+
 	'''
-	pass
+	assert (is_rgb(in_col) or is_hex(in_col)), 'Error, the input must be a hex color string or an RGB tuple.'
+
+	hex_color = is_hex(in_col) #check whether input is hex
+	if hex_color: #if it is, make it RGB
+		in_col = hex_to_rgb(in_col)
+
+	#assign to  variables
+	r, g, b = in_col
+
+	# Convert to [0, 1]
+	r, g, b = map(lambda x: x/255., [r, g, b]) 
+
+	# RGB -> HLS
+	h, l, s = colorsys.rgb_to_hls(r, g, b)     
+
+	# Rotation by 180 degrees
+	h = (h+0.5)
+	color = map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) # H'LS -> new RGB
+
+	if hex_color:
+		colors = [rgb_to_hex(in_col), rgb_to_hex(tuple(color))]
+	else:
+		colors = [in_col, tuple(color)]
+
+	return colors
 
 
-def split_complementary():
+
+def split_complementary(in_col):
 	'''
 	Returns input color and its split complementary colors (those adjecent to the complement) 
 	as a list of of hex or rgb values, depending on what was submitted.
+
+		x
+	   O O
+	  x   x
+	 x     x
+	  x   x
+	   x x
+		O
+
+
 	'''
-	pass
+	assert (is_rgb(in_col) or is_hex(in_col)), 'Error, the input must be a hex color string or an RGB tuple.'
+
+	hex_color = is_hex(in_col) #check whether input is hex
+	if hex_color: #if it is, make it RGB
+		in_col = hex_to_rgb(in_col)
+
+	#assign to  variables
+	r, g, b = in_col
+
+	# Convert to [0, 1]
+	r, g, b = map(lambda x: x/255., [r, g, b]) 
+
+	# RGB -> HLS
+	h, l, s = colorsys.rgb_to_hls(r, g, b)     
+
+	# Rotation by 90 degrees
+	angle = 150/360.0
+	h_list = [(h+ang) % 1 for ang in (-angle, angle)]
+	print(h)
+	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+
+	#add all the colors together
+	colors = [tuple(analagous[0]), in_col, tuple(analagous[1])]
+
+	#if the input was hex, convert it back
+	if hex_color:
+		colors = [rgb_to_hex(s) for s in colors]
+
+	return colors
+
+
 
 
 def triadic(in_color):
 	'''
 	Returns input color as well as the two triadic colors as a list of hex or rgb values, depending on what was submitted.
+
+		x
+	   x x
+	  O   O
+	 x     x
+	  x   x
+	   x x
+		O
+
 	'''
 	rgb = False
 
@@ -174,11 +258,12 @@ def triadic(in_color):
 	else:
 		color = in_color	
 
-	#add the input color
-	color_list = [color]
 
 	#add first triadic color
-	color_list.append('#' + color.strip('#')[-2:] + color.strip('#')[:4])
+	color_list = ['#' + color.strip('#')[-2:] + color.strip('#')[:4]]
+
+	#add the input color
+	color_list.append(color)
 
 	#add second tridadic color
 	color_list.append('#' + color_list[-1].strip('#')[-2:] + color_list[-1].strip('#')[:4])
@@ -189,10 +274,144 @@ def triadic(in_color):
 	return color_list
 
 
-def tetradic():
+
+
+
+def square(in_col):
 	'''
+		O
+	   x x
+	  x   x
+	 O     O
+	  x   x
+	   x x
+		O
+	'''
+	assert (is_rgb(in_col) or is_hex(in_col)), 'Error, the input must be a hex color string or an RGB tuple.'
+
+	hex_color = is_hex(in_col) #check whether input is hex
+	if hex_color: #if it is, make it RGB
+		in_col = hex_to_rgb(in_col)
+
+	#assign to  variables
+	r, g, b = in_col
+
+	# Convert to [0, 1]
+	r, g, b = map(lambda x: x/255., [r, g, b]) 
+
+	# RGB -> HLS
+	h, l, s = colorsys.rgb_to_hls(r, g, b)     
+
+	# Rotation by 90 degrees
+	angle = 90/360.0
+	h_list = [(h+ang) % 1 for ang in (-angle, angle, angle*2)]
+	print(h)
+	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+
+	#add all the colors together
+	colors = [tuple(analagous[0]), in_col, tuple(analagous[1]), tuple(analagous[2])]
+
+	#if the input was hex, convert it back
+	if hex_color:
+		colors = [rgb_to_hex(s) for s in colors]
+
+	return colors
+
+
+def tetradic(in_col):
+	'''
+
+
+		O
+	   x x
+	  x   O
+	 x     x
+	  O   x
+	   x x
+		O
+	'''
+	assert (is_rgb(in_col) or is_hex(in_col)), 'Error, the input must be a hex color string or an RGB tuple.'
+
+	hex_color = is_hex(in_col) #check whether input is hex
+	if hex_color: #if it is, make it RGB
+		in_col = hex_to_rgb(in_col)
+
+	#assign to  variables
+	r, g, b = in_col
+
+	# Convert to [0, 1]
+	r, g, b = map(lambda x: x/255., [r, g, b]) 
+
+	# RGB -> HLS
+	h, l, s = colorsys.rgb_to_hls(r, g, b)     
+
+	# Rotation by 90 degrees
+	angle = 30/360.0
+	h_list = [(h+ang) % 1 for ang in (-angle*2, angle*4, angle*6)]
+	print(h)
+	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+
+	#add all the colors together
+	colors = [tuple(analagous[0]), in_col, tuple(analagous[1]), tuple(analagous[2])]
+
+	#if the input was hex, convert it back
+	if hex_color:
+		colors = [rgb_to_hex(s) for s in colors]
+
+	return colors
+
+
+def analagous(in_col):
+	'''
+	Returns the input color as well as its analagous colors.
+
+		x
+	   x x
+	  x   x
+	 x     x
+	  x   x
+	   O O
+		O
+
+	'''
+	assert (is_rgb(in_col) or is_hex(in_col)), 'Error, the input must be a hex color string or an RGB tuple.'
+
+	hex_color = is_hex(in_col) #check whether input is hex
+	if hex_color: #if it is, make it RGB
+		in_col = hex_to_rgb(in_col)
+
+	#assign to  variables
+	r, g, b = in_col
+
+	# Convert to [0, 1]
+	r, g, b = map(lambda x: x/255., [r, g, b]) 
+
+	# RGB -> HLS
+	h, l, s = colorsys.rgb_to_hls(r, g, b)     
+
+	# Rotation by 30 degrees
+	degree = 30/360.0
+	h = [(h+angle) % 1 for angle in (-degree, degree)]
+	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hi, l, s)) for hi in h] # H'LS -> new RGB
+
+	#add all the colors together
+	colors = [tuple(analagous[0]), in_col, tuple(analagous[1])]
+
+	#if the input was hex, convert it back
+	if hex_color:
+		colors = [rgb_to_hex(tuple(s)) for s in colors]
+
+	return colors
+
+
+
+def similar():
+	'''
+	Returns the input color as well as similar colors.
 	'''
 	pass
+
+
 
 def monochromatic():
 	'''
@@ -202,42 +421,33 @@ def monochromatic():
 
 def tints():
 	'''
-	Returns input color as well as its tints.
+	Returns input color as well as 9 tints.
 	'''
 	pass
 
 
 def shades():
 	'''
-	Returns input color as well as its shades.
+	Returns input color as well as 9 shades.
 	'''
 	pass
 
 
 def saturate():
 	'''
-	Returns the input color as well as more saturated versions of that color.
+	Returns the input color as well as 9 more saturated versions of that color.
 	'''
 	pass
 
 
 def desaturate():
 	'''
-	Returns the input color as well as less saturated versions of that color.
+	Returns the input color as well as 9 less saturated versions of that color.
 	'''
 	pass
 
 
-def analagous():
-	'''
-	Returns the input color as well as its analagous colors.
-	'''
-	pass
 
-def similar():
-	'''
-	Returns the input color as well as similar colors.
-	'''
 
 
 def visualize():
