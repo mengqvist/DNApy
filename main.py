@@ -142,7 +142,7 @@ class DNAedit(DNApyBaseClass):
 		When message is sent through the publisher system,
 		check who sent it and then update accordingly.
 		'''
-		genbank.restriction_sites =  genbank.restrictionEnzymes.getEnzymes(genbank.restriction_sites)
+		#genbank.restriction_sites =  genbank.restrictionEnzymes.getEnzymes(genbank.restriction_sites)
 
 
 		if text == "Plasmid view says update!":
@@ -197,9 +197,9 @@ class DNApy(wx.Frame):
 		genbank.gb.fileName 		= ''
 	
 		# initialise the retriction enzyme:
-		genbank.restrictionEnzymes 		= enzyme.initRestriction()
+		#genbank.restrictionEnzymes 		= enzyme.initRestriction()
 		# save the selected restriktion enzymes
-		genbank.restriction_sites 		= {} 
+		#genbank.restriction_sites 		= {} 
 
 		#build the UI using the pre-defined class
 		self.DNApy = DNAedit(self, -1)
@@ -242,7 +242,8 @@ class DNApy(wx.Frame):
 		'''Create new gb file'''
 		if self.fileopen == False: #if no file is open, make blank gb file
 			genbank.gb = genbank.gbobject() #make new gb in panel
-
+			
+			#print(type(genbank.restrictionEnzymes))
 
 			self.SetTitle('NewFile - DNApy')
 #			self.page_change("")
@@ -702,13 +703,15 @@ Put Table here
 		Make a popup with the enzyme selection window.
 		'''
 		#launch the dialog
-		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', genbank.restriction_sites,genbank.restrictionEnzymes)
+		#dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', genbank.restriction_sites,genbank.restrictionEnzymes)
+		dlg = enzyme_GUI.EnzymeSelectorDialog(None, 'Enzyme Selector', genbank.gb.restrictionEnzymes)
 		dlg.Center()
 		res = dlg.ShowModal() #alternatively, if main window should still be accessible use dlg.Show()
 
 		# get the selected enzymes and restriction sites and save
 		if res == wx.ID_OK:
-			genbank.restriction_sites = dlg.GetSelection()
+			#genbank.restriction_sites = dlg.GetSelection()
+			genbank.gb.restrictionEnzymes.selection = dlg.GetSelection()
 
 	
 
@@ -772,7 +775,7 @@ Put Table here
 		I'll still put some thought into how to make it better.
 		'''
 		# update the restriction enzymes:
-		genbank.restrictionEnzymes.reloadEnzymes()
+		#genbank.restrictionEnzymes.reloadEnzymes()
 
 		
 		# then update

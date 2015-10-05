@@ -64,6 +64,9 @@ import math
 # for color function
 import colcol
 
+# for hashing the enzymes to detect change in enzymes
+import hashlib
+
 
 files	=	{}   #list with all configuration files
 files['default_dir'] 	= os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
@@ -119,6 +122,7 @@ class TextEdit(DNApyBaseDrawingClass):
 				'ticks'		: None,	# ticks object --> self.dna
 				'tPaths'	: []	# ticks drawn		
 		}
+		
 		
 		
 		# call window
@@ -209,6 +213,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		
 		# draw Tics above all!
 		self.drawTicks()
+	
 		
 		# end of canvas handling
 		dc.SelectObject(wx.NullBitmap) # need to get rid of the MemoryDC before Update() is called.
@@ -216,7 +221,10 @@ class TextEdit(DNApyBaseDrawingClass):
 		self.Update()
 
 		return None
-
+	
+	
+		
+	
 	def displayText(self):
 		''' main function for the editors text capabilities
 			here the text gets positioned and all its color.
@@ -475,11 +483,13 @@ class TextEdit(DNApyBaseDrawingClass):
 	
 	
 	def drawEnzymes(self):
-		# get storage
-		enzmymesOld = self.cairoStorage['enzymes']
-		enzymes 	= genbank.restriction_sites
-
-		if enzmymesOld is not enzymes: # != wont work, for some unknwon reason
+		# load enzymes
+		enzymes 	=  genbank.gb.restrictionEnzymes.selection
+		# create hash of selection and DNA
+		hashable 	= "%s%s" % (frozenset(enzymes), genbank.gb.gbfile['dna'])
+		e1 			= hashlib.md5(hashable).hexdigest()
+		
+		if e1 != self.cairoStorage['enzymes']:
 			nameheight = 9 # px
 			self.ctx.select_font_face('Arial', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			self.ctx.set_font_size(nameheight)
@@ -491,11 +501,12 @@ class TextEdit(DNApyBaseDrawingClass):
 			for e in enzymes:
 				for site in enzymes[e].restrictionSites:
 					name, start, end, cut51, cut52, dnaMatch = site
+					startRef 	= start - 1
 					hitname 	= self.hitName(name, index)
 					
 					# get position to draw
-					xs, ys, ws, hs = self.senseLayout.index_to_pos(start)
-					xs = xs / pango.SCALE
+					xs, ys, ws, hs = self.senseLayout.index_to_pos(startRef)
+					xs = xs / pango.SCALE + self.dX
 					ys = ys / pango.SCALE + self.sY
 					hs = hs / pango.SCALE
 					# move there, but above the line
@@ -506,25 +517,46 @@ class TextEdit(DNApyBaseDrawingClass):
 					textpath = self.ctx.copy_path()
 					self.ctx.new_path()
 					# make a line, representing the cut
-					xC51, yC51, wC51, hC51 = self.senseLayout.index_to_pos(start + enzymes[e].c51)
-					xC31, yC31, wC31, hC31 = self.senseLayout.index_to_pos(start + enzymes[e].c31)
-					xC51 = xC51 / pango.SCALE + 1
-					yC51 = yC51 / pango.SCALE + self.sY
-					tHeight = hC51 / pango.SCALE
-					xC31 = xC31 / pango.SCALE + 1
-					yC31 = yC31 / pango.SCALE + self.sY
-					self.ctx.move_to(xC51, yC51)
-					self.ctx.line_to(xC51, yC51 + tHeight + 0.25 * self.lineGap)
-					self.ctx.line_to(xC31, yC31 + tHeight + 0.25 * self.lineGap)
-					self.ctx.line_to(xC31, yC31 + 2 * tHeight + 0.5* self.lineGap)
-					linepath = self.ctx.copy_path()
+					xC51, yC51, wC51, hC51 	= self.senseLayout.index_to_pos(startRef + enzymes[e].c51)
+					xC31, yC31, wC31, hC31 	= self.senseLayout.index_to_pos(startRef + enzymes[e].c31)
+					xC51 					= xC51 / pango.SCALE + self.dX
+					yC51 					= yC51 / pango.SCALE + self.sY
+					tHeight 				= hC51 / pango.SCALE
+					xC31 					= xC31 / pango.SCALE +  self.dX
+					yC31 					= yC31 / pango.SCALE + self.sY
+					
+					if yC51 == yC31:
+						self.ctx.move_to(xC51, yC51)
+						self.ctx.line_to(xC51, yC51 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(xC31, yC31 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(xC31, yC31 + 2 * tHeight + 0.5* self.lineGap)
+					else:
+						if yC51 <= yC31:
+							lineend 	= self.dX + self.w
+							linestart 	= self.dX
+						else:
+							# switch
+							linestart	= self.dX + self.w
+							lineend 	= self.dX
+							
+						# split the drawing in two parts
+						self.ctx.move_to(xC51, yC51)
+						self.ctx.line_to(xC51, yC51 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(lineend, yC51 + tHeight + 0.25 * self.lineGap)
+						# part 2
+						self.ctx.move_to(linestart, yC31 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(xC31, yC31 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(xC31, yC31 + tHeight + 0.25 * self.lineGap)
+						self.ctx.line_to(xC31, yC31 + 2 * tHeight + 0.5* self.lineGap)
+						
+					linepath 				= self.ctx.copy_path()
 					self.ctx.new_path()
-					enzymesPaths[hitname] = (textpath, linepath)
+					enzymesPaths[hitname] 	= (textpath, linepath)
 					
 					# raise index
 					index = index + 1
 			# update storage
-			self.cairoStorage['enzymes'] 	= enzymes				
+			self.cairoStorage['enzymes'] 	= e1				
 			self.cairoStorage['ePaths'] 	= enzymesPaths
 		
 		# draw enzymes:

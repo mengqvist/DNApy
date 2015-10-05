@@ -49,6 +49,8 @@ import sys
 import wx	# for richCopy
 import json	# for richCopy
 
+import enzyme
+
 
 #the feature class is not currently used. 
 #Something I started working on and may or may not continue.
@@ -179,7 +181,8 @@ class gbobject(object):
 		self.gbfile['filepath'] = filepath
 
 		self.fileName = 'New DNA' #name of the file/plasmid name
-
+		
+		
 		
 		## compile regular expressions used for parsing ##
 		self._re_locus = re.compile(r'''
@@ -209,6 +212,8 @@ class gbobject(object):
 			self.opengb(filepath)
 
 		
+		# enzymes
+		self.restrictionEnzymes = enzyme.initRestriction(self)
 					
 					
 ###############################
@@ -1840,7 +1845,10 @@ indeces >-1 are feature indeces'''
 					del deletionlist[-1]
 		else:
 			print('%s is not a valid argument for changetype' % changetype)
-
+	
+	
+		# update restriction enzymes:
+		self.restrictionEnzymes.reloadEnzymes(self)
 			
 	def check_line(self, line, line_type):
 		'''
