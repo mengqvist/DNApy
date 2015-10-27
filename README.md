@@ -14,23 +14,23 @@ To start testing the software you have to install python, wxpython and pycairo:
 sudo apt-get install python2.7 python-wxgtk2.8 python-cairo
 ```
 
-### Known problems
-On Ubuntu 15.04 the following message might occure:
-```
-/usr/bin/xsel
-Segmentation fault (core dumped)
-```
-This can be resolved by installing the package xclip:
-```
-sudo apt-get install xclip
-```
-
 Then you can download the software and run it:
 ```
 cd ~
 git clone https://github.com/mengqvist/DNApy.git
 cd DNApy
 python main.py
+```
+
+### Known problems
+On Ubuntu 15.04 the following message might occure:
+```
+/usr/bin/xsel
+Segmentation fault (core dumped)
+```
+This can be resolved by additionaly installing the package xclip:
+```
+sudo apt-get install xclip
 ```
 
 ![DNApy GUI](/Screenshot.png?raw=true "DNApy")
