@@ -22,6 +22,17 @@ cd DNApy
 python main.py
 ```
 
+### Known problems
+On Ubuntu 15.04 the following message might occure:
+```
+/usr/bin/xsel
+Segmentation fault (core dumped)
+```
+This can be resolved by additionaly installing the package xclip:
+```
+sudo apt-get install xclip
+```
+
 ![DNApy GUI](/Screenshot.png?raw=true "DNApy")
 
 Implemented Software features

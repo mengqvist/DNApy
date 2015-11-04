@@ -46,6 +46,7 @@ from wx.lib.pubsub import setupkwargs 		#this line not required in wxPython2.9.
 from wx.lib.pubsub import pub
 
 
+
 import genbank
 import copy
 import math
@@ -58,6 +59,8 @@ from base_class import DNApyBaseClass
 import featureedit_GUI
 
 import colcol
+
+import hashlib
 
 import options					# new option file to make options easy to change in one file (or settings.txt)
 
@@ -177,6 +180,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		self.Highlight 			= None								# store who to highlight
 		self.enzymeGap			= "-|-"								# seperator to make unique hitname less unique
 		
+		#self.EnzymeMonitor = Monitor()
+		
 		# start the window
 		DNApyBaseDrawingClass.__init__(self, parent, wx.ID_ANY)
 		
@@ -186,6 +191,8 @@ class drawPlasmid(DNApyBaseDrawingClass):
 		self.Bind(wx.EVT_MOTION, self.OnMotion)
 		self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDouble)
 
+
+		
 	
 		
 		return None
@@ -1125,11 +1132,16 @@ class drawPlasmid(DNApyBaseDrawingClass):
 	
 	
 	def checkEnzymeCalculations(self):
-		enzmymesOld = self.plasmidstore.enzymes
-		enzymes 	= genbank.restriction_sites
+		
+		# load enzymes
+		enzymes 	=  genbank.gb.restrictionEnzymes.selection
+		# create hash of selection and DNA
+		hashable 	= "%s%s" % (frozenset(enzymes), genbank.gb.gbfile['dna'])
+		e1 			= hashlib.md5(hashable).hexdigest()
+
 		labels = []
-		#print "update Plasmid Enzyme GUI"
-		if enzmymesOld != enzymes:
+
+		if e1 !=self.plasmidstore.enzymes:
 			# we have new enzymes
 			index = 0
 			for e in enzymes:
@@ -1144,7 +1156,9 @@ class drawPlasmid(DNApyBaseDrawingClass):
 					labels.append([middle, name, index, hitname, y])
 					
 					index = index + 1
-		self.plasmidstore.LoE = labels
+			self.plasmidstore.enzymes= e1
+			self.plasmidstore.LoE = labels
+		
 		return None
 	
 	
