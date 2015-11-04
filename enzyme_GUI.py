@@ -39,6 +39,8 @@ import collections
 
 
 
+
+
 class EnzymeSelector(DNApyBaseClass):
 	"""
 	Class to select restriction enzymes.
@@ -334,7 +336,7 @@ class EnzymeSelector(DNApyBaseClass):
 
 		return allItems
 
-
+	'''
 	def findRestrictionSites(self, selectedEnzymes):
 
 		restrictionsitesList = [] # variable to return the restriction sites
@@ -385,7 +387,7 @@ class EnzymeSelector(DNApyBaseClass):
 			
 			
 		return restrictionsitesList
-	
+	'''
 
 	
 
@@ -411,9 +413,9 @@ class EnzymeSelector(DNApyBaseClass):
 		
 class EnzymeSelectorDialog(wx.Dialog):
 	'''A class that puts the Enzyme Selector capabilities in a dialog.'''
-	def __init__(self, parent, title, oldSelection, enzymeClass):
+	def __init__(self, parent, title, enzymeClass):
 		super(EnzymeSelectorDialog, self).__init__(parent=parent,id=wx.ID_ANY, title=title, size=(750, 430)) 		
-
+		oldSelection = enzymeClass.selection
 		#add the panel (containing all the buttons/lists/interactive elements
 		self.content = EnzymeSelector(self, enzymeClass,id=wx.ID_ANY,)	#get the feature edit panel
 		
@@ -449,8 +451,8 @@ class EnzymeSelectorDialog(wx.Dialog):
 
 	# this function is also called by the main.py
 	# it returns the cutting position of the enzyme
-	def drawRestriction(self, enzymes):
-		return self.content.findRestrictionSites(enzymes)
+	#def drawRestriction(self, enzymes):
+	#	return self.content.findRestrictionSites(enzymes)
 		
 
 

@@ -49,6 +49,8 @@ import genbank
 import math
 import collections
 
+
+
 # class to make restriktion enzymes more usefull
 # name = name of enzyme
 # pattern = recognition site
@@ -65,7 +67,7 @@ import collections
 
 ##########################################################################
 # Class restrictionEnzyme()
-class restrictionEnzyme():
+class restrictionEnzyme(object):
 	def __init__(self, name, pattern, length, ncuts,blunt,c51,c31,c52,c32,regex):
 		self.name 		= str(name)
 		self.pattern 	= str(pattern)
@@ -86,6 +88,8 @@ class restrictionEnzyme():
 		
 	def resetRestrictionSite(self):
 		self.restrictionSites = []
+	
+
 # End of Class restrictionEnzyme()
 ##########################################################################
 
@@ -96,15 +100,16 @@ class restrictionEnzyme():
 # 
 # store and update info about restriction enzymes
 #
-class initRestriction():
-	def __init__(self):
+class initRestriction(object):
+	def __init__(self, gb):
 		'''Class to be loaded at every file change. It then evaluates the restrictionsites
 		and saves every Info. This enables fast access from every part of the software to 
 		restriction sites''' 
 		
 		# on init get the current DNA
 		self.oldDna 	= ''
-		self.currentDNA = genbank.gb.gbfile["dna"]
+		self.currentDNA = gb.gbfile["dna"]
+		
 		
 		# store for all enzymes and the sites
 		self.enzymeObj			= collections.OrderedDict()
@@ -113,39 +118,23 @@ class initRestriction():
 		self.loadEnzymes()
 		
 		# add the other stuff
-		self.reloadEnzymes()
+		self.reloadEnzymes(gb)
+		
+		self.selection = {}
+		
+		
 			
-	def reloadEnzymes(self):
+	def reloadEnzymes(self, gb):
 		'''should be called if you want to reload the enzymes'''
 
-		self.currentDNA = genbank.gb.gbfile["dna"]
+		self.currentDNA = gb.gbfile["dna"]
 		
 		# just if the dna had changed, reload the restriction sites
 		if self.currentDNA != self.oldDna:
 			
 			# updates cuts:
 			self.findRestrictionSites()
-			
-			self.oldDna 			= genbank.gb.gbfile["dna"]
-		
-		#return self.enzymeObj
-	
-	def getEnzymes(self, selection):
-		''' takes the current set of enzyme objects and generates a new list
-		so we can update the locations, without calling the gui'''
-		# update positions
-		if len(selection) > 0:
-			self.reloadEnzymes()
-			newSelection = collections.OrderedDict()
-
-			for e in selection:
-				newSelection[e] = self.enzymeObj[e]
-			
-			return newSelection
-		else:
-			return []
-		
-		
+			self.oldDna 			= gb.gbfile["dna"]
 
 
 	def loadEnzymes(self):
