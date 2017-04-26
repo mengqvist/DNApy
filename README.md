@@ -1,6 +1,9 @@
 DNApy
 =====
 
+
+## This repo is currently broken. Efforts are underway to restore it and move to a development and deployment branch system.
+
 A free and open source GUI toolkit for DNA editing - written in python
 
 This project aims to provide a powerful codebase for viewing, editing and creating DNA in the GenBank format. The code is free to use, modify and re-distribute under a GPL license. Contributions in the form of improvements and new functions are welcome and encouraged!
@@ -42,9 +45,9 @@ Implemented Software features
 
 * Plasmid view visualization
 
-* DNA editing, copy, paste, reverse complement 
+* DNA editing, copy, paste, reverse complement
 
-* Unlimited undo/redo 
+* Unlimited undo/redo
 
 * Easy search for nucleotide or amino acid positions or sequence
 
@@ -70,26 +73,19 @@ Not Yet Implemented Software features (and priority list)
  - [partly] display restrictionsites in plasmid (missing zoom)
  - [todo] improve dna editor to visualise cut location
 
-* Addition/removal/modification of genbank header entries 
+* Addition/removal/modification of genbank header entries
  - [todo] improve genbank parser to allow parsing of corrupted genbank files from ApE, Serial Cloner, SnapGen Viewer
 
-* DNA codon optimization 
+* DNA codon optimization
 
-* Fetch genes/plasmids from NCBI 
+* Fetch genes/plasmids from NCBI
 
-* Primer design 
+* Primer design
 
-* Calculation of ribosome binding strength 
+* Calculation of ribosome binding strength
 
 * NCBI blast for homologous genes
 
 * Simulate PCR
 
 * (Multiple) Sequence alignment
-
-
-
-Project Website
-=====
-
-http://dnapy.org/
