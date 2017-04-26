@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
 """\
 wsvg.py (Write SVG) - Construct/display SVG scenes.
 

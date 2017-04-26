@@ -1,5 +1,5 @@
+#!/usr/bin/python3
 
-#!/usr/bin/python
 # Copyright (C) 2014 Brian J. Stucky
 #
 # This program is free software: you can redistribute it and/or modify

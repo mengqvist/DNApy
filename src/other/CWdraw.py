@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 
 #This file is part of DNApy. DNApy is a DNA editor written purely in python. 
 #The program is intended to be an intuitive, fully featured, 
