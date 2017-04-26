@@ -68,7 +68,7 @@ files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
 files['default_dir']=string.replace(files['default_dir'], "\\", "/")
 files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
+exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 
 ############# Set up custom stc lexer class ##########################
@@ -551,7 +551,7 @@ class TextEdit(DNApyBaseClass):
 		'''Change selection to uppercase'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.Upper(start, finish)
 			self.update_ownUI()
@@ -561,7 +561,7 @@ class TextEdit(DNApyBaseClass):
 		'''Change selection to lowercase'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.Lower(start, finish)
 			self.update_ownUI() 
@@ -571,7 +571,7 @@ class TextEdit(DNApyBaseClass):
 		'''Reverse-complement current selection'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.RCselection(start, finish)
 			self.update_ownUI()
@@ -582,7 +582,7 @@ class TextEdit(DNApyBaseClass):
 		'''Deletes a selection and updates dna and features'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot delete an empty selection'
+			raise ValueError('Cannot delete an empty selection')
 		else:
 			genbank.gb.Delete(start, finish)
 			self.update_ownUI()
@@ -593,7 +593,7 @@ class TextEdit(DNApyBaseClass):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot cut an empty selection'
+			raise ValueError('Cannot cut an empty selection')
 		else:
 			genbank.gb.Cut(start, finish)
 			self.update_ownUI()
@@ -604,7 +604,7 @@ class TextEdit(DNApyBaseClass):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot cut an empty selection'
+			raise ValueError('Cannot cut an empty selection')
 		else:
 			genbank.gb.CutRC(start, finish)
 			self.update_ownUI()
@@ -640,7 +640,7 @@ class TextEdit(DNApyBaseClass):
 		'''Copy DNA and features into clipboard'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot copy an empty selection'
+			raise ValueError('Cannot copy an empty selection')
 		else:
 			#genbank.gb.Copy(start, finish)
 		
@@ -651,7 +651,7 @@ class TextEdit(DNApyBaseClass):
 		'''Copy reverse complement of DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot copy an empty selection'
+			raise ValueError('Cannot copy an empty selection')
 		else:
 			genbank.gb.CopyRC(start, finish)
 
@@ -704,7 +704,7 @@ class TextEdit(DNApyBaseClass):
 		'''Translate selected DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot translate an empty selection'
+			raise ValueError('Cannot translate an empty selection')
 		else:
 			DNA = genbank.gb.GetDNA(start, finish)
 			protein = dna.Translate(DNA)
@@ -714,7 +714,7 @@ class TextEdit(DNApyBaseClass):
 		'''Translate reverse-complement of selected DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot translate an empty selection'
+			raise ValueError('Cannot translate an empty selection')
 		else:
 			DNA = genbank.gb.GetDNA(start, finish)
 			protein = dna.Translate(dna.RC(DNA))
@@ -747,7 +747,7 @@ class TextEdit(DNApyBaseClass):
 		'''Get which features are at a given position'''		
 		xposition, yposition = self.stc.ScreenToClient(wx.GetMousePosition())
 		if xposition > 1 and yposition > 1:
-			print('x,y', xposition, yposition)
+			print(('x,y', xposition, yposition))
 			mposition = self.stc.CharPositionFromPoint(xposition, yposition)
 			print(mposition)
 
@@ -785,7 +785,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
 	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
-	execfile(settings) #gets all the pre-assigned settings
+	exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 	genbank.dna_selection = (0, 0, -1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
@@ -793,7 +793,7 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
+	print(('Opening %s' % str(sys.argv[1])))
 
 	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
 

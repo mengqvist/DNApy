@@ -129,13 +129,13 @@ class ABISequenceTrace(SequenceTrace):
     def printABIIndex(self, data_id):
         for entry in self.abiindex:
             if entry['did'] == data_id:
-                print 'entry ID:', entry['did']
-                print 'idv:', entry['idv']
-                print 'data format:', entry['dformat']
-                print 'format size:', entry['fsize']
-                print 'data count:', entry['dcnt']
-                print 'total data length:', entry['dlen']
-                print 'data offset:', entry['offset']
+                print('entry ID:', entry['did'])
+                print('idv:', entry['idv'])
+                print('data format:', entry['dformat'])
+                print('format size:', entry['fsize'])
+                print('data count:', entry['dcnt'])
+                print('total data length:', entry['dlen'])
+                print('data offset:', entry['offset'])
 
     def getIndexEntry(self, data_id, number):
         for row in self.abiindex:

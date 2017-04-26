@@ -30,7 +30,7 @@
 #
 
 from copy import deepcopy
-import dna
+from . import dna
 import re
 	
 	
@@ -47,11 +47,11 @@ def getinput():
 	DesiredAA = [];
 	AllNaturalAA = ['F','L','S','Y','C','W','P','H','E','R','I','M','T','N','K','V','A','D','Q','G','*'];
 	AA = 'x'
-	table = raw_input('Input a number to indicate which codon table to use (standard is 1): ')
+	table = input('Input a number to indicate which codon table to use (standard is 1): ')
 	if table is not int:
 		table = 1
 	while AA != '':
-		AA = raw_input('Input single AA in single letter code. If done, press enter: ')
+		AA = input('Input single AA in single letter code. If done, press enter: ')
 		AA = AA.upper()	
 		if AA == '':
 			pass	
@@ -119,7 +119,7 @@ class AmbigousCodon:
 			input = [s.upper() for s in input]
 			self.setTarget(input)
 		else:
-			raise ValueError, 'The input is not valid'
+			raise ValueError('The input is not valid')
 		return
 
 		
@@ -423,7 +423,7 @@ class AmbigousCodon:
 if __name__ == '__main__':
 	AA, table = getinput()
 	codon_object = AmbigousCodon(AA, table)
-	print("mixed base codon: %s" % codon_object.getTriplet())
-	print("target AA: %s" % codon_object.getTarget())
-	print("off-target AA: %s" % codon_object.getOfftarget())
-	print("AA that can be added w/o off-targets: %s" % codon_object.getPossible())
+	print(("mixed base codon: %s" % codon_object.getTriplet()))
+	print(("target AA: %s" % codon_object.getTarget()))
+	print(("off-target AA: %s" % codon_object.getOfftarget()))
+	print(("AA that can be added w/o off-targets: %s" % codon_object.getPossible()))

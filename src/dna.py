@@ -32,7 +32,8 @@
 import fasta
 import string
 import random
-import protein # for conversion from dna to amino acid name
+from . import protein # for conversion from dna to amino acid name
+from functools import reduce
 
 
 ############# Basic DNA functions #####################
@@ -43,7 +44,7 @@ def CleanDNA(DNA, ambiguous=False, silent=True):
 	The variable ambiguous (bool) determines whether the full set of ambiguous codons are used or not.
 	the variable silent determines whether an output is printed every time a non-DNA character is omitted.
 	'''
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	if ambiguous == False:
 		bases = 'GATC'
 	elif ambiguous == True:
@@ -52,7 +53,7 @@ def CleanDNA(DNA, ambiguous=False, silent=True):
 	for char in DNA:
 		if (char in string.digits) or (char in string.whitespace) or char==('/'or'\\'or ' ' or '  ') or (char.upper() not in bases):
 			if silent == False:
-				print('Character "%s" is not a valid DNA character and was deleted' % char)
+				print(('Character "%s" is not a valid DNA character and was deleted' % char))
 		else:
 			cleaned_seq += char
 	return cleaned_seq
@@ -62,7 +63,7 @@ def R(DNA):
 	"""
 	Returns the reverse of a DNA string.
 	"""
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	return DNA[::-1]  #makes the reverse of the input string
 
 		
@@ -70,7 +71,7 @@ def C(DNA):
 	"""
 	Returns the complement of a DNA string.
 	"""
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n', 
 					'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
 	bases = list(DNA) 
@@ -82,7 +83,7 @@ def RC(DNA):
 	"""
 	Returns the reverse complement of a DNA string.
 	"""
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	return R(C(DNA))
 
 
@@ -92,7 +93,7 @@ def Translate(DNA, table=1):
 	The table variable specifies which codon table should be used.
 	table defaults to the standard codon table 1
 	"""
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	codons = CodonTable(table).getCodons()
 
 	protein = []
@@ -155,7 +156,7 @@ def Translate(DNA, table=1):
 
 def TranslateRC(DNA, table=1):
 	'''Translate the reverse complement of DNA'''
-	assert type(DNA) == str or type(DNA) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(DNA) == str or type(DNA) == str, 'Error, input sequence must be a string or unicode'
 	DNA = RC(DNA)
 	return Translate(DNA, table)
 
@@ -187,7 +188,7 @@ def ReverseTranslate(protein, table=1):
 	For some amino acids there will be two possible ambigous codons.
 	Run the combine() function to convert the list to all possible dna sequences.
 	'''
-	assert type(protein) == str or type(protein) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(protein) == str or type(protein) == str, 'Error, input sequence must be a string or unicode'
 	dnalist = []
 	for aa in protein:
 		dnalist.append(GetCodons(aa, table))
@@ -200,7 +201,7 @@ def count_bases(seq):
 	Input should be a string comprising dna bases. These can be a, t, c, g or any of the ambiguous bases.
 	Output is a dictionary with DNA base keys and integer values.
 	'''
-	assert type(seq) == str or type(seq) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(seq) == str or type(seq) == str, 'Error, input sequence must be a string or unicode'
 	seq = seq.upper()
 	assert all([s in 'GATCRYWSMKHBVDN' for s in seq]) is True, 'Error, unknown dna base(s) %s in sequence: %s' % (str([s for s in seq if s not in 'GATCRYWSMKHBVDN']), seq)
 
@@ -222,7 +223,7 @@ def count_bases(seq):
 	'D':seq.count('D'),
 	'N':seq.count('N')}	
 
-	assert sum([s[1] for s in bases.iteritems()]) == len(seq), 'Error, total number of counted bases is not the same as the sequence length'
+	assert sum([s[1] for s in bases.items()]) == len(seq), 'Error, total number of counted bases is not the same as the sequence length'
 
 	return bases
 
@@ -253,10 +254,10 @@ def count_codons(seq):
 	seq = seq.upper()
 	for i in range(0, len(seq), 3): 
 		codon = seq[i:i+3].replace('T', 'U')
-		if codon in codons.keys():
+		if codon in list(codons.keys()):
 			codons[codon] += 1
 		else:
-			raise ValueError, 'Codon %s is not valid.' % codon
+			raise ValueError('Codon %s is not valid.' % codon)
 	return codons
 
 	
@@ -286,17 +287,17 @@ def make_codon_freq_table(file):
 	for record in records:
 		cds = record[1]
 		codons = count_codons(cds)
-		for key in codons.keys():
+		for key in list(codons.keys()):
 			num_table[key] += codons[key]
 
 	#sum codons
 	sum = 0.0
-	for key in num_table.keys():
+	for key in list(num_table.keys()):
 		sum += num_table[key]
 	
 	#divide each by the sum and multiply by 1000
 	freq_table = {}
-	for key in num_table.keys():
+	for key in list(num_table.keys()):
 		freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
 	return freq_table		
 	
@@ -397,7 +398,7 @@ def Amb(list):
 	elif all([x in 'CTAG' for x in list]): 
 		output = 'N'
 	else:
-		raise ValueError, 'Error, input must be a list of standard GATC nucleotides.'
+		raise ValueError('Error, input must be a list of standard GATC nucleotides.')
 	return output
 	
 	
@@ -567,7 +568,7 @@ def randomizeSeq(seq):
 	'''
 	Randomize a given DNA or protein sequence.
 	'''
-	assert type(seq) == str or type(seq) == unicode, 'Error, input sequence must be a string or unicode'
+	assert type(seq) == str or type(seq) == str, 'Error, input sequence must be a string or unicode'
 	seq = list(seq)
 	output_list = []
 	while seq:
@@ -807,7 +808,7 @@ class CodonTable:
 			Base2  = "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG"
 			Base3  = "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG"
 		else:
-			raise ValueError, '%s is not a valid genetic code number' % number
+			raise ValueError('%s is not a valid genetic code number' % number)
 		self.code = code
 		self.table = [code, AAs, Starts, Base1, Base2, Base3]
 	
@@ -825,7 +826,7 @@ class CodonTable:
 			if aa in 'FLSYCWPHERIMTNKVADQG*':
 				codons[aa].append(codon)
 			else:
-				raise Error, '"%s" is not a valid amino acid' % aa
+				raise Error('"%s" is not a valid amino acid' % aa)
 				
 			if s != '-': #if the codon is start
 				codons['start'].append(codon)
@@ -883,22 +884,22 @@ class CodonTable:
 		Print specified codon table.
 		'''
 		code, AAs, Starts, Base1, Base2, Base3 = self.table
-		print('\nCode   = %s' % code)
-		print('AAs    = %s' % AAs)
-		print('Starts = %s' % Starts)
-		print('Base1  = %s' % Base1)
-		print('Base2  = %s' % Base2)
-		print('Base3  = %s' % Base3)
+		print(('\nCode   = %s' % code))
+		print(('AAs    = %s' % AAs))
+		print(('Starts = %s' % Starts))
+		print(('Base1  = %s' % Base1))
+		print(('Base2  = %s' % Base2))
+		print(('Base3  = %s' % Base3))
 
 	def printCodons(self):	
 		'''
 		Print codons specified by codon table.
 		'''
 		codons = self.getCodons()
-		print('start = %s' %codons['start'])
-		print('stop  = %s' %codons['stop'])
+		print(('start = %s' %codons['start']))
+		print(('stop  = %s' %codons['stop']))
 		for aa in 'FLSYCWPHERIMTNKVADQG*':
-			print('%s     = %s' % (aa, codons[aa]))
+			print(('%s     = %s' % (aa, codons[aa])))
 		
 		
 		

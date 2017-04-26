@@ -35,7 +35,7 @@ import fnmatch
 import dna
 
 
-from StringIO import StringIO
+from io import StringIO
 import pprint
 import copy
 import re
@@ -244,7 +244,7 @@ class SeqObj:
 			self.setQualVal(qual_val)
 		
 		else:
-			print('"%s" is not a .txt, .seq, .scf, .fasta, .fastq, .abif, .ab1, .abi or .ztr file' % self.filename)
+			print(('"%s" is not a .txt, .seq, .scf, .fasta, .fastq, .abif, .ab1, .abi or .ztr file' % self.filename))
 
 			
 			
@@ -341,7 +341,7 @@ class SeqAnalysis:
 	def setNext(self, seqobj):
 		self.next = seqobj #SeqObj object
 	def getNext(self):
-		return self.next #SeqObj object
+		return self.__next__ #SeqObj object
 
 	def setPrevious(self, seqobj):
 		self.previous = seqobj #SeqObj object
@@ -372,8 +372,8 @@ class SeqAnalysis:
 		#i'm starting with the simple case of two sequences
 		seq1 = self.seqdata['p423-GPD-RV']['AB1'].getDNA()
 		seq2 = self.seqdata['p423-GPD-FW']['AB1'].getDNA()
-		print(self.getOverlap(seq1, seq2))
-		print(self.getOverlap(seq1, dna.RC(seq2)))
+		print((self.getOverlap(seq1, seq2)))
+		print((self.getOverlap(seq1, dna.RC(seq2))))
 	
 			
 		#### I may adapt the structure below #########
@@ -619,7 +619,7 @@ class SeqAnalysis:
 		Find the leftmost sequence of alignment pairs.
 		'''
 		#find the leftmost sequence
-		keys = alnscores.keys() #seqs with overlaps to the right
+		keys = list(alnscores.keys()) #seqs with overlaps to the right
 		leftmost = []
 		for i in keys:
 			present = False
@@ -629,7 +629,7 @@ class SeqAnalysis:
 					break
 			if present is False and i not in leftmost:
 				leftmost.append(i)
-		print('leftmost', leftmost)
+		print(('leftmost', leftmost))
 		return leftmost # a list
 
 
@@ -669,10 +669,10 @@ class SeqAnalysis:
 			
 			#determine the order of sequences
 			sequence = [leftmost]
-			keys = alnscores.keys() 
+			keys = list(alnscores.keys()) 
 			while sequence[-1] in keys:
 				sequence.append(max(alnscores[sequence[-1]], key=alnscores[sequence[-1]].get)) #get the max value for the dictionary under the key
-			print('sequence', sequence)
+			print(('sequence', sequence))
 
 		
 
@@ -744,7 +744,7 @@ class SeqOverview:
 		extension = '.'.join(filename.split('.')[1:]) #get the extension
 	
 		if extension.upper() in ['TXT', 'AB1', 'SCF', 'FASTQ', 'SEQ', 'SEQ.CLIPPED']: #here I determine which files are allowed
-			print('Adding: %s' % filename)
+			print(('Adding: %s' % filename))
 			name, primer = filename.replace('.' + extension, '').split('_') #get construct and primer names
 			
 			#check whether any other SeqAnalysis object with that name is already present, if not, make one.
@@ -756,7 +756,7 @@ class SeqOverview:
 			elif instance != None: #is present, so add sequence to the existing instance.
 				instance.addSeq(SeqObj(filepath, name, primer, extension)) #make a new SeqObj with the info and add it to the SeqAnalysis object.
 		else:
-			print('Skipping: %s' % filename)
+			print(('Skipping: %s' % filename))
 		
 		
 	def addFolder(self, path):
@@ -913,10 +913,10 @@ def tripletalign(RefSeq, Seq):
 				pass	
 			else:					
 				if counter <= 5:
-					print('DNA pos %d, %s mutated to %s --- %s%d%s' % (i+3-1, RefSeq[i:(i+3)], Seq[i:(i+3)], dna.translate(RefSeq[i:(i+3)]), int((i+3)/3), dna.translate(Seq[i:(i+3)])))
+					print(('DNA pos %d, %s mutated to %s --- %s%d%s' % (i+3-1, RefSeq[i:(i+3)], Seq[i:(i+3)], dna.translate(RefSeq[i:(i+3)]), int((i+3)/3), dna.translate(Seq[i:(i+3)]))))
 					counter += 1
 				else:
-					print('over %d consecutive mismatches, rest of construct is likely out of frame' % (counter-1))
+					print(('over %d consecutive mismatches, rest of construct is likely out of frame' % (counter-1)))
 					break
 	print('\n')
 #End of triplet align function
@@ -924,7 +924,7 @@ def tripletalign(RefSeq, Seq):
 
 def check(seqdataentry):
 	#for entry in Sequences:
-	print(seqdataentry['contig']['name'])
+	print((seqdataentry['contig']['name']))
 	dna = findstart(seqdataentry['reference']['dna'], seqdataentry['contig']['dna'])
 	tripletalign(dna[0], dna[1]) #(RefSeq, dna)
 
@@ -1044,7 +1044,7 @@ def analyze():
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a folder containing the sequencing files as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
+	print(('Opening %s' % str(sys.argv[1])))
 	path = str(sys.argv[1]) #Path to folder that contains the sequences
 
 	

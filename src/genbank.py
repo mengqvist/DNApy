@@ -39,17 +39,17 @@
 #add a function that checks that everything is ok. I.e. that it conforms to the genbank format.
 #make changes to how qualifiers are parsed. For example /qualifier=xyz, the '=' is not always there...
 
-import dna
+from . import dna
 import copy
 import pyperclip
-import oligo_localizer
-import peptide_localizer
+from . import oligo_localizer
+from . import peptide_localizer
 import re
 import sys
 import wx	# for richCopy
 import json	# for richCopy
 
-import enzyme
+from . import enzyme
 
 
 #the feature class is not currently used. 
@@ -222,7 +222,7 @@ class gbobject(object):
 		'''
 		Function opens a genbank file.
 		'''
-		assert type(filepath) == str or type(filepath) == unicode , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
+		assert type(filepath) == str or type(filepath) == str , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
 		self.fileName = filepath.split('/')[-1] #update the fileName variable
 		
 		#open it and read line by line (very memory efficient)
@@ -435,7 +435,7 @@ class gbobject(object):
 			self.gbfile['contig'] = ''.join(line[12:].split('\n')).strip()
 		
 		else:
-			raise ValueError, 'Unparsed line: "%s" in record %s' % (line, self.gbfile['locus']['name'])
+			raise ValueError('Unparsed line: "%s" in record %s' % (line, self.gbfile['locus']['name']))
 
 		#check the stored features for Vector NTI and ApE clutter and store result
 		self.clutter = self.ApEandVNTI_clutter() 
@@ -489,7 +489,7 @@ class gbobject(object):
 					feature['qualifiers'].append(qualifier)
 
 				else:
-					print('error parsing feature line', line)	
+					print(('error parsing feature line', line))	
 
 
 			self.gbfile['features'].append(copy.deepcopy(feature)) #add feature to the global data structure
@@ -590,7 +590,7 @@ class gbobject(object):
 			new_index = old_index-1
 			self.set_file_version_index(new_index)
 			self.gbfile = self.get_file_version()
-			print('index after undo', self.get_file_version_index())
+			print(('index after undo', self.get_file_version_index()))
 
 	def Redo(self):
 		'''Function for redoing user action (such as deleting or adding dna or features).
@@ -602,7 +602,7 @@ class gbobject(object):
 			new_index = old_index+1
 			self.set_file_version_index(new_index)
 			self.gbfile = self.get_file_version()
-			print('index after redo', self.get_file_version_index())
+			print(('index after redo', self.get_file_version_index()))
 
 
 ####################################################################
@@ -1322,12 +1322,12 @@ indeces >-1 are feature indeces'''
 ### Need to implement the searchRC variable
 
 		#fix the set_dna_selection functions here
-		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchstring) == str or type(searchstring) == str or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
 		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
 		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
 		#empty search string
 		if searchstring=='':
-			print 'The searchstring is missing, please check your input'
+			print('The searchstring is missing, please check your input')
 			return []
 
 		#searching for a position (by number)
@@ -1418,14 +1418,14 @@ indeces >-1 are feature indeces'''
 
 	def FindAminoAcid(self, searchstring, searchframe, searchRC=False):
 		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
-		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchstring) == str or type(searchstring) == str or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
 		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
 		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
 
 
 		#empty search string
 		if searchstring=='':
-			print 'The searchstring is missing, please check your input'
+			print('The searchstring is missing, please check your input')
 			return []
 
 		#searching for a position (by number)
@@ -1493,10 +1493,10 @@ indeces >-1 are feature indeces'''
 
 	def FindFeature(self, searchstring):
 		'''Method for finding a certain feature in a genbank file'''
-		assert type(searchstring) == str or type(searchstring) == unicode or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchstring) == str or type(searchstring) == str or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
 
 		if searchstring=='':
-			print 'The searchstring is missing, please check your input'
+			print('The searchstring is missing, please check your input')
 			return []
 		elif type(searchstring) is int:
 			#assert that the integer is within the number of features
@@ -1547,7 +1547,7 @@ indeces >-1 are feature indeces'''
 			for mut in mutation:
 				self.mutate(mutationtype, mutationframe, mut)
 		else:
-			assert type(mutation) is str or type(mutation) is unicode, 'Error, input must be a string or unicode.'
+			assert type(mutation) is str or type(mutation) is str, 'Error, input must be a string or unicode.'
 			mutation = mutation.upper()
 			if mutationframe == -1: #mutation frame of -1 means entire molecule
 				complement = False
@@ -1610,11 +1610,11 @@ indeces >-1 are feature indeces'''
 				if complement is False or mutationframe == -1:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', codon)
 					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
-					print('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon))
+					print(('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon)))
 				elif complement is True:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(codon))
 					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
-					print('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon))
+					print(('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon)))
 				else:
 					raise ValueError
 
@@ -1665,11 +1665,11 @@ indeces >-1 are feature indeces'''
 				if complement is False or mutationframe == -1:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', trailingnucleotide)
 					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
-					print('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide))
+					print(('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide)))
 				elif complement is True:
 					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.RC(trailingnucleotide))
 					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
-					print('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide))
+					print(('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide)))
 				else:
 					raise ValueError
 
@@ -1844,7 +1844,7 @@ indeces >-1 are feature indeces'''
 					self.remove_location(index, number)
 					del deletionlist[-1]
 		else:
-			print('%s is not a valid argument for changetype' % changetype)
+			print(('%s is not a valid argument for changetype' % changetype))
 	
 	
 		# update restriction enzymes:

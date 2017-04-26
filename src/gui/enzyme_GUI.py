@@ -206,7 +206,7 @@ class EnzymeSelector(DNApyBaseClass):
 					if e in self.enzymeClass.enzymeObj:
 						enzymes2show[e] = self.enzymeClass.enzymeObj[e]
 		else:
-			print "what selection?"
+			print("what selection?")
 	
 		# clear list first
 		self.lb.Clear()	
@@ -1143,7 +1143,7 @@ class AddLadder(DNApyBaseClass):
 				self.resort2list()
 			self.sizeInput.SetValue('')
 		except ValueError:
-			print "no integer"
+			print("no integer")
 			self.sizeInput.SetValue('')
 			
 		

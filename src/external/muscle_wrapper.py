@@ -32,7 +32,7 @@
 """Command line wrapper for the multiple alignment program MUSCLE. 
 """ 
  
-from __future__ import print_function 
+ 
  
 __docformat__ = "restructuredtext en"  # Don't just use plain text in epydoc API pages! 
  
@@ -273,7 +273,7 @@ class AbstractCommandline(object):
             prop = property(getter(name), setter(name), deleter(name), doc) 
             setattr(self.__class__, name, prop)  # magic! 
 
-        for key, value in kwargs.items():
+        for key, value in list(kwargs.items()):
             self.set_parameter(key, value) 
 
  
@@ -516,14 +516,14 @@ class AbstractCommandline(object):
         """ 
         if not stdout: 
             stdout_arg = open(os.devnull, "w") 
-        elif isinstance(stdout, basestring): 
+        elif isinstance(stdout, str): 
             stdout_arg = open(stdout, "w") 
         else: 
             stdout_arg = subprocess.PIPE 
  
         if not stderr: 
             stderr_arg = open(os.devnull, "w") 
-        elif isinstance(stderr, basestring): 
+        elif isinstance(stderr, str): 
             if stdout == stderr: 
                 stderr_arg = stdout_arg #Write both to the same file 
             else: 
@@ -563,10 +563,10 @@ class AbstractCommandline(object):
         # Particularly important to close handles on Jython and PyPy 
         # (where garbage collection is less predictable) and on Windows 
         # (where cannot delete files with an open handle): 
-        if not stdout or isinstance(stdout, basestring): 
+        if not stdout or isinstance(stdout, str): 
             # We opened /dev/null or a file 
             stdout_arg.close() 
-        if not stderr or (isinstance(stderr, basestring) and stdout != stderr): 
+        if not stderr or (isinstance(stderr, str) and stdout != stderr): 
             # We opened /dev/null or a file 
             stderr_arg.close() 
         
@@ -632,7 +632,7 @@ class _Option(_AbstractParameter):
       def __init__(self, names, description, filename=False, checker_function=None, 
                    is_required=False, equate=True): 
           self.names = names 
-          assert isinstance(description, basestring), "%r for %s" % (description, names[-1]) 
+          assert isinstance(description, str), "%r for %s" % (description, names[-1]) 
           self.is_filename = filename 
           self.checker_function = checker_function 
           self.description = description 
@@ -718,7 +718,7 @@ class _Argument(_AbstractParameter):
           #    raise ValueError("The names argument to _Argument should be a " 
           #                     "single entry list with a PEP8 property name.") 
           self.names = names 
-          assert isinstance(description, basestring), "%r for %s" % (description, names[-1]) 
+          assert isinstance(description, str), "%r for %s" % (description, names[-1]) 
           self.is_filename = filename 
           self.checker_function = checker_function 
           self.description = description 

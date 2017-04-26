@@ -73,7 +73,7 @@ files['default_dir'] 	= os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
 files['default_dir']	= string.replace(files['default_dir'], "\\", "/")
 files['default_dir']	= string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
+exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 
 ########### class for text ######################
@@ -1078,7 +1078,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.update_globalUI()
 
 		elif key == 315 and shift == True: #up + select
-			print "select with keyboard"
+			print("select with keyboard")
 
 		elif key == 317 and shift == False: #down
 			self.moveCursor(1, "down")
@@ -1086,7 +1086,7 @@ class TextEdit(DNApyBaseDrawingClass):
 			self.update_globalUI()
 
 		elif key == 317 and shift == True: #down + select
-			print "select with keyboard"
+			print("select with keyboard")
 
 		#self.set_dna_selection() #update the varable keeping track of DNA selection
 
@@ -1147,7 +1147,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Change selection to uppercase'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.Upper(start, finish)
 			self.update_ownUI()
@@ -1157,7 +1157,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Change selection to lowercase'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.Lower(start, finish)
 			self.update_ownUI()
@@ -1167,7 +1167,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Reverse-complement current selection'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot modify an empty selection'
+			raise ValueError('Cannot modify an empty selection')
 		else:
 			genbank.gb.RCselection(start, finish)
 			self.update_ownUI()
@@ -1178,7 +1178,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Deletes a selection and updates dna and features'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot delete an empty selection'
+			raise ValueError('Cannot delete an empty selection')
 		else:
 			genbank.gb.Delete(start, finish)
 			self.update_ownUI()
@@ -1189,7 +1189,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Cut DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot cut an empty selection'
+			raise ValueError('Cannot cut an empty selection')
 		else:
 			genbank.gb.Cut(start, finish)
 			self.set_cursor_position(start)
@@ -1201,7 +1201,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Cut reverse complement of DNA and store it in clipboard together with any features present on that DNA'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot cut an empty selection'
+			raise ValueError('Cannot cut an empty selection')
 		else:
 			genbank.gb.CutRC(start, finish)
 			self.update_ownUI()
@@ -1239,7 +1239,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		start, finish, zero = self.get_selection()
 
 		if finish == -1:
-			raise ValueError, 'Cannot copy an empty selection'
+			raise ValueError('Cannot copy an empty selection')
 		else:
 			#genbank.gb.Copy(start, finish)
 
@@ -1250,7 +1250,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Copy reverse complement of DNA'''
 		start, finish, zero = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot copy an empty selection'
+			raise ValueError('Cannot copy an empty selection')
 		else:
 			genbank.gb.CopyRC(start, finish)
 
@@ -1271,7 +1271,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Translate selected DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot translate an empty selection'
+			raise ValueError('Cannot translate an empty selection')
 		else:
 			DNA = genbank.gb.GetDNA(start, finish)
 			protein = dna.Translate(DNA)
@@ -1281,7 +1281,7 @@ class TextEdit(DNApyBaseDrawingClass):
 		'''Translate reverse-complement of selected DNA'''
 		start, finish = self.get_selection()
 		if finish == -1:
-			raise ValueError, 'Cannot translate an empty selection'
+			raise ValueError('Cannot translate an empty selection')
 		else:
 			DNA = genbank.gb.GetDNA(start, finish)
 			protein = dna.Translate(dna.RC(DNA))

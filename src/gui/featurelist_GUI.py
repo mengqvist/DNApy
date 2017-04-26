@@ -57,7 +57,7 @@ files['default_dir'] = os.path.abspath(os.path.dirname(sys.argv[0]))+"/"
 files['default_dir']=string.replace(files['default_dir'], "\\", "/")
 files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(settings) #gets all the pre-assigned settings
+exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 
 
@@ -344,14 +344,14 @@ if __name__ == '__main__': #if script is run by itself and not loaded
 	files['default_dir']=string.replace(files['default_dir'], "\\", "/")
 	files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 	settings=files['default_dir']+"settings"   ##path to the file of the global settings
-	execfile(settings) #gets all the pre-assigned settings
+	exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 	genbank.dna_selection = (1, -1)	 #variable for storing current DNA selection
 	genbank.feature_selection = False #variable for storing current feature selection
 
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a genbank file as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
+	print(('Opening %s' % str(sys.argv[1])))
 
 	genbank.gb = genbank.gbobject(str(sys.argv[1])) #make a genbank object and read file
 

@@ -191,7 +191,7 @@ class ZTRSequenceTrace(SequenceTrace):
         udata = list()
         prev = unpack('B', cdata[256])[0]
         udata.append(cdata[256])
-        for cnt in xrange(257, len(cdata)):
+        for cnt in range(257, len(cdata)):
             diff = unpack('b', cdata[cnt])[0]
             actual = table[prev] - diff
 
@@ -250,14 +250,14 @@ class ZTRSequenceTrace(SequenceTrace):
     
         # first, unpack the 1-byte values
         udata = list()
-        for cnt in xrange(1, len(cdata)):
+        for cnt in range(1, len(cdata)):
             val = unpack('B', cdata[cnt])[0]
             udata.append(val)
 
         # now apply the reverse delta filtering
         for clev in range(levels):
             prev = 0
-            for cnt in xrange(0, len(udata)):
+            for cnt in range(0, len(udata)):
                 actual = udata[cnt] + prev
                 if actual > 255:
                     # simulate 1-byte integer overflow
@@ -278,14 +278,14 @@ class ZTRSequenceTrace(SequenceTrace):
     
         # first, unpack the 2-byte values
         udata = list()
-        for cnt in xrange(1, len(cdata), 2):
+        for cnt in range(1, len(cdata), 2):
             val = unpack('>H', cdata[cnt:cnt+2])[0]
             udata.append(val)
 
         # now apply the reverse delta filtering
         for clev in range(levels):
             prev = 0
-            for cnt in xrange(0, len(udata)):
+            for cnt in range(0, len(udata)):
                 actual = udata[cnt] + prev
                 if actual > 65535:
                     # simulate 2-byte integer overflow
@@ -306,14 +306,14 @@ class ZTRSequenceTrace(SequenceTrace):
     
         # first, unpack the 4-byte values (skipping the 2 padding bytes)
         udata = list()
-        for cnt in xrange(3, len(cdata), 4):
+        for cnt in range(3, len(cdata), 4):
             val = unpack('>I', cdata[cnt:cnt+4])[0]
             udata.append(val)
 
         # now apply the reverse delta filtering
         for clev in range(levels):
             prev = 0
-            for cnt in xrange(0, len(udata)):
+            for cnt in range(0, len(udata)):
                 actual = udata[cnt] + prev
                 if actual > 4294967295:
                     # simulate 1-byte integer overflow

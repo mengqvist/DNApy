@@ -45,7 +45,7 @@ from base_class import DNApyBaseClass
 import wx
 import re
 import string
-import genbank
+from . import genbank
 import math
 import collections
 

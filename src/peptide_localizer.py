@@ -62,7 +62,7 @@ def re_const(peptide):
 
 def match_peptide(seq,peptide,mismatches=0):
 	'''Function for searching for a certain oligo'''
-	print('seq', seq)
+	print(('seq', seq))
 	re_peptide=re_const(peptide)
 	location_out=[]
 	for match in re_peptide.finditer(seq):

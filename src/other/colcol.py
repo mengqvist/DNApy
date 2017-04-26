@@ -121,7 +121,7 @@ def rgb_to_hsl(in_col):
 	assert is_rgb(in_col), 'Error, %s is not a valid RGB color.' % str(in_col)
 
 	# Convert each RGB integer to a float between 0 and 1
-	r, g, b = map(lambda x: x/255., in_col) 
+	r, g, b = [x/255. for x in in_col] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)
@@ -249,14 +249,14 @@ def complementary(in_col):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)     
 
 	# Rotation by 180 degrees
 	h = (h+0.5)
-	color = map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) # H'LS -> new RGB
+	color = [int(round(x*255)) for x in colorsys.hls_to_rgb(h, l, s)] # H'LS -> new RGB
 
 	if hex_color:
 		colors = [rgb_to_hex(in_col), rgb_to_hex(tuple(color))]
@@ -292,7 +292,7 @@ def split_complementary(in_col):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)     
@@ -301,7 +301,7 @@ def split_complementary(in_col):
 	angle = 150/360.0
 	h_list = [(h+ang) % 1 for ang in (-angle, angle)]
 	print(h)
-	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+	analagous = [[int(round(x*255)) for x in colorsys.hls_to_rgb(h, l, s)] for h in h_list] # H'LS -> new RGB
 
 	#add all the colors together
 	colors = [tuple(analagous[0]), in_col, tuple(analagous[1])]
@@ -379,7 +379,7 @@ def square(in_col):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)     
@@ -388,7 +388,7 @@ def square(in_col):
 	angle = 90/360.0
 	h_list = [(h+ang) % 1 for ang in (-angle, angle, angle*2)]
 	print(h)
-	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+	analagous = [[int(round(x*255)) for x in colorsys.hls_to_rgb(h, l, s)] for h in h_list] # H'LS -> new RGB
 
 	#add all the colors together
 	colors = [tuple(analagous[0]), in_col, tuple(analagous[1]), tuple(analagous[2])]
@@ -422,7 +422,7 @@ def tetradic(in_col):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)     
@@ -431,7 +431,7 @@ def tetradic(in_col):
 	angle = 30/360.0
 	h_list = [(h+ang) % 1 for ang in (-angle*2, angle*4, angle*6)]
 	print(h)
-	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, l, s)) for h in h_list] # H'LS -> new RGB
+	analagous = [[int(round(x*255)) for x in colorsys.hls_to_rgb(h, l, s)] for h in h_list] # H'LS -> new RGB
 
 	#add all the colors together
 	colors = [tuple(analagous[0]), in_col, tuple(analagous[1]), tuple(analagous[2])]
@@ -466,7 +466,7 @@ def analagous(in_col):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	h, l, s = colorsys.rgb_to_hls(r, g, b)     
@@ -474,7 +474,7 @@ def analagous(in_col):
 	# Rotation by 30 degrees
 	degree = 30/360.0
 	h = [(h+angle) % 1 for angle in (-degree, degree)]
-	analagous = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hi, l, s)) for hi in h] # H'LS -> new RGB
+	analagous = [[int(round(x*255)) for x in colorsys.hls_to_rgb(hi, l, s)] for hi in h] # H'LS -> new RGB
 
 	#add all the colors together
 	colors = [tuple(analagous[0]), in_col, tuple(analagous[1])]
@@ -520,7 +520,7 @@ def tints(in_col, number=10):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	hue, lightness, saturation = colorsys.rgb_to_hls(r, g, b) 
@@ -536,7 +536,7 @@ def tints(in_col, number=10):
 
 	#add the input color to a list, then build the 10 new HSL colors, convert to RGB and save in the same list
 	colors = [in_col]
-	colors.extend([map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hue, l, saturation)) for l in lightness_list])
+	colors.extend([[int(round(x*255)) for x in colorsys.hls_to_rgb(hue, l, saturation)] for l in lightness_list])
 
 	#if the input was hex, convert it back
 	if hex_color:
@@ -565,7 +565,7 @@ def shades(in_col, number=10):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	hue, lightness, saturation = colorsys.rgb_to_hls(r, g, b) 
@@ -578,7 +578,7 @@ def shades(in_col, number=10):
 
 	#add the input color to a list, then build the 10 new HSL colors, convert to RGB and save in the same list
 	colors = [in_col]
-	colors.extend([map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hue, l, saturation)) for l in lightness_list])
+	colors.extend([[int(round(x*255)) for x in colorsys.hls_to_rgb(hue, l, saturation)] for l in lightness_list])
 
 	#if the input was hex, convert it back
 	if hex_color:
@@ -605,7 +605,7 @@ def saturate(in_col, number=10):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	hue, lightness, saturation = colorsys.rgb_to_hls(r, g, b) 
@@ -621,7 +621,7 @@ def saturate(in_col, number=10):
 
 	#add the input color to a list, then build the 10 new HSL colors, convert to RGB and save in the same list
 	colors = [in_col]
-	colors.extend([map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hue, lightness, s)) for s in saturation_list])
+	colors.extend([[int(round(x*255)) for x in colorsys.hls_to_rgb(hue, lightness, s)] for s in saturation_list])
 
 	#if the input was hex, convert it back
 	if hex_color:
@@ -648,7 +648,7 @@ def desaturate(in_col, number=10):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	hue, lightness, saturation = colorsys.rgb_to_hls(r, g, b) 
@@ -661,7 +661,7 @@ def desaturate(in_col, number=10):
 
 	#add the input color to a list, then build the 10 new HSL colors, convert to RGB and save in the same list
 	colors = [in_col]
-	colors.extend([map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(hue, lightness, s)) for s in saturation_list])
+	colors.extend([[int(round(x*255)) for x in colorsys.hls_to_rgb(hue, lightness, s)] for s in saturation_list])
 
 	#if the input was hex, convert it back
 	if hex_color:
@@ -688,7 +688,7 @@ def continuum(in_col, number=10):
 	r, g, b = in_col
 
 	# Convert to [0, 1]
-	r, g, b = map(lambda x: x/255., [r, g, b]) 
+	r, g, b = [x/255. for x in [r, g, b]] 
 
 	# RGB -> HLS
 	hue, lightness, saturation = colorsys.rgb_to_hls(r, g, b) 
@@ -697,7 +697,7 @@ def continuum(in_col, number=10):
 	angle = (360/float(number))/360.0
 	h_list = [(hue+ang) % 1 for ang in [angle*s for s in range(number)]]
 
-	colors = [map(lambda x: int(round(x*255)), colorsys.hls_to_rgb(h, lightness, saturation)) for h in h_list] # H'LS -> new RGB
+	colors = [[int(round(x*255)) for x in colorsys.hls_to_rgb(h, lightness, saturation)] for h in h_list] # H'LS -> new RGB
 	colors = [tuple(s) for s in colors]
 
 	#if the input was hex, convert it back
@@ -718,7 +718,7 @@ def visualize(color_list=['#acc123','#ffffff','#000000', '#1ccf9c']):
 	#asserts.... here....
 
 
-	from Tkinter import Tk, Canvas, Frame, BOTH
+	from tkinter import Tk, Canvas, Frame, BOTH
 
 	#check whether input is hex, if it is, make it RGB
 	rgb_color = is_rgb(color_list[0]) 
@@ -772,7 +772,7 @@ def NextRGB(color = (0,0,0)):
 	R, G, B = color
 
 	if R == 255 and G == 255 and B == 255:
-		raise ValueError, 'R, G and B all have the value 255, no further colors are available.'
+		raise ValueError('R, G and B all have the value 255, no further colors are available.')
 	elif  R == 255 and G == 255:
 		R = 0
 		G = 0

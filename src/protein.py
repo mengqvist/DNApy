@@ -29,7 +29,7 @@
 #Get source code at: https://github.com/mengqvist/DNApy
 #
 
-import dna
+from . import dna
 import random
 
 def one_to_three(one_letter):

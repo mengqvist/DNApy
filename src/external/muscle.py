@@ -37,7 +37,7 @@
 
 
 
-from StringIO import StringIO
+from io import StringIO
 from muscle_wrapper import MuscleCommandline
 import fasta
 

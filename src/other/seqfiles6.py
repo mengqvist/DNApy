@@ -35,7 +35,7 @@ import fnmatch
 import dna
 
 
-from StringIO import StringIO
+from io import StringIO
 import pprint
 import copy
 import re
@@ -274,7 +274,7 @@ class SeqObj:
 			self.setQualVal(qual_val)
 		
 		else:
-			print('"%s" is not a .txt, .seq, .scf, .fasta, .fastq, .abif, .ab1, .abi or .ztr file' % self.filename)
+			print(('"%s" is not a .txt, .seq, .scf, .fasta, .fastq, .abif, .ab1, .abi or .ztr file' % self.filename))
 
 			
 			
@@ -420,7 +420,7 @@ class SeqAnalysis:
 
 	
 	def assemble(self):
-		print('Assembling %s' % self.getName())
+		print(('Assembling %s' % self.getName()))
 		if self.getReference() is None: #if no reference sequence is present, do de Novo assembly.
 			self.assemble_de_novo()
 		else: 
@@ -448,7 +448,7 @@ class SeqAnalysis:
 		#I should improve the performance of this algorithm and then convert it to cython...
 		'''
 		#sort the sequence objects based on sequence length, longest first, shortest last
-		seq_list = [self.seqdata[key] for key in self.seqdata.keys()]
+		seq_list = [self.seqdata[key] for key in list(self.seqdata.keys())]
 		seq_list = sorted(seq_list, key=lambda k: k[seq_type].getDNA(), reverse=True) 
 		
 		#set up contig
@@ -525,7 +525,7 @@ class SeqAnalysis:
 				
 			#now take the "best" sequence and add it to the contig
 			bases = []
-			for i,j in itertools.izip_longest(best['seq1'],best['seq2']):
+			for i,j in itertools.zip_longest(best['seq1'],best['seq2']):
 				if i == j and i.upper() in 'GATCN':
 					bases.append(i)
 				elif i.upper() in 'GATC' and j.upper() in '-N':
@@ -535,7 +535,7 @@ class SeqAnalysis:
 				elif i != j and i.upper() in 'GATC' and j.upper() in 'GATC': #both are GATC but they are not the same
 					bases.append(i) #just pick one. I will change it later so that basecalls are used to pick the best one.
 				else:
-					print('unanticipated base value: %s, %s' % (i,j))
+					print(('unanticipated base value: %s, %s' % (i,j)))
 					raise ValueError
 			contig = ''.join(bases)
 			
@@ -561,7 +561,7 @@ class SeqAnalysis:
 		self.setAlignment(self.getReference())
 		
 		#make virtual FASTA file of reference and a sequence file and align. The first entry is always the reference.
-		for key in self.seqdata.keys(): 
+		for key in list(self.seqdata.keys()): 
 			records = '>%s_ref\n%s\n' % (self.getName().lstrip('>'), self.getReference()) #reference
 			records += '>%s\n%s\n' % (self.seqdata[key][seq_type].getName().lstrip('>'), self.seqdata[key][seq_type].getDNA()) #sample
 
@@ -598,7 +598,7 @@ class SeqAnalysis:
 					#update the old reference
 					self.setAlignment(self.getAlignment() + '-' )
 					#update all aligned sequences
-					for key in self.seqdata.keys():
+					for key in list(self.seqdata.keys()):
 						if self.seqdata[key][seq_type].getAlignment() == None:
 							pass
 						elif len(self.seqdata[key][seq_type].getAlignment()) < current_pos-1:
@@ -622,7 +622,7 @@ class SeqAnalysis:
 						new_seq = self.getAlignment()[:current_pos] + '-' + self.getAlignment()[current_pos:]
 						self.setAlignment(new_seq)
 						#update all aligned sequences
-						for key in self.seqdata.keys():
+						for key in list(self.seqdata.keys()):
 							if self.seqdata[key][seq_type].getAlignment() == None:
 								pass
 							elif self.seqdata[key][seq_type].getAlignment()[current_pos] != '-':
@@ -695,7 +695,7 @@ class SeqOverview:
 		extension = '.'.join(filename.split('.')[1:]) #get the extension
 	
 		if extension.upper() in ['TXT', 'AB1', 'SCF', 'FASTQ', 'SEQ', 'SEQ.CLIPPED']: #here I determine which files are allowed
-			print('Adding: %s' % filename)
+			print(('Adding: %s' % filename))
 			name, primer = filename.replace('.' + extension, '').split('_') #get construct and primer names
 			
 			#check whether any other SeqAnalysis object with that name is already present, if not, make one.
@@ -707,7 +707,7 @@ class SeqOverview:
 			elif instance != None: #is present, so add sequence to the existing instance.
 				instance.addSeq(SeqObj(filepath, name, primer, extension)) #make a new SeqObj with the info and add it to the SeqAnalysis object.
 		else:
-			print('Skipping: %s' % filename)
+			print(('Skipping: %s' % filename))
 		
 		
 	def addFolder(self, path):
@@ -733,14 +733,14 @@ class SeqOverview:
 		'''
 		Assemble all 
 		'''
-		for key in x.data.keys():
+		for key in list(x.data.keys()):
 			x.data[key].assemble()
 			
 	def outputAll(self, path):
 		'''
 		Make text output of the contigs.
 		'''
-		for key in x.data.keys():
+		for key in list(x.data.keys()):
 			print(key)
 			x.data[key].generate_output(path)
 
@@ -761,10 +761,10 @@ def tripletalign(RefSeq, Seq):
 				pass	
 			else:					
 				if counter <= 5:
-					print('DNA pos %d, %s mutated to %s --- %s%d%s' % (i+3-1, RefSeq[i:(i+3)], Seq[i:(i+3)], dna.translate(RefSeq[i:(i+3)]), int((i+3)/3), dna.translate(Seq[i:(i+3)])))
+					print(('DNA pos %d, %s mutated to %s --- %s%d%s' % (i+3-1, RefSeq[i:(i+3)], Seq[i:(i+3)], dna.translate(RefSeq[i:(i+3)]), int((i+3)/3), dna.translate(Seq[i:(i+3)]))))
 					counter += 1
 				else:
-					print('over %d consecutive mismatches, rest of construct is likely out of frame' % (counter-1))
+					print(('over %d consecutive mismatches, rest of construct is likely out of frame' % (counter-1)))
 					break
 	print('\n')
 #End of triplet align function
@@ -775,7 +775,7 @@ def tripletalign(RefSeq, Seq):
 if __name__ == '__main__': #if script is run by itself and not loaded	
 	import sys
 	assert len(sys.argv) == 2, 'Error, this script requires a path to a folder containing the sequencing files as an argument.'
-	print('Opening %s' % str(sys.argv[1]))
+	print(('Opening %s' % str(sys.argv[1])))
 	path = str(sys.argv[1]) #Path to folder that contains the sequences
 
 	

@@ -43,7 +43,7 @@ class create(DNApyBaseClass):
 		
 		
 		self.rtc.SetEditable(False) #make it not editable
-		font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Consolas')
+		font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'Consolas')
 		self.rtc.SetFont(font)
 #		self.rtc.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)	
 
@@ -99,7 +99,7 @@ class create(DNApyBaseClass):
 			string=string.upper()
 			i = 0
 
-			[(self.rtc.attr.SetTextColour('#33CC00'), self.rtc.SetStyleEx(rt.RichTextRange(insertionpoint + i, insertionpoint + i+1), self.rtc.attr)) for base in string for i in xrange(len(string)) if base =='A'] 
+			[(self.rtc.attr.SetTextColour('#33CC00'), self.rtc.SetStyleEx(rt.RichTextRange(insertionpoint + i, insertionpoint + i+1), self.rtc.attr)) for base in string for i in range(len(string)) if base =='A'] 
 #			for base in string:
 #				start = insertionpoint + i
 #				end = start + 1

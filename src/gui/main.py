@@ -79,8 +79,8 @@ files['default_dir']=string.replace(files['default_dir'], "library.zip", "")
 
 variables=files['default_dir']+"variables"   ##path to the file of the global variables
 settings=files['default_dir']+"settings"   ##path to the file of the global settings
-execfile(variables) #gets all the pre-assigned variables
-execfile(settings) #gets all the pre-assigned settings
+exec(compile(open(variables).read(), variables, 'exec')) #gets all the pre-assigned variables
+exec(compile(open(settings).read(), settings, 'exec')) #gets all the pre-assigned settings
 
 
 
@@ -751,7 +751,7 @@ Put Table here
 
 	def update_ownUI(self):
 		#and now actually update the UI
-		print('filever index', genbank.gb.get_file_version_index())
+		print(('filever index', genbank.gb.get_file_version_index()))
 		if genbank.gb.get_file_version_index() <= 0: #if there are no undos available
 			self.frame_1_toolbar.EnableTool(513, False)
 		else:
