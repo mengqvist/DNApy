@@ -2,11 +2,11 @@
 
 
 #DNApy is a DNA editor written purely in python.
-#The program is intended to be an intuitive and fully featured 
+#The program is intended to be an intuitive and fully featured
 #editor for molecular and synthetic biology.
 #Enjoy!
 #
-#copyright (C) 2014-2015  Martin Engqvist |
+#copyright (C) 2014-2017  Martin Engqvist |
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
@@ -30,8 +30,8 @@
 #
 
 
-#This script lends ideas and code snippets from the oligo finder written by Andrea Cabibbo andrea.cabibbo@uniroma2.it   
-#http://www.cellbiol.com/scripts/oligo/oligo_motif_sequence_finder.php    
+#This script lends ideas and code snippets from the oligo finder written by Andrea Cabibbo andrea.cabibbo@uniroma2.it
+#http://www.cellbiol.com/scripts/oligo/oligo_motif_sequence_finder.php
 
 
 import re

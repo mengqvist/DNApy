@@ -2,11 +2,11 @@
 
 
 #DNApy is a DNA editor written purely in python.
-#The program is intended to be an intuitive and fully featured 
+#The program is intended to be an intuitive and fully featured
 #editor for molecular and synthetic biology.
 #Enjoy!
 #
-#copyright (C) 2014-2015  Martin Engqvist |
+#copyright (C) 2014-2017  Martin Engqvist |
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #LICENSE:
@@ -33,7 +33,7 @@
 #
 # This file should contain classes to enable enzyme functions
 # as of now it contains the following classes:
-# 
+#
 # restrictionEnzyme()		store info about an restriction enzyme type II
 # initRestriction()			class to store and update all avialible restriction enzymes
 #
@@ -45,7 +45,7 @@ from base_class import DNApyBaseClass
 import wx
 import re
 import string
-from . import genbank
+import genbank
 import math
 import collections
 
@@ -78,17 +78,17 @@ class restrictionEnzyme(object):
 		self.c31		= int(c31)
 		self.c52		= int(c52)
 		self.c32		= int(c32)
-		
+
 		self.regex		= regex
-		
+
 		self.restrictionSites	= []	# empty list
-		
+
 	def addRestrictionSite(self,start,end,cut51,cut52,dnaMatch):
 		self.restrictionSites.append([self.name,start,end,cut51,cut52,dnaMatch])
-		
+
 	def resetRestrictionSite(self):
 		self.restrictionSites = []
-	
+
 
 # End of Class restrictionEnzyme()
 ##########################################################################
@@ -97,64 +97,64 @@ class restrictionEnzyme(object):
 
 ##########################################################################
 # Class initRestriction()
-# 
+#
 # store and update info about restriction enzymes
 #
 class initRestriction(object):
 	def __init__(self, gb):
 		'''Class to be loaded at every file change. It then evaluates the restrictionsites
-		and saves every Info. This enables fast access from every part of the software to 
-		restriction sites''' 
-		
+		and saves every Info. This enables fast access from every part of the software to
+		restriction sites'''
+
 		# on init get the current DNA
 		self.oldDna 	= ''
 		self.currentDNA = gb.gbfile["dna"]
-		
-		
+
+
 		# store for all enzymes and the sites
 		self.enzymeObj			= collections.OrderedDict()
-		
+
 		# load enzymes
 		self.loadEnzymes()
-		
+
 		# add the other stuff
 		self.reloadEnzymes(gb)
-		
+
 		self.selection = {}
-		
-		
-			
+
+
+
 	def reloadEnzymes(self, gb):
 		'''should be called if you want to reload the enzymes'''
 
 		self.currentDNA = gb.gbfile["dna"]
-		
+
 		# just if the dna had changed, reload the restriction sites
 		if self.currentDNA != self.oldDna:
-			
+
 			# updates cuts:
 			self.findRestrictionSites()
 			self.oldDna 			= gb.gbfile["dna"]
 
 
 	def loadEnzymes(self):
-		''' load the restrictionenzymes from the emboss file, once. '''	
+		''' load the restrictionenzymes from the emboss file, once. '''
 
-		
+
 		self.allEnzymes			= []
 
 
 		# for this we have enzymes in folder /resources
 		with open('resources/emboss_e.txt') as f:
-			for line in f:	
+			for line in f:
 				# each line is one enzyme, except the header
-				if ( line[:1] != "#" ):	
-		
+				if ( line[:1] != "#" ):
+
 					# split the line
-					lineparts = re.split(r'\t+', line)	
-			
-			
-			
+					lineparts = re.split(r'\t+', line)
+
+
+
 
 					# form the regexp:
 					#Code	Meaning			Etymology	Complement	Opposite
@@ -174,7 +174,7 @@ class initRestriction(object):
 					#D	A or G or T		not C (D comes after C)	H	C
 					#X/N	G or A or T or C	any	N	.
 					#.	not G or A or T or C	.	N
-					#-	gap of indeterminate length	
+					#-	gap of indeterminate length
 					regpattern = lineparts[1]
 					regpattern = string.replace(regpattern,"U","T")
 					regpattern = string.replace(regpattern,"K","(G|T)")
@@ -190,8 +190,8 @@ class initRestriction(object):
 					regpattern = string.replace(regpattern,"N","[AGTC]")
 					regpattern = string.replace(regpattern,"X","[AGTC]")
 
-			
-				
+
+
 					# use new object instead:
 					name 		= lineparts[0]
 					pattern		= lineparts[1]
@@ -202,40 +202,40 @@ class initRestriction(object):
 					c31			= int(lineparts[6])
 					c52			= int(lineparts[7])
 					c32			= int(lineparts[8])
-					
-					
+
+
 					regex		= re.compile(regpattern, re.IGNORECASE)
-				
+
 					self.enzymeObj[name] = restrictionEnzyme(name, pattern, length, ncuts,blunt,c51,c31,c52,c32,regex)
 					self.allEnzymes.append(name)
 
 		return self.enzymeObj
-	
-	
-	
-	# load and find all restriction sites	
+
+
+
+	# load and find all restriction sites
 	def findRestrictionSites(self):
 
 
 		dnaseq      = self.currentDNA
 		if dnaseq != None:
-		
+
 			# circular dna
-			# we just inspect the region +-100 
+			# we just inspect the region +-100
 			# to find enzyme, which cut near 0 in a ciclic plasmid
 			if genbank.gb.gbfile['locus']['topology'] == 'circular':
 				circularDnaHelper = dnaseq[:100]  # helper of 200bp from 0 to 100
 			else:
 				circularDnaHelper = ''
-					
+
 			wholeDNA2Inspect = '%s%s' % (dnaseq, circularDnaHelper)		     # dna width circular helper added
 
 			# loop all the selected enzymes
 			for enzyme in self.enzymeObj:
-				
+
 				# reset restrictionsites first:
 				self.enzymeObj[enzyme].resetRestrictionSite()
-				
+
 				restrictionsitesList = [] # variable to return the restriction sites
 				r         	= self.enzymeObj[enzyme].regex
 				# get the cut position
@@ -258,18 +258,16 @@ class initRestriction(object):
 						ncut52	= (match.start() + offset2) % modulo
 
 					dnaMatch 	= wholeDNA2Inspect[match.start():match.end()]
-				
+
 					# save the new restriction site if its new
 					if start not in restrictionsitesList:
 						restrictionsitesList.append(start)
-						
+
 					# now add the sites to the enzyme
 					self.enzymeObj[enzyme].addRestrictionSite(start,end,cut51,cut52,dnaMatch)
-		
-			
-			
+
+
+
 			return restrictionsitesList
 # End of Class initRestriction()
 ##########################################################################
-
-
