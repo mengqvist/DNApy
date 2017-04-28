@@ -34,12 +34,49 @@ import string
 import random
 from functools import reduce
 
+#g/mol (Da)
+# {'A':347.2,
+# 'C':323.2,
+# 'G':363.2,
+# 'U':324.2}
+#
+# {'A':331.2,
+# 'C':307.2,
+# 'G':347.2,
+# 'T':322.2}
 
-class BioSeq(str):
+
+# {'A':89,
+# 'R':174,
+# 'N':132,
+# 'D':133,
+# 'C':121,
+# 'Q':146,
+# 'E':147,
+# 'G':75,
+# 'H':155,
+# 'I':131,
+# 'L':131,
+# 'K':146,
+# 'M':149,
+# 'F':165,
+# 'P':115,
+# 'S':105,
+# 'T:'119,
+# 'W':204,
+# 'Y':181,
+# 'V':117}
+
+
+
+## Sub-classing of the str class and modification of some of the methods ##
+
+class _BioSeq(str):
 	"""
 	"""
-	def __init__(self, sequence):
+	def __init__(self, sequence, alphabet=''):
 		assert type(sequence) == str or type(sequence) == str, 'Error, input sequence must be a string or unicode'
+		self.alphabet = alphabet
 		self.__check_seq(sequence)
 
 	def __repr__(self):
@@ -61,13 +98,44 @@ class BioSeq(str):
 	def __getitem__(self, index):
 		return type(self)(self.sequence[index])
 
+	## Unmodified builtins ##
+	#__class__
+	#__contains__
+	#__delattr__
+	#__dir__
+	#__doc__
+	#__eq__
+	#__format__
+	#__ge__
+	#__getattribute__
+	#__getnewargs__
+	#__gt__
+	#__hash__
+	#__init__
+	#__le__
+	#__len__
+	#__lt__
+	#__mod__
+	#__ne__
+	#__new__
+	#__reduce__
+	#__reduce_ex__
+	#__rmod__
+	#__rmul__
+	#__setattr__
+	#__sizeof__
+	#__subclasshook__
+
+
 	def __check_seq(self, sequence):
 		"""
 		Verify that there are no weird symbols
 		"""
-
-		#if it's all ok
-		self.sequence = sequence
+		valid_chars = [s for s in sequence if s in self.alphabet]
+		diff = len(sequence) - len(valid_chars)
+		if diff != 0:
+			print('%s characters were non-compliant with %s and were removed from sequence' % (diff, self.alphabet))
+		self.sequence = ''.join(valid_chars)
 
 	### Re-define builtins for string ###
 
@@ -233,17 +301,36 @@ class BioSeq(str):
 		return length(self.sequence)
 
 
-class DNA(BioSeq):
+	def randomize(self):
+		'''
+		Randomize a given DNA, RNA or protein sequence.
+		'''
+		seq = list(self.sequence)
+		output_list = []
+		while seq:
+			char = random.choice(seq)
+			seq.remove(char)
+			output_list.append(char)
+		return type(self)(''.join(output_list))
+
+
+## Common class to be used for ambDNA, DNA, ambRNA and RNA through sub-classing ##
+
+class _NucleotideBaseClass(_BioSeq):
+
+
+
+class DNA(_BioSeq):
 
 	def __init__(self, sequence):
-		BioSeq.__init__(self, sequence)
+		self.alphabet = 'atcgATCG'
+		_BioSeq.__init__(self, sequence, alphabet)
 
 	def type(self):
 		"""
 		What type sequence is it
 		"""
 		return 'DNA'
-
 
 
 	def clean(self, ambiguous=False, silent=True):
@@ -277,10 +364,9 @@ class DNA(BioSeq):
 		"""
 		Returns the complement of a DNA string.
 		"""
-		complement = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
+		transl = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
 						'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
-		bases = list(self.sequence)
-		bases = [complement[base] for base in bases]
+		bases = [transl[base] for base in bases]
 		return DNA(''.join(bases))
 
 
@@ -290,20 +376,22 @@ class DNA(BioSeq):
 		"""
 		return self.reverse().complement()
 
+
 	def transcribe(self):
 		"""
 		Return RNA version of DNA
 		"""
 		transl = {'t':'u', 'T':'U'}
 
-		RNA = []
+		transcript = []
 		for base in self.sequence:
 			if base in ['T', 't']:
-				RNA.append(transl[base])
+				transcript.append(transl[base])
 			else:
-				RNA.append(base)
+				transcript.append(base)
 
-		return ''.join(RNA)
+		return RNA(''.join(transcript))
+
 
 	def translate(self, table=1):
 		"""
@@ -311,55 +399,55 @@ class DNA(BioSeq):
 		The table variable specifies which codon table should be used.
 		table defaults to the standard codon table 1
 		"""
-		codons = CodonTable(table).getCodons()
+		codons = CodonTable(table).get_codons()
 
 		protein = []
-		RNA = self.sequence.upper().transcribe()
+		transcript = self.sequence.upper().transcribe()
 
-		for i in range(0, len(RNA), 3):
-			if i+3>len(RNA):
+		for i in range(0, len(transcript), 3):
+			if i+3>len(transcript):
 				pass
-			elif any(RNA[i:(i+3)] in s for s in codons['F']):
+			elif any(transcript[i:(i+3)] in s for s in codons['F']):
 				protein.append('F')
-			elif any(RNA[i:(i+3)] in s for s in codons['L']):
+			elif any(transcript[i:(i+3)] in s for s in codons['L']):
 				protein.append('L')
-			elif any(RNA[i:(i+3)] in s for s in codons['S']):
+			elif any(transcript[i:(i+3)] in s for s in codons['S']):
 				protein.append('S')
-			elif any(RNA[i:(i+3)] in s for s in codons['Y']):
+			elif any(transcript[i:(i+3)] in s for s in codons['Y']):
 				protein.append('Y')
-			elif any(RNA[i:(i+3)] in s for s in codons['*']):
+			elif any(transcript[i:(i+3)] in s for s in codons['*']):
 				protein.append('*')
-			elif any(RNA[i:(i+3)] in s for s in codons['C']):
+			elif any(transcript[i:(i+3)] in s for s in codons['C']):
 				protein.append('C')
-			elif any(RNA[i:(i+3)] in s for s in codons['W']):
+			elif any(transcript[i:(i+3)] in s for s in codons['W']):
 				protein.append('W')
-			elif any(RNA[i:(i+3)] in s for s in codons['P']):
+			elif any(transcript[i:(i+3)] in s for s in codons['P']):
 				protein.append('P')
-			elif any(RNA[i:(i+3)] in s for s in codons['H']):
+			elif any(transcript[i:(i+3)] in s for s in codons['H']):
 				protein.append('H')
-			elif any(RNA[i:(i+3)] in s for s in codons['E']):
+			elif any(transcript[i:(i+3)] in s for s in codons['E']):
 				protein.append('E')
-			elif any(RNA[i:(i+3)] in s for s in codons['R']):
+			elif any(transcript[i:(i+3)] in s for s in codons['R']):
 				protein.append('R')
-			elif any(RNA[i:(i+3)] in s for s in codons['I']):
+			elif any(transcript[i:(i+3)] in s for s in codons['I']):
 				protein.append('I')
-			elif any(RNA[i:(i+3)] in s for s in codons['M']):
+			elif any(transcript[i:(i+3)] in s for s in codons['M']):
 				protein.append('M')
-			elif any(RNA[i:(i+3)] in s for s in codons['T']):
+			elif any(transcript[i:(i+3)] in s for s in codons['T']):
 				protein.append('T')
-			elif any(RNA[i:(i+3)] in s for s in codons['N']):
+			elif any(transcript[i:(i+3)] in s for s in codons['N']):
 				protein.append('N')
-			elif any(RNA[i:(i+3)] in s for s in codons['K']):
+			elif any(transcript[i:(i+3)] in s for s in codons['K']):
 				protein.append('K')
-			elif any(RNA[i:(i+3)] in s for s in codons['V']):
+			elif any(transcript[i:(i+3)] in s for s in codons['V']):
 				protein.append('V')
-			elif any(RNA[i:(i+3)] in s for s in codons['A']):
+			elif any(transcript[i:(i+3)] in s for s in codons['A']):
 				protein.append('A')
-			elif any(RNA[i:(i+3)] in s for s in codons['D']):
+			elif any(transcript[i:(i+3)] in s for s in codons['D']):
 				protein.append('D')
-			elif any(RNA[i:(i+3)] in s for s in codons['Q']):
+			elif any(transcript[i:(i+3)] in s for s in codons['Q']):
 				protein.append('Q')
-			elif any(RNA[i:(i+3)] in s for s in codons['G']):
+			elif any(transcript[i:(i+3)] in s for s in codons['G']):
 				protein.append('G')
 			else:
 				protein.append('X')
@@ -476,28 +564,18 @@ class DNA(BioSeq):
 			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
 		return freq_table
 
-	def randomize(self):
-		'''
-		Randomize a given DNA or protein sequence.
-		'''
-		seq = list(self.sequence)
-		output_list = []
-		while seq:
-			char = random.choice(seq)
-			seq.remove(char)
-			output_list.append(char)
-		output = ''.join(output_list)
-		return DNA(output)
 
 
 
 
 
 
-class RNA(BioSeq):
+
+class RNA(_BioSeq):
 
 	def __init__(self, sequence):
-		BioSeq.__init__(self, sequence)
+		self.alphabet = 'aucgAUCG'
+		_BioSeq.__init__(self, sequence)
 
 	def type(self):
 		"""
@@ -512,24 +590,27 @@ class RNA(BioSeq):
 		pass
 
 
-	def randomize(self):
-		'''
-		Randomize a given DNA or protein sequence.
-		'''
-		seq = list(self.sequence)
-		output_list = []
-		while seq:
-			char = random.choice(seq)
-			seq.remove(char)
-			output_list.append(char)
-		output = ''.join(output_list)
-		return RNA(output)
+	def reverse_transcribe(self):
+		"""
+		Return RNA version of DNA
+		"""
+		transl = {'u':'t', 'U':'T'}
+
+		transcript = []
+		for base in self.sequence:
+			if base in ['U', 'u']:
+				transcript.append(transl[base])
+			else:
+				transcript.append(base)
+
+		return RNA(''.join(transcript))
 
 
 
-class Protein(BioSeq):
+class Protein(_BioSeq):
 	def __init__(self, sequence):
-		BioSeq.__init__(self, sequence)
+		self.alphabet = 'FLSYCWPHERIMTNKVADQG*X'
+		_BioSeq.__init__(self, sequence)
 
 
 	def type(self):
@@ -545,7 +626,7 @@ class Protein(BioSeq):
 		pass
 
 
-	def GetCodons(AA, table=1, separate=False):
+	def get_codons(self, AA, table=1, separate=False):
 		'''
 		Get the codons for a specified AA. Returns a list of strings.
 		The variable table specifies which codon table should be used.
@@ -557,184 +638,104 @@ class Protein(BioSeq):
 		AA = AA.upper()
 	#	if separate is False: #what the heck is this if clause for?? Can I remove it?
 		assert len(AA) == 1, 'Error, function takes a single amino acid as input'
-		assert AA in 'FLSYCWPHERIMTNKVADQG*', 'Error, %s is not a valid amino acid' % str(AA)
+		assert AA in self.alphabet, 'Error, %s is not a valid amino acid' % str(AA)
 
-		codons = CodonTable(table).getCodons(separate)
+		codons = CodonTable(table).get_codons(separate)
 
 		return codons[AA]
 
-	def ReverseTranslate(protein, table=1):
-		'''
-		Translate protein to DNA.
-		The input is a protein sequence as a string.
-		The output is a list of codons (with ambigous bases) that describe that protein.
-		For some amino acids there will be two possible ambigous codons.
-		Run the combine() function to convert the list to all possible dna sequences.
-		'''
-		assert type(protein) == str or type(protein) == str, 'Error, input sequence must be a string or unicode'
-		dnalist = []
-		for aa in protein:
-			dnalist.append(GetCodons(aa, table))
-		return dnalist
 
-	def one_to_three(one_letter):
+	def one_to_three(self, one_letter):
 		'''
 		Convert a one letter code amino acid to a three letter code.
 		'''
-		assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*X', 'Error, %s is not a valid amino acid' % one_letter
-
-		AA = {'I':'Ile',
-		'V':'Val',
-		'L':'Leu',
-		'F':'Phe',
-		'C':'Cys',
-		'M':'Met',
-		'A':'Ala',
-		'G':'Gly',
-		'T':'Thr',
-		'W':'Trp',
-		'S':'Ser',
-		'Y':'Tyr',
-		'P':'Pro',
-		'H':'His',
-		'E':'Glu',
-		'Q':'Gln',
-		'D':'Asp',
-		'N':'Asn',
-		'K':'Lys',
-		'R':'Arg',
-		'*':'***',
-		'X':'Unknown'}
+		AA = {'I':'Ile', 'V':'Val',
+		'L':'Leu', 'F':'Phe',
+		'C':'Cys', 'M':'Met',
+		'A':'Ala', 'G':'Gly',
+		'T':'Thr', 'W':'Trp',
+		'S':'Ser', 'Y':'Tyr',
+		'P':'Pro', 'H':'His',
+		'E':'Glu', 'Q':'Gln',
+		'D':'Asp', 'N':'Asn',
+		'K':'Lys', 'R':'Arg',
+		'*':'***', 'X':'Unknown'}
+		assert one_letter.upper() in AA.keys(), 'Error, %s is not a valid amino acid' % one_letter
 		return AA[one_letter.upper()]
 
 
-	def three_to_one(three_letter):
+	def three_to_one(self, three_letter):
 		'''
 		Convert a three letter code amino acid to a one letter code.
 		'''
-		assert three_letter.upper() in ['ILE','VAL','LEU','PHE','CYS','MET','ALA','GLY','THR','TRP','SER','TYR','PRO','HIS','GLU','GLN','ASP','ASN','LYS','ARG','STOP'], 'Error, %s is not a valid amino acid' % three_letter
-
-		AA = {'ILE':'I',
-		'VAL':'V',
-		'LEU':'L',
-		'PHE':'F',
-		'CYS':'C',
-		'MET':'M',
-		'ALA':'A',
-		'GLY':'G',
-		'THR':'T',
-		'TRP':'W',
-		'SER':'S',
-		'TYR':'Y',
-		'PRO':'P',
-		'HIS':'H',
-		'GLU':'E',
-		'GLN':'Q',
-		'ASP':'D',
-		'ASN':'N',
-		'LYS':'K',
-		'ARG':'R',
-		'***':'*'}
+		AA = {'ILE':'I', 'VAL':'V',
+		'LEU':'L', 'PHE':'F',
+		'CYS':'C', 'MET':'M',
+		'ALA':'A', 'GLY':'G',
+		'THR':'T', 'TRP':'W',
+		'SER':'S', 'TYR':'Y',
+		'PRO':'P', 'HIS':'H',
+		'GLU':'E', 'GLN':'Q',
+		'ASP':'D', 'ASN':'N',
+		'LYS':'K', 'ARG':'R',
+		'***':'*', 'UNKNOWN':'X'}
+		assert three_letter.upper() in AA.keys(), 'Error, %s is not a valid amino acid' % three_letter
 		return AA[three_letter.upper()]
 
 
-	def one_to_full(one_letter):
+	def one_to_full(self, one_letter):
 		'''
 		Convert one-letter amino acid code to full amino acid name.
 		'''
-		assert one_letter.upper() in 'FLSYCWPHERIMTNKVADQG*X', 'Error, %s is not a valid amino acid' % one_letter
-		AA = {'F':'Phenylalanine',
-		'L':'Leucine',
-		'S':'Serine',
-		'Y':'Tyrosine',
-		'*':'Stop',
-		'C':'Cysteine',
-		'W':'Tryptophan',
-		'P':'Proline',
-		'H':'Histidine',
-		'Q':'Glutamine',
-		'R':'Arginine',
-		'I':'Isoleucine',
-		'M':'Methionine',
-		'T':'Threonine',
-		'N':'Asparagine',
-		'K':'Lysine',
-		'V':'Valine',
-		'A':'Alanine',
-		'D':'Aspartic acid',
-		'E':'Glutamic acid',
-		'G':'Glycine',
-		'X': 'Unknown'}
+		AA = {'F':'Phenylalanine', 'L':'Leucine',
+		'S':'Serine', 'Y':'Tyrosine',
+		'*':'Stop', 'C':'Cysteine',
+		'W':'Tryptophan', 'P':'Proline',
+		'H':'Histidine', 'Q':'Glutamine',
+		'R':'Arginine', 'I':'Isoleucine',
+		'M':'Methionine', 'T':'Threonine',
+		'N':'Asparagine', 'K':'Lysine',
+		'V':'Valine', 'A':'Alanine',
+		'D':'Aspartic acid', 'E':'Glutamic acid',
+		'G':'Glycine', 'X': 'Unknown'}
+		assert one_letter.upper() in AA.keys(), 'Error, %s is not a valid amino acid' % one_letter
 		return AA[one_letter.upper()]
 
 
-	def full_to_one(full):
+	def full_to_one(self, full):
 		'''
 		Convert full amino acid name to one-letter amino acid code.
 		'''
-		assert full.lower() in ['phenylalanine',
-								'leucine',
-								'serine',
-								'tyrosine',
-								'stop',
-								'cysteine',
-								'tryptophan',
-								'proline',
-								'histidine',
-								'glutamine',
-								'arginine',
-								'isoleucine',
-								'methionine',
-								'threonine',
-								'asparagine',
-								'lysine',
-								'valine',
-								'alanine',
-								'aspartic acid',
-								'glutamic acid',
-								'glycine',
-								'unknown'], ('Error, %s is not a valid amino acid' % full)
-
-		AA = {'phenylalanine':'F',
-				'leucine':'L',
-				'serine':'S',
-				'tyrosine':'Y',
-				'stop':'*',
-				'cysteine':'C',
-				'tryptophan':'W',
-				'proline':'P',
-				'histidine':'H',
-				'glutamine':'Q',
-				'arginine':'R',
-				'isoleucine':'I',
-				'methionine':'M',
-				'threonine':'T',
-				'asparagine':'N',
-				'lysine':'K',
-				'valine':'V',
-				'alanine':'A',
-				'aspartic acid':'D',
-				'glutamic acid':'E',
-				'glycine':'G',
-				'unknown': 'X'} # to handle N as a nuclec acid
+		AA = {'phenylalanine':'F', 'leucine':'L',
+				'serine':'S', 'tyrosine':'Y',
+				'stop':'*', 'cysteine':'C',
+				'tryptophan':'W', 'proline':'P',
+				'histidine':'H', 'glutamine':'Q',
+				'arginine':'R', 'isoleucine':'I',
+				'methionine':'M', 'threonine':'T',
+				'asparagine':'N', 'lysine':'K',
+				'valine':'V', 'alanine':'A',
+				'aspartic acid':'D', 'glutamic acid':'E',
+				'glycine':'G', 'unknown': 'X'} # to handle N as a nuclec acid
+		assert full.lower() in AA.keys(), 'Error, %s is not a valid amino acid' % full
 		return AA[full.lower()]
 
 
-	def three_to_full(three_letter):
+	def three_to_full(self, three_letter):
 		'''
 		Convert amino acid three letter code to full amino acid names.
 		'''
 		return one_to_full(three_to_one(three_letter))
 
 
-	def full_to_three(full):
+	def full_to_three(self, full):
 		'''
 		Convert full amino acid names to three letter code.
 		'''
 		return one_to_three(full_to_one(full))
 
 
-	def count_aa(seq):
+	def count_aa(self, seq):
 		'''
 		Count occurrences of all amino acids in sequence.
 		The X character for unknown amino acid is allowed.
@@ -768,8 +769,7 @@ class Protein(BioSeq):
 		return AA
 
 
-
-	def reverse_translate(prot_seq, table=1):
+	def reverse_translate(self, prot_seq, table=1):
 		'''
 		Reverse translates protein sequence to DNA sequence using the specified codon table.
 		For each amino acid the DNA codon is chosen randomly from those that encode the specified amino acid.
@@ -782,24 +782,29 @@ class Protein(BioSeq):
 		assert type(prot_seq) is str, 'Error, the input must be a string containing amino acids in single letter code.'
 		dna_seq = []
 		for AA in prot_seq:
-			possible = dna.GetCodons(AA, table=table, separate=False)
+			possible = self.get_codons(AA, table=table, separate=False)
 			dna_seq.append(random.choice(possible))
 
-		return ''.join(dna_seq)
+		return RNA(''.join(dna_seq))
 
 
-	def randomize(self):
+	def reverse_translate_ambiguous(self, table=1):
 		'''
-		Randomize a given DNA or protein sequence.
+		Translate protein to RNA.
+		The input is a protein sequence as a string.
+		The output is a list of codons (with ambigous bases) that describe that protein.
+		For some amino acids there will be two possible ambigous codons.
+		Run the combine() function to convert the list to all possible dna sequences.
 		'''
-		seq = list(self.sequence)
-		output_list = []
-		while seq:
-			char = random.choice(seq)
-			seq.remove(char)
-			output_list.append(char)
-		output = ''.join(output_list)
-		return Protein(output)
+
+		#### This one needs attention! #########
+
+		dnalist = []
+		for aa in self.sequence:
+			dnalist.append(self.get_codons(aa, table=table, separate=False))
+		return dnalist
+
+
 
 
 class CodonTable(object):
@@ -812,11 +817,11 @@ class CodonTable(object):
 		self.code = False
 		self.table = False
 		self.codons = False
-		self.setTable(number) #get the specified codon table (returned as list of strings)
-		self.setCodons() #convert the codon table information to codons
+		self.__set_table(number) #get the specified codon table (returned as list of strings)
+		self.__set_codons() #convert the codon table information to codons
 
 
-	def setTable(self, number):
+	def __set_table(self, number):
 		'''
 		Find information for specified genetic code and use for downstream methods.
 		Method is not intended for direct use.
@@ -999,12 +1004,12 @@ class CodonTable(object):
 		self.table = [code, AAs, Starts, Base1, Base2, Base3]
 
 
-	def setCodons(self):
+	def __set_codons(self):
 		'''
 		Use a predetermined codon table to generate a dictionary of amino acids with their codons.
 		Method is not intended for direct use.
 		'''
-		code, AAs, Starts, Base1, Base2, Base3 = self.getTable()
+		code, AAs, Starts, Base1, Base2, Base3 = self.get_table()
 		codons = {'start':[], 'F':[], 'L':[], 'S':[], 'Y':[], 'C':[], 'W':[], 'P':[], 'H':[], 'E':[], 'R':[], 'I':[], 'M':[], 'T':[], 'N':[], 'K':[], 'V':[], 'A':[], 'D':[], 'Q':[], 'G':[], '*':[]}
 		for aa, s, b1, b2, b3 in zip(AAs, Starts, Base1, Base2, Base3):
 			codon = b1+b2+b3
@@ -1021,7 +1026,7 @@ class CodonTable(object):
 
 	######## API intended for use #########
 
-	def getCode(self):
+	def get_code(self):
 		'''
 		Return which genetic code is represented.
 		The output is a string which specifies the code'
@@ -1030,7 +1035,7 @@ class CodonTable(object):
 		return self.code
 
 
-	def getTable(self):
+	def get_table(self):
 		'''
 		Return the codon table data for the specified genetic code.
 		The output is a list of strings.
@@ -1038,7 +1043,7 @@ class CodonTable(object):
 		return self.table
 
 
-	def getCodons(self, separate=False):
+	def get_codons(self, separate=False):
 		'''
 		Returns a dictionary of amino acids with their codons for the specified codon table.
 		The separate variable determines whether codons for one amino acid with dissimilar first two nucleotides should be separated out.
@@ -1064,8 +1069,7 @@ class CodonTable(object):
 			return newdict
 
 
-
-	def printTable(self):
+	def print_table(self):
 		'''
 		Print specified codon table.
 		'''
@@ -1077,11 +1081,12 @@ class CodonTable(object):
 		print(('Base2  = %s' % Base2))
 		print(('Base3  = %s' % Base3))
 
-	def printCodons(self):
+
+	def print_codons(self):
 		'''
 		Print codons specified by codon table.
 		'''
-		codons = self.getCodons()
+		codons = self.get_codons()
 		print(('start = %s' %codons['start']))
 		print(('stop  = %s' %codons['stop']))
 		for aa in 'FLSYCWPHERIMTNKVADQG*':
