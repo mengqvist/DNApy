@@ -35,7 +35,7 @@ import random
 from functools import reduce
 
 
-class BioSeq(object):
+class BioSeq(str):
 	"""
 	"""
 	def __init__(self, sequence):
@@ -48,32 +48,189 @@ class BioSeq(object):
 	def __str__(self):
 		return self.sequence
 
+	def __iter__(self):
+		for item in iter(self.sequence):
+			yield type(self)(item)
+
+	def __add__(self, b):
+		return type(self)(self.sequence+str(b))
+
+	def __mul__(self, b):
+		return type(self)(self.sequence*b)
+
+	def __getitem__(self, index):
+		return type(self)(self.sequence[index])
+
 	def __check_seq(self, sequence):
 		"""
-		Verify that there are not weird symbols
+		Verify that there are no weird symbols
 		"""
 
 		#if it's all ok
 		self.sequence = sequence
 
-	def randomize(self):
-		'''
-		Randomize a given DNA or protein sequence.
-		'''
-		seq = list(self.sequence)
-		output_list = []
-		while seq:
-			char = random.choice(seq)
-			seq.remove(char)
-			output_list.append(char)
-		output = ''.join(output_list)
-		return output
+	### Re-define builtins for string ###
+
+	def capitalize(self):
+		"""
+		"""
+		return type(self)(self.sequence.capitalize())
+
+	def casefold(self):
+		"""
+		"""
+		return type(self)(self.sequence.casefold())
+
+	def center(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def encode(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def expandtabs(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def format(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def format_map(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def join(self, string):
+		"""
+		"""
+		return type(self)(self.sequence.join(string))
+
+	def ljust(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def lower(self):
+		"""
+		"""
+		return type(self)(self.sequence.lower())
+
+	def lstrip(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def maketrans(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def partition(self, sep):
+		"""
+		"""
+		return (type(self)(s) for s in self.sequence.partition(sep))
+
+	def replace(self, old, new, count=None):
+		"""
+		"""
+		if count:
+			return type(self)(self.sequence.replace(old, new, count))
+		else:
+			return type(self)(self.sequence.replace(old, new))
+
+	def rjust(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def rpartition(self, sep):
+		"""
+		"""
+		return (type(self)(s) for s in self.sequence.rpartition(sep))
+
+	def rsplit(self, sep=None, maxsplit=-1):
+		"""
+		"""
+		return [type(self)(s) for s in self.sequence.rsplit(sep, maxsplit)]
+
+	def rstrip(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def split(self, sep=None, maxsplit=-1):
+		"""
+		"""
+		return [type(self)(s) for s in self.sequence.split(sep, maxsplit)]
+
+	def splitlines(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def strip(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def swapcase(self):
+		"""
+		"""
+		return type(self)(self.sequence.swapcase())
+
+	def title(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def translate(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+	def upper(self):
+		"""
+		"""
+		return type(self)(self.sequence.lower())
+
+	def zfill(*arg):
+		"""
+		"""
+		raise NotImplementedError
+
+
+	## Unmodified methods ##
+	#endswith
+	#find
+	#index
+	#isalnum
+	#isalpha
+	#isdecimal
+	#isdigit
+	#isidentifier
+	#islower
+	#isnumeric
+	#isprintable
+	#isspace
+	#istitle
+	#isupper
+	#rfind
+	#rindex
+	#startswith
+
+
+	######################################
 
 	def length(self):
 		"""
 		"""
 		return length(self.sequence)
-
 
 
 class DNA(BioSeq):
@@ -87,7 +244,9 @@ class DNA(BioSeq):
 		"""
 		return 'DNA'
 
-	def clean_dna(self, ambiguous=False, silent=True):
+
+
+	def clean(self, ambiguous=False, silent=True):
 		'''
 		Function for cleaning DNA of non-DNA characters.
 		The variable ambiguous (bool) determines whether the full set of ambiguous codons are used or not.
@@ -317,7 +476,18 @@ class DNA(BioSeq):
 			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
 		return freq_table
 
-
+	def randomize(self):
+		'''
+		Randomize a given DNA or protein sequence.
+		'''
+		seq = list(self.sequence)
+		output_list = []
+		while seq:
+			char = random.choice(seq)
+			seq.remove(char)
+			output_list.append(char)
+		output = ''.join(output_list)
+		return DNA(output)
 
 
 
@@ -336,6 +506,24 @@ class RNA(BioSeq):
 		return 'RNA'
 
 
+	def clean(self, silent=True):
+		"""
+		"""
+		pass
+
+
+	def randomize(self):
+		'''
+		Randomize a given DNA or protein sequence.
+		'''
+		seq = list(self.sequence)
+		output_list = []
+		while seq:
+			char = random.choice(seq)
+			seq.remove(char)
+			output_list.append(char)
+		output = ''.join(output_list)
+		return RNA(output)
 
 
 
@@ -349,6 +537,13 @@ class Protein(BioSeq):
 		What type sequence is it
 		"""
 		return 'Protein'
+
+
+	def clean(self, silent=True):
+		"""
+		"""
+		pass
+
 
 	def GetCodons(AA, table=1, separate=False):
 		'''
@@ -592,6 +787,19 @@ class Protein(BioSeq):
 
 		return ''.join(dna_seq)
 
+
+	def randomize(self):
+		'''
+		Randomize a given DNA or protein sequence.
+		'''
+		seq = list(self.sequence)
+		output_list = []
+		while seq:
+			char = random.choice(seq)
+			seq.remove(char)
+			output_list.append(char)
+		output = ''.join(output_list)
+		return Protein(output)
 
 
 class CodonTable(object):
