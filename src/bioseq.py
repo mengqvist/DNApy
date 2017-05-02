@@ -34,39 +34,6 @@ import string
 import random
 from functools import reduce
 
-#g/mol (Da)
-# {'A':347.2,
-# 'C':323.2,
-# 'G':363.2,
-# 'U':324.2}
-#
-# {'A':331.2,
-# 'C':307.2,
-# 'G':347.2,
-# 'T':322.2}
-
-
-# {'A':89,
-# 'R':174,
-# 'N':132,
-# 'D':133,
-# 'C':121,
-# 'Q':146,
-# 'E':147,
-# 'G':75,
-# 'H':155,
-# 'I':131,
-# 'L':131,
-# 'K':146,
-# 'M':149,
-# 'F':165,
-# 'P':115,
-# 'S':105,
-# 'T:'119,
-# 'W':204,
-# 'Y':181,
-# 'V':117}
-
 
 
 ## Sub-classing of the str class and modification of some of the methods ##
@@ -78,6 +45,7 @@ class _BioSeq(str):
 		assert type(sequence) == str or type(sequence) == str, 'Error, input sequence must be a string or unicode'
 		self.alphabet = alphabet
 		self.__check_seq(sequence)
+		self._mytype = None
 
 	def __repr__(self):
 		return self.sequence
@@ -314,43 +282,37 @@ class _BioSeq(str):
 		return type(self)(''.join(output_list))
 
 
-## Common class to be used for ambDNA, DNA, ambRNA and RNA through sub-classing ##
-
-class _NucleotideBaseClass(_BioSeq):
-
-
-
-class DNA(_BioSeq):
-
-	def __init__(self, sequence):
-		self.alphabet = 'atcgATCG'
-		_BioSeq.__init__(self, sequence, alphabet)
-
-	def type(self):
-		"""
-		What type sequence is it
-		"""
-		return 'DNA'
-
-
-	def clean(self, ambiguous=False, silent=True):
+	def clean(self, silent=True):
 		'''
 		Function for cleaning DNA of non-DNA characters.
 		The variable ambiguous (bool) determines whether the full set of ambiguous codons are used or not.
 		the variable silent determines whether an output is printed every time a non-DNA character is omitted.
 		'''
-		if ambiguous == False:
-			bases = 'GATC'
-		elif ambiguous == True:
-			bases = 'GATCRYWSMKHBVDN'
-		cleaned_seq = ''
-		for char in DNA:
-			if (char in string.digits) or (char in string.whitespace) or char==('/'or'\\'or ' ' or '  ') or (char.upper() not in bases):
+
+		cleaned_seq = []
+		for char in self.sequence:
+			if char not in self.alphabet:
 				if silent == False:
-					print(('Character "%s" is not a valid DNA character and was deleted' % char))
+					print(('Character "%s" was deleted, it is not a valid character of type "%s"' % (char, self._mytype) ))
 			else:
 				cleaned_seq += char
-		return DNA(cleaned_seq)
+		return type(self)(''.join(cleaned_seq))
+
+
+	def type(self):
+		"""
+		What type sequence is it
+		"""
+		return self._mytype
+
+
+## Common class to be used for ambDNA, DNA, ambRNA and RNA through sub-classing ##
+
+class _NucleotideBaseClass(_BioSeq):
+
+	def __init__(self, sequence, alphabet):
+		self.alphabet = 'atcgATCG'
+		_BioSeq.__init__(self, sequence, alphabet)
 
 
 	def reverse(self):
@@ -386,6 +348,22 @@ class DNA(_BioSeq):
 		transcript = []
 		for base in self.sequence:
 			if base in ['T', 't']:
+				transcript.append(transl[base])
+			else:
+				transcript.append(base)
+
+		return DNA(''.join(transcript))
+
+
+	def reverse_transcribe(self):
+		"""
+		Return DNA version of RNA
+		"""
+		transl = {'u':'t', 'U':'T'}
+
+		transcript = []
+		for base in self.sequence:
+			if base in ['U', 'u']:
 				transcript.append(transl[base])
 			else:
 				transcript.append(base)
@@ -455,9 +433,28 @@ class DNA(_BioSeq):
 				# better just ignore it, because else we destroy usability
 		return Protein(''.join(protein))
 
+
 	def translate_reverse_complement(self, table=1):
 		'''Translate the reverse complement of DNA'''
 		return self.reverse_complement().translate(table)
+
+
+	def mass(self):
+		"""
+		"""
+		#g/mol (Da)
+		 nucleosides ={'A':347.2,
+			 'C':323.2,
+			 'G':363.2,
+			 'U':324.2}
+
+		nucleotides = {'A':331.2,
+			 'C':307.2,
+			 'G':347.2,
+			 'T':322.2}
+
+		 ## fix this !!! @@
+
 
 	def count_bases(self):
 		'''
@@ -565,65 +562,244 @@ class DNA(_BioSeq):
 		return freq_table
 
 
+class _AmbiguousNucleotideBaseClass(_BioSeq):
+
+	def __init__(self, sequence, alphabet):
+		self.alphabet = 'atcgATCG'
+		_BioSeq.__init__(self, sequence, alphabet)
+
+
+def combine(self, input_list, max_total=50000):
+	'''
+	Takes a list of lists (nucleotides or amino acids) and makes every combination of these while retaining the internal order.
+	For example [['A'], ['T','A','G'], ['C', 'A']] will result in six sequences: ['ATC', 'AAC', 'AGC', 'ATA', 'AAA', 'AGA']
+	max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
+	The output is a generator with a list of the resulting sequences.
+	'''
+
+	#make sure the input will not result in too many sequences
+	list_of_nums = [len(x) for x in input_list]
+	total = reduce(lambda x, y: x*y, list_of_nums)
+	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the set maximum of %s sequences.' % (string, total, max_total)
+
+	#now combine them
+	#first copy the output list the number of times that there are nucleotides in the current position
+	output = []
+	for pos in input_list:
+		output_len = len(output)
+		if output_len == 0:
+			output.extend(pos)
+			output_len = len(output)
+		else:
+			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
+			for i in range(0, len(pos)): #for every nucleotide to be added
+				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
+					output[j+i*output_len] += pos[i]
+	return output #return the list
+
+
+def listupper(self, t):
+	'''
+	Capitalizes all strings in nested lists.
+	'''
+	if isinstance(t, list):
+		return [listupper(s) for s in t]
+	elif isinstance(t, str):
+		return t.upper()
+	else:
+		return t
+
+
+def amb(self, in_list):
+	'''
+	This function finds the degenerate nucleotide for a list containing CATG nucleotides.
+	Output is a single ambiguous DNA nucleotide as a string.
+	Example input is: ['A','T','C','G']. The output for that input is 'N'
+	'''
+	in_list = self.listupper(in_list)
+
+	if all([x in 'A' for x in in_list]):  output = 'A'
+	elif all([x in 'G' for x in in_list]): output = 'G'
+	elif all([x in 'C' for x in in_list]): output = 'C'
+	elif all([x in 'T' for x in in_list]): output = 'T'
+	elif all([x in 'CT' for x in in_list]): output = 'Y'
+	elif all([x in 'GT' for x in in_list]): output = 'K'
+	elif all([x in 'AC' for x in in_list]): output = 'M'
+	elif all([x in 'CG' for x in in_list]): output = 'S'
+	elif all([x in 'AT' for x in in_list]): output = 'W'
+	elif all([x in 'AG' for x in in_list]): output = 'R'
+	elif all([x in 'CTA' for x in in_list]): output = 'H'
+	elif all([x in 'CAG' for x in in_list]): output = 'V'
+	elif all([x in 'TAG' for x in in_list]): output = 'D'
+	elif all([x in 'CTG' for x in in_list]): output = 'B'
+	elif all([x in 'CTAG' for x in in_list]): output = 'N'
+	else: raise ValueError('Error, input must be a list of standard GATC nucleotides.')
+	return output
+
+
+def multi_amb(self, largelist):
+	'''
+	This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
+	Output is a DNA string with the ambigous nucleotides.
+	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]. The output for that is 'NNK'
+	'''
+	output = []
+
+	largelist = [x.upper() for x in largelist] #make the uppercase
+	for lst in largelist:
+		output.append(amb(lst))
+
+	return ''.join(output)
+
+
+def un_amb(string):
+	'''
+	Converts an ambiguous nucleotide sequence to a list of sequences containing only A, T, C and G (as appropriate).
+	'''
+	assert type(string) is str, 'Error, the input has to be a string.'
+	string = string.upper()
+
+	pos_list = []
+	for letter in string:
+		assert letter in 'NMRWSYKVHDBGATC', 'Error, "%s" is not a valid ambigous nucleotide.'
+		if 'A' == letter:
+			pos_list.append(['A'])
+
+		elif 'C' == letter:
+			pos_list.append(['C'])
+
+		elif 'T' == letter:
+			pos_list.append(['T'])
+
+		elif 'G' == letter:
+			pos_list.append(['G'])
+
+		elif 'M' == letter:
+			pos_list.append(['A','C'])
+
+		elif 'Y' == letter:
+			pos_list.append(['C','T'])
+
+		elif 'K' == letter:
+			pos_list.append(['G','T'])
+
+		elif 'S' == letter:
+			pos_list.append(['C','G'])
+
+		elif 'W' == letter:
+			pos_list.append(['A','T'])
+
+		elif 'R' == letter:
+			pos_list.append(['A','G'])
+
+		elif 'H' == letter:
+			pos_list.append(['C','T','A'])
+
+		elif 'V' == letter:
+			pos_list.append(['C','A','G'])
+
+		elif 'D' == letter:
+			pos_list.append(['T','A','G'])
+
+		elif 'B' == letter:
+			pos_list.append(['C','T','G'])
+
+		elif 'N' == letter:
+			pos_list.append(['C','T','A','G'])
+
+	return combine(pos_list) #call combine function and return the result as a list of strings
 
 
 
 
+def common_nuc(nuc_list, greedy=False):
+	"""
+	This function takes a list of lists and finds all degenerate symbols that represent
+	at least one nucleotide from each of the lists.
+	The variable "greedy" determines whether the algorithm is greedy or not.
+
+	With greedy=False
+	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
+	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
+
+	With greedy=False
+	Another example input is: [['G'], ['T'], ['T']].
+	In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T).
 
 
-class RNA(_BioSeq):
+	With greedy=True
+	For the input: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']]
+	The greedy output includes all degenerate nucleotides that contain the desired regular nucleotides:
+	['C', 'T', 'Y', 'K', 'M', 'S', 'W', 'H', 'V', 'D', 'B', 'N']
+
+	With greedy=True
+	For the input: [['G'], ['T'], ['T']]
+	The greedy output is: ['K', 'D', 'B', 'N']
+	"""
+	nuc_list = listupper(nuc_list)
+	output = []
+
+	if all(['A' in s for s in nuc_list]): output.append('A')
+	if all(['G' in s for s in nuc_list]): output.append('G')
+	if all(['C' in s for s in nuc_list]): output.append('C')
+	if all(['T' in s for s in nuc_list]): output.append('T')
+	if greedy is False and len(output)>0: return output
+
+	if all(['C' in s or 'T' in s for s in nuc_list]): output.append('Y')
+	if all(['G' in s or 'T' in s for s in nuc_list]): output.append('K')
+	if all(['A' in s or 'C' in s for s in nuc_list]): output.append('M')
+	if all(['C' in s or 'G' in s for s in nuc_list]): output.append('S')
+	if all(['A' in s or 'T' in s for s in nuc_list]): output.append('W')
+	if all(['A' in s or 'G' in s for s in nuc_list]): output.append('R')
+	if greedy is False and len(output)>0: return output
+
+	if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]): output.append('H')
+	if all(['C' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('V')
+	if all(['T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('D')
+	if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]): output.append('B')
+	if greedy is False and len(output)>0: return output
+
+	if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('N')
+	return output
+
+
+class DNA(_NucleotideBaseClass):
+
+	def __init__(self, sequence):
+		self.alphabet = 'atcgATCG'
+		_NucleotideBaseClass.__init__(self, sequence, alphabet)
+		self._mytype = 'DNA'
+
+
+class ambDNA(_AmbiguousNucleotideBaseClass):
+
+	def __init__(self, sequence):
+		self.alphabet = 'gatcrywsmkhbvdnGATCRYWSMKHBVDN'
+		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet)
+		self._mytype = 'ambDNA'
+
+
+class RNA(_NucleotideBaseClass):
 
 	def __init__(self, sequence):
 		self.alphabet = 'aucgAUCG'
-		_BioSeq.__init__(self, sequence)
-
-	def type(self):
-		"""
-		What type sequence is it
-		"""
-		return 'RNA'
+		_NucleotideBaseClass.__init__(self, sequence)
+		self._mytype = 'RNA'
 
 
-	def clean(self, silent=True):
-		"""
-		"""
-		pass
+class ambRNA(_AmbiguousNucleotideBaseClass):
 
-
-	def reverse_transcribe(self):
-		"""
-		Return RNA version of DNA
-		"""
-		transl = {'u':'t', 'U':'T'}
-
-		transcript = []
-		for base in self.sequence:
-			if base in ['U', 'u']:
-				transcript.append(transl[base])
-			else:
-				transcript.append(base)
-
-		return RNA(''.join(transcript))
-
+	def __init__(self, sequence):
+		self.alphabet = 'gaucrywsmkhbvdnGAUCRYWSMKHBVDN'
+		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet)
+		self._mytype = 'ambRNA'
 
 
 class Protein(_BioSeq):
 	def __init__(self, sequence):
-		self.alphabet = 'FLSYCWPHERIMTNKVADQG*X'
+		self.alphabet = 'flsycwpherimtnkvadqgxFLSYCWPHERIMTNKVADQG*X'
 		_BioSeq.__init__(self, sequence)
-
-
-	def type(self):
-		"""
-		What type sequence is it
-		"""
-		return 'Protein'
-
-
-	def clean(self, silent=True):
-		"""
-		"""
-		pass
+		self._mytype = 'Protein'
 
 
 	def get_codons(self, AA, table=1, separate=False):
@@ -803,6 +979,23 @@ class Protein(_BioSeq):
 		for aa in self.sequence:
 			dnalist.append(self.get_codons(aa, table=table, separate=False))
 		return dnalist
+
+
+	def mass(self):
+		"""
+		"""
+		amino_acids = {'A':89, 'R':174,
+			 'N':132, 'D':133,
+			 'C':121, 'Q':146,
+			 'E':147, 'G':75,
+			 'H':155, 'I':131,
+			 'L':131, 'K':146,
+			 'M':149, 'F':165,
+			 'P':115, 'S':105,
+			 'T:'119, 'W':204,
+			 'Y':181, 'V':117}
+
+		 ## fix this ##
 
 
 
@@ -1101,267 +1294,6 @@ class CodonTable(object):
 
 
 
-############################################################
-
-def combine(self, input_list, max_total=50000):
-	'''
-	Takes a list of lists (nucleotides or amino acids) and makes every combination of these while retaining the internal order.
-	For example [['A'], ['T','A','G'], ['C', 'A']] will result in six sequences: ['ATC', 'AAC', 'AGC', 'ATA', 'AAA', 'AGA']
-	max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
-	The output is a generator with a list of the resulting sequences.
-	'''
-
-	#make sure the input will not result in too many sequences
-	list_of_nums = [len(x) for x in input_list]
-	total = reduce(lambda x, y: x*y, list_of_nums)
-	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the set maximum of %s sequences.' % (string, total, max_total)
-
-	#now combine them
-	#first copy the output list the number of times that there are nucleotides in the current position
-	output = []
-	for pos in input_list:
-		output_len = len(output)
-		if output_len == 0:
-			output.extend(pos)
-			output_len = len(output)
-		else:
-			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
-			for i in range(0, len(pos)): #for every nucleotide to be added
-				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
-					output[j+i*output_len] += pos[i]
-	return output #return the list
-
-
-
-def listupper(t):
-	'''
-	Capitalizes all strings in nested lists.
-	'''
-	if isinstance(t, list):
-		return [listupper(s) for s in t]
-	elif isinstance(t, str):
-		return t.upper()
-	else:
-		return t
-
-
-def Amb(list):
-	'''
-	This function finds the degenerate nucleotide for a list containing CATG nucleotides.
-	Output is a single ambiguous DNA nucleotide as a string.
-	Example input is: ['A','T','C','G']. The output for that input is 'N'
-	'''
-	list = listupper(list)
-
-	if all([x in 'A' for x in list]): #test whether each item in a string is present in the list
-		output = 'A'
-
-	elif all([x in 'G' for x in list]):
-		output = 'G'
-
-	elif all([x in 'C' for x in list]):
-		output = 'C'
-
-	elif all([x in 'T' for x in list]):
-		output = 'T'
-
-	elif all([x in 'CT' for x in list]):
-		output = 'Y'
-
-	elif all([x in 'GT' for x in list]):
-		output = 'K'
-
-	elif all([x in 'AC' for x in list]):
-		output = 'M'
-
-	elif all([x in 'CG' for x in list]):
-		output = 'S'
-
-	elif all([x in 'AT' for x in list]):
-		output = 'W'
-
-	elif all([x in 'AG' for x in list]):
-		output = 'R'
-
-	elif all([x in 'CTA' for x in list]):
-		output = 'H'
-
-	elif all([x in 'CAG' for x in list]):
-		output = 'V'
-
-	elif all([x in 'TAG' for x in list]):
-		output = 'D'
-
-	elif all([x in 'CTG' for x in list]):
-		output = 'B'
-
-	elif all([x in 'CTAG' for x in list]):
-		output = 'N'
-	else:
-		raise ValueError('Error, input must be a list of standard GATC nucleotides.')
-	return output
-
-
-def MultipleAmb(largelist):
-	'''
-	This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
-	Output is a DNA string with the ambigous nucleotides.
-	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]. The output for that is 'NNK'
-	'''
-	output = []
-
-	largelist = [x.upper() for x in largelist] #make the uppercase
-	for list in largelist:
-		output.append(Amb(list))
-
-	return ''.join(output)
-
-
-def UnAmb(string):
-	'''
-	Converts an ambiguous nucleotide sequence to a list of sequences containing only A, T, C and G (as appropriate).
-	'''
-	assert type(string) is str, 'Error, the input has to be a string.'
-	string = string.upper()
-
-	pos_list = []
-	for letter in string:
-		assert letter in 'NMRWSYKVHDBGATC', 'Error, "%s" is not a valid ambigous nucleotide.'
-		if 'A' == letter:
-			pos_list.append(['A'])
-
-		elif 'C' == letter:
-			pos_list.append(['C'])
-
-		elif 'T' == letter:
-			pos_list.append(['T'])
-
-		elif 'G' == letter:
-			pos_list.append(['G'])
-
-		elif 'M' == letter:
-			pos_list.append(['A','C'])
-
-		elif 'Y' == letter:
-			pos_list.append(['C','T'])
-
-		elif 'K' == letter:
-			pos_list.append(['G','T'])
-
-		elif 'S' == letter:
-			pos_list.append(['C','G'])
-
-		elif 'W' == letter:
-			pos_list.append(['A','T'])
-
-		elif 'R' == letter:
-			pos_list.append(['A','G'])
-
-		elif 'H' == letter:
-			pos_list.append(['C','T','A'])
-
-		elif 'V' == letter:
-			pos_list.append(['C','A','G'])
-
-		elif 'D' == letter:
-			pos_list.append(['T','A','G'])
-
-		elif 'B' == letter:
-			pos_list.append(['C','T','G'])
-
-		elif 'N' == letter:
-			pos_list.append(['C','T','A','G'])
-
-	return combine(pos_list) #call combine function and return the result as a list of strings
-
-
-
-
-def commonNuc(nuc_list, greedy=False):
-	"""
-	This function takes a list of lists and finds all degenerate symbols that represent
-	at least one nucleotide from each of the lists.
-	The variable "greedy" determines whether the algorithm is greedy or not.
-
-	With greedy=False
-	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
-	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
-
-	With greedy=False
-	Another example input is: [['G'], ['T'], ['T']].
-	In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T).
-
-
-	With greedy=True
-	For the input: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']]
-	The greedy output includes all degenerate nucleotides that contain the desired regular nucleotides:
-	['C', 'T', 'Y', 'K', 'M', 'S', 'W', 'H', 'V', 'D', 'B', 'N']
-
-	With greedy=True
-	For the input: [['G'], ['T'], ['T']]
-	The greedy output is: ['K', 'D', 'B', 'N']
-	"""
-	nuc_list = listupper(nuc_list)
-	output = []
-
-	if all(['A' in s for s in nuc_list]):
-		output.append('A')
-
-	if all(['G' in s for s in nuc_list]):
-		output.append('G')
-
-	if all(['C' in s for s in nuc_list]):
-		output.append('C')
-
-	if all(['T' in s for s in nuc_list]):
-		output.append('T')
-
-	if greedy is False and len(output)>0:
-		return output
-
-
-	if all(['C' in s or 'T' in s for s in nuc_list]):
-		output.append('Y')
-
-	if all(['G' in s or 'T' in s for s in nuc_list]):
-		output.append('K')
-
-	if all(['A' in s or 'C' in s for s in nuc_list]):
-		output.append('M')
-
-	if all(['C' in s or 'G' in s for s in nuc_list]):
-		output.append('S')
-
-	if all(['A' in s or 'T' in s for s in nuc_list]):
-		output.append('W')
-
-	if all(['A' in s or 'G' in s for s in nuc_list]):
-		output.append('R')
-
-	if greedy is False and len(output)>0:
-		return output
-
-
-	if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]):
-		output.append('H')
-
-	if all(['C' in s or 'A' in s or 'G' in s for s in nuc_list]):
-		output.append('V')
-
-	if all(['T' in s or 'A' in s or 'G' in s for s in nuc_list]):
-		output.append('D')
-
-	if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]):
-		output.append('B')
-
-	if greedy is False and len(output)>0:
-		return output
-
-
-	if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]):
-		output.append('N')
-
-	return output
 
 ############### Identity functions ##########################
 
