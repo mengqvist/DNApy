@@ -37,6 +37,7 @@ from functools import reduce
 
 #TODO
 #finish protein class
+#make freq table class and use it to compute/read codon frequency tables. Use that to assign codons in a probabalistic way when reverse-translating protein.
 #finish ambDNA class
 #finish ambRNA class
 #finish codon class
