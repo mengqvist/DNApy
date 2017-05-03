@@ -35,6 +35,11 @@ import random
 from functools import reduce
 
 
+#TODO
+#finish protein class
+#finish ambDNA class
+#finish ambRNA class
+#finish codon class
 
 ## Sub-classing of the str class and modification of some of the methods ##
 
@@ -306,7 +311,7 @@ class _BioSeq(str):
 		return self._mytype
 
 
-## Common class to be used for ambDNA, DNA, ambRNA and RNA through sub-classing ##
+## Common class to be used for DNA and RNA through sub-classing ##
 
 class _NucleotideBaseClass(_BioSeq):
 
@@ -317,24 +322,28 @@ class _NucleotideBaseClass(_BioSeq):
 
 	def reverse(self):
 		"""
-		Returns the reverse of a DNA string.
+		Returns the reverse of a DNA or RNA string.
 		"""
-		return DNA(self.sequence[::-1])  #makes the reverse of the input string
+		return type(self)(self.sequence[::-1])  #makes the reverse of the input string
 
 
 	def complement(self):
 		"""
-		Returns the complement of a DNA string.
+		Returns the complement of a DNA or RNA string.
 		"""
-		transl = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
+		if 'u' in self.alphabet:
+			transl = {'a':'u', 'u':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
+						'A':'U', 'U':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
+		else:
+			transl = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
 						'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
-		bases = [transl[base] for base in bases]
-		return DNA(''.join(bases))
+		bases = [transl[base] for base in self.sequence]
+		return type(self)(''.join(bases))
 
 
 	def reverse_complement(self):
 		"""
-		Returns the reverse complement of a DNA string.
+		Returns the reverse complement of a DNA or RNA string.
 		"""
 		return self.reverse().complement()
 
@@ -352,7 +361,7 @@ class _NucleotideBaseClass(_BioSeq):
 			else:
 				transcript.append(base)
 
-		return DNA(''.join(transcript))
+		return RNA(''.join(transcript))
 
 
 	def reverse_transcribe(self):
@@ -368,69 +377,46 @@ class _NucleotideBaseClass(_BioSeq):
 			else:
 				transcript.append(base)
 
-		return RNA(''.join(transcript))
+		return DNA(''.join(transcript))
 
 
 	def translate(self, table=1):
 		"""
-		Returns protein sequence from DNA string input.
+		Returns protein sequence from DNA or RNA string.
 		The table variable specifies which codon table should be used.
 		table defaults to the standard codon table 1
 		"""
 		codons = CodonTable(table).get_codons()
-
 		protein = []
 		transcript = self.sequence.upper().transcribe()
 
 		for i in range(0, len(transcript), 3):
-			if i+3>len(transcript):
-				pass
-			elif any(transcript[i:(i+3)] in s for s in codons['F']):
-				protein.append('F')
-			elif any(transcript[i:(i+3)] in s for s in codons['L']):
-				protein.append('L')
-			elif any(transcript[i:(i+3)] in s for s in codons['S']):
-				protein.append('S')
-			elif any(transcript[i:(i+3)] in s for s in codons['Y']):
-				protein.append('Y')
-			elif any(transcript[i:(i+3)] in s for s in codons['*']):
-				protein.append('*')
-			elif any(transcript[i:(i+3)] in s for s in codons['C']):
-				protein.append('C')
-			elif any(transcript[i:(i+3)] in s for s in codons['W']):
-				protein.append('W')
-			elif any(transcript[i:(i+3)] in s for s in codons['P']):
-				protein.append('P')
-			elif any(transcript[i:(i+3)] in s for s in codons['H']):
-				protein.append('H')
-			elif any(transcript[i:(i+3)] in s for s in codons['E']):
-				protein.append('E')
-			elif any(transcript[i:(i+3)] in s for s in codons['R']):
-				protein.append('R')
-			elif any(transcript[i:(i+3)] in s for s in codons['I']):
-				protein.append('I')
-			elif any(transcript[i:(i+3)] in s for s in codons['M']):
-				protein.append('M')
-			elif any(transcript[i:(i+3)] in s for s in codons['T']):
-				protein.append('T')
-			elif any(transcript[i:(i+3)] in s for s in codons['N']):
-				protein.append('N')
-			elif any(transcript[i:(i+3)] in s for s in codons['K']):
-				protein.append('K')
-			elif any(transcript[i:(i+3)] in s for s in codons['V']):
-				protein.append('V')
-			elif any(transcript[i:(i+3)] in s for s in codons['A']):
-				protein.append('A')
-			elif any(transcript[i:(i+3)] in s for s in codons['D']):
-				protein.append('D')
-			elif any(transcript[i:(i+3)] in s for s in codons['Q']):
-				protein.append('Q')
-			elif any(transcript[i:(i+3)] in s for s in codons['G']):
-				protein.append('G')
-			else:
-				protein.append('X')
-				#raise Exception('"%s" is not a valid codon' % DNA[i:(i+3)])
-				# better just ignore it, because else we destroy usability
+			codon = transcript[i:(i+3)]
+			if i+3>len(transcript): pass
+			elif any(codon in s for s in codons['F']): protein.append('F')
+			elif any(codon in s for s in codons['L']): protein.append('L')
+			elif any(codon in s for s in codons['S']): protein.append('S')
+			elif any(codon in s for s in codons['Y']): protein.append('Y')
+			elif any(codon in s for s in codons['*']): protein.append('*')
+			elif any(codon in s for s in codons['C']): protein.append('C')
+			elif any(codon in s for s in codons['W']): protein.append('W')
+			elif any(codon in s for s in codons['P']): protein.append('P')
+			elif any(codon in s for s in codons['H']): protein.append('H')
+			elif any(codon in s for s in codons['E']): protein.append('E')
+			elif any(codon in s for s in codons['R']): protein.append('R')
+			elif any(codon in s for s in codons['I']): protein.append('I')
+			elif any(codon in s for s in codons['M']): protein.append('M')
+			elif any(codon in s for s in codons['T']): protein.append('T')
+			elif any(codon in s for s in codons['N']): protein.append('N')
+			elif any(codon in s for s in codons['K']): protein.append('K')
+			elif any(codon in s for s in codons['V']): protein.append('V')
+			elif any(codon in s for s in codons['A']): protein.append('A')
+			elif any(codon in s for s in codons['D']): protein.append('D')
+			elif any(codon in s for s in codons['Q']): protein.append('Q')
+			elif any(codon in s for s in codons['G']): protein.append('G')
+			elif any(codon in s for s in codons['X']): protein.append('X')
+			else: raise ValueError('Codon %s is not valid.' % codon)
+
 		return Protein(''.join(protein))
 
 
@@ -441,19 +427,14 @@ class _NucleotideBaseClass(_BioSeq):
 
 	def mass(self):
 		"""
+		Determine mass of single-stranded sequence in g/mol (da)
 		"""
-		#g/mol (Da)
-		 nucleosides ={'A':347.2,
-			 'C':323.2,
-			 'G':363.2,
-			 'U':324.2}
+		if 'u' in self.alphabet:
+			mass_vals ={'A':347.2, 'C':323.2, 'G':363.2, 'U':324.2}
+		 else:
+			mass_vals = {'A':331.2, 'C':307.2, 'G':347.2, 'T':322.2}
 
-		nucleotides = {'A':331.2,
-			 'C':307.2,
-			 'G':347.2,
-			 'T':322.2}
-
-		 ## fix this !!! @@
+		 return sum([mass_vals[base.upper()] for base in self.sequence])
 
 
 	def count_bases(self):
@@ -462,30 +443,11 @@ class _NucleotideBaseClass(_BioSeq):
 		Input should be a string comprising dna bases. These can be a, t, c, g or any of the ambiguous bases.
 		Output is a dictionary with DNA base keys and integer values.
 		'''
-		seq = self.sequence.upper()
-		assert all([s in 'GATCRYWSMKHBVDN' for s in seq]) is True, 'Error, unknown dna base(s) %s in sequence: %s' % (str([s for s in seq if s not in 'GATCRYWSMKHBVDN']), seq)
-
-		bases = {'G':seq.count('G'),
-		'A':seq.count('A'),
-		'T':seq.count('T'),
-		'C':seq.count('C'),
-		'R':seq.count('R'),
-		'Y':seq.count('Y'),
-		'W':seq.count('W'),
-		'S':seq.count('S'),
-		'M':seq.count('M'),
-		'K':seq.count('K'),
-		'H':seq.count('H'),
-		'B':seq.count('B'),
-		'P':seq.count('P'),
-		'H':seq.count('H'),
-		'V':seq.count('V'),
-		'D':seq.count('D'),
-		'N':seq.count('N')}
-
-		assert sum([s[1] for s in bases.items()]) == len(seq), 'Error, total number of counted bases is not the same as the sequence length'
-
-		return bases
+		base_count = {'G':0, 'A':0, 'T':0, 'C':0,
+			'R':0, 'Y':0, 'W':0, 'S':0,
+			'M':0, 'K':0, 'H':0, 'B':0,
+			'P':0, 'H':0, 'V':0, 'D':0, 'N':0}
+		return [base_count[s] += 1 for s in self.sequence.upper()]
 
 
 	def count_codons(self):
@@ -521,46 +483,8 @@ class _NucleotideBaseClass(_BioSeq):
 		return codons
 
 
-	def make_codon_freq_table(self, file):
-		'''
-		Input is a file path.
-		Counts the usage of each codon in a FASTA file of DNA sequences.
-		Then converts that as codon usage per 1000 codons.
-		Good for generating codon tables.
-		Output is a dictionary of codon frequencies per 1000 codons and the total number in brackets.
-		'''
 
-		num_table = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0,
-					'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0,
-					'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0,
-					'GUG': 0, 'UAU': 0, 'UAC': 0, 'UAA': 0, 'UAG': 0,
-					'CAU': 0, 'CAC': 0, 'CAA': 0, 'CAG': 0, 'AAU': 0,
-					'AAC': 0, 'AAA': 0, 'AAG': 0, 'GAU': 0, 'GAC': 0,
-					'GAA': 0, 'GAG': 0, 'UCU': 0, 'UCC': 0, 'UCA': 0,
-					'UCG': 0, 'CCU': 0, 'CCC': 0, 'CCA': 0, 'CCG': 0,
-					'ACU': 0, 'ACC': 0, 'ACA': 0, 'ACG': 0, 'GCU': 0,
-					'GCC': 0, 'GCA': 0, 'GCG': 0, 'UGU': 0, 'UGC': 0,
-					'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0,
-					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
-					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
-		records = fasta.parseFile(file)
-		for record in records:
-			cds = record[1]
-			codons = count_codons(cds)
-			for key in list(codons.keys()):
-				num_table[key] += codons[key]
-
-		#sum codons
-		sum = 0.0
-		for key in list(num_table.keys()):
-			sum += num_table[key]
-
-		#divide each by the sum and multiply by 1000
-		freq_table = {}
-		for key in list(num_table.keys()):
-			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
-		return freq_table
-
+## Common class to be used for ambDNA and ambRNA through sub-classing ##
 
 class _AmbiguousNucleotideBaseClass(_BioSeq):
 
@@ -569,198 +493,169 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 		_BioSeq.__init__(self, sequence, alphabet)
 
 
-def combine(self, input_list, max_total=50000):
-	'''
-	Takes a list of lists (nucleotides or amino acids) and makes every combination of these while retaining the internal order.
-	For example [['A'], ['T','A','G'], ['C', 'A']] will result in six sequences: ['ATC', 'AAC', 'AGC', 'ATA', 'AAA', 'AGA']
-	max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
-	The output is a generator with a list of the resulting sequences.
-	'''
+	def __combine(self, input_list, max_total=50000):
+		'''
+		Takes a list of lists (nucleotides or amino acids) and makes every combination of these while retaining the internal order.
+		For example [['A'], ['T','A','G'], ['C', 'A']] will result in six sequences: ['ATC', 'AAC', 'AGC', 'ATA', 'AAA', 'AGA']
+		max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
+		The output is a generator with a list of the resulting sequences.
+		'''
 
-	#make sure the input will not result in too many sequences
-	list_of_nums = [len(x) for x in input_list]
-	total = reduce(lambda x, y: x*y, list_of_nums)
-	assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the set maximum of %s sequences.' % (string, total, max_total)
+		#make sure the input will not result in too many sequences
+		list_of_nums = [len(x) for x in input_list]
+		total = reduce(lambda x, y: x*y, list_of_nums)
+		assert total < max_total, 'The sequence "%s" would result in %s total sequences, this is above the set maximum of %s sequences.' % (string, total, max_total)
 
-	#now combine them
-	#first copy the output list the number of times that there are nucleotides in the current position
-	output = []
-	for pos in input_list:
-		output_len = len(output)
-		if output_len == 0:
-			output.extend(pos)
+		#now combine them
+		#first copy the output list the number of times that there are nucleotides in the current position
+		output = []
+		for pos in input_list:
 			output_len = len(output)
+			if output_len == 0:
+				output.extend(pos)
+				output_len = len(output)
+			else:
+				output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
+				for i in range(0, len(pos)): #for every nucleotide to be added
+					for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
+						output[j+i*output_len] += pos[i]
+		return output #return the list
+
+
+	def listupper(self, t):
+		'''
+		Capitalizes all strings in nested lists.
+		'''
+		if isinstance(t, list):
+			return [listupper(s) for s in t]
+		elif isinstance(t, str):
+			return t.upper()
 		else:
-			output.extend(output*(len(pos)-1)) #duplicate output the number of times that there are new nucleotides to add
-			for i in range(0, len(pos)): #for every nucleotide to be added
-				for j in range(0, output_len): #add that nucleotide the number of times that the prevous output was long (before the last duplication)
-					output[j+i*output_len] += pos[i]
-	return output #return the list
+			return t
 
 
-def listupper(self, t):
-	'''
-	Capitalizes all strings in nested lists.
-	'''
-	if isinstance(t, list):
-		return [listupper(s) for s in t]
-	elif isinstance(t, str):
-		return t.upper()
-	else:
-		return t
+	def amb(self, in_list):
+		'''
+		This function finds the degenerate nucleotide for a list containing CATG nucleotides.
+		Output is a single ambiguous DNA nucleotide as a string.
+		Example input is: ['A','T','C','G']. The output for that input is 'N'
+		'''
+		in_list = self.listupper(in_list)
+
+		if all([x in 'A' for x in in_list]):  output = 'A'
+		elif all([x in 'G' for x in in_list]): output = 'G'
+		elif all([x in 'C' for x in in_list]): output = 'C'
+		elif all([x in 'T' for x in in_list]): output = 'T'
+		elif all([x in 'CT' for x in in_list]): output = 'Y'
+		elif all([x in 'GT' for x in in_list]): output = 'K'
+		elif all([x in 'AC' for x in in_list]): output = 'M'
+		elif all([x in 'CG' for x in in_list]): output = 'S'
+		elif all([x in 'AT' for x in in_list]): output = 'W'
+		elif all([x in 'AG' for x in in_list]): output = 'R'
+		elif all([x in 'CTA' for x in in_list]): output = 'H'
+		elif all([x in 'CAG' for x in in_list]): output = 'V'
+		elif all([x in 'TAG' for x in in_list]): output = 'D'
+		elif all([x in 'CTG' for x in in_list]): output = 'B'
+		elif all([x in 'CTAG' for x in in_list]): output = 'N'
+		else: raise ValueError('Error, input must be a list of standard GATC nucleotides.')
+		return output
 
 
-def amb(self, in_list):
-	'''
-	This function finds the degenerate nucleotide for a list containing CATG nucleotides.
-	Output is a single ambiguous DNA nucleotide as a string.
-	Example input is: ['A','T','C','G']. The output for that input is 'N'
-	'''
-	in_list = self.listupper(in_list)
+	def multi_amb(self, largelist):
+		'''
+		This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
+		Output is a DNA string with the ambigous nucleotides.
+		Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]. The output for that is 'NNK'
+		'''
+		output = []
 
-	if all([x in 'A' for x in in_list]):  output = 'A'
-	elif all([x in 'G' for x in in_list]): output = 'G'
-	elif all([x in 'C' for x in in_list]): output = 'C'
-	elif all([x in 'T' for x in in_list]): output = 'T'
-	elif all([x in 'CT' for x in in_list]): output = 'Y'
-	elif all([x in 'GT' for x in in_list]): output = 'K'
-	elif all([x in 'AC' for x in in_list]): output = 'M'
-	elif all([x in 'CG' for x in in_list]): output = 'S'
-	elif all([x in 'AT' for x in in_list]): output = 'W'
-	elif all([x in 'AG' for x in in_list]): output = 'R'
-	elif all([x in 'CTA' for x in in_list]): output = 'H'
-	elif all([x in 'CAG' for x in in_list]): output = 'V'
-	elif all([x in 'TAG' for x in in_list]): output = 'D'
-	elif all([x in 'CTG' for x in in_list]): output = 'B'
-	elif all([x in 'CTAG' for x in in_list]): output = 'N'
-	else: raise ValueError('Error, input must be a list of standard GATC nucleotides.')
-	return output
+		largelist = [x.upper() for x in largelist] #make the uppercase
+		for lst in largelist:
+			output.append(amb(lst))
+
+		return ''.join(output)
 
 
-def multi_amb(self, largelist):
-	'''
-	This function finds the degenerate nucleotide for a list of lists containing CATG nucleotides.
-	Output is a DNA string with the ambigous nucleotides.
-	Example input is: [['A','T','C','G'],['A','T','C','G'],['G','T']]. The output for that is 'NNK'
-	'''
-	output = []
+	def un_amb(self, string):
+		'''
+		Converts an ambiguous nucleotide sequence to a list of sequences containing only A, T, C and G (as appropriate).
+		'''
+		assert type(string) is str, 'Error, the input has to be a string.'
+		string = string.upper()
 
-	largelist = [x.upper() for x in largelist] #make the uppercase
-	for lst in largelist:
-		output.append(amb(lst))
+		pos_list = []
+		for letter in string:
+			assert letter in 'NMRWSYKVHDBGATC', 'Error, "%s" is not a valid ambigous nucleotide.'
+			if 'A' == letter: pos_list.append(['A'])
+			elif 'C' == letter: pos_list.append(['C'])
+			elif 'T' == letter: pos_list.append(['T'])
+			elif 'G' == letter: pos_list.append(['G'])
+			elif 'M' == letter: pos_list.append(['A','C'])
+			elif 'Y' == letter: pos_list.append(['C','T'])
+			elif 'K' == letter: pos_list.append(['G','T'])
+			elif 'S' == letter: pos_list.append(['C','G'])
+			elif 'W' == letter: pos_list.append(['A','T'])
+			elif 'R' == letter: pos_list.append(['A','G'])
+			elif 'H' == letter: pos_list.append(['C','T','A'])
+			elif 'V' == letter: pos_list.append(['C','A','G'])
+			elif 'D' == letter: pos_list.append(['T','A','G'])
+			elif 'B' == letter: pos_list.append(['C','T','G'])
+			elif 'N' == letter: pos_list.append(['C','T','A','G'])
 
-	return ''.join(output)
-
-
-def un_amb(string):
-	'''
-	Converts an ambiguous nucleotide sequence to a list of sequences containing only A, T, C and G (as appropriate).
-	'''
-	assert type(string) is str, 'Error, the input has to be a string.'
-	string = string.upper()
-
-	pos_list = []
-	for letter in string:
-		assert letter in 'NMRWSYKVHDBGATC', 'Error, "%s" is not a valid ambigous nucleotide.'
-		if 'A' == letter:
-			pos_list.append(['A'])
-
-		elif 'C' == letter:
-			pos_list.append(['C'])
-
-		elif 'T' == letter:
-			pos_list.append(['T'])
-
-		elif 'G' == letter:
-			pos_list.append(['G'])
-
-		elif 'M' == letter:
-			pos_list.append(['A','C'])
-
-		elif 'Y' == letter:
-			pos_list.append(['C','T'])
-
-		elif 'K' == letter:
-			pos_list.append(['G','T'])
-
-		elif 'S' == letter:
-			pos_list.append(['C','G'])
-
-		elif 'W' == letter:
-			pos_list.append(['A','T'])
-
-		elif 'R' == letter:
-			pos_list.append(['A','G'])
-
-		elif 'H' == letter:
-			pos_list.append(['C','T','A'])
-
-		elif 'V' == letter:
-			pos_list.append(['C','A','G'])
-
-		elif 'D' == letter:
-			pos_list.append(['T','A','G'])
-
-		elif 'B' == letter:
-			pos_list.append(['C','T','G'])
-
-		elif 'N' == letter:
-			pos_list.append(['C','T','A','G'])
-
-	return combine(pos_list) #call combine function and return the result as a list of strings
+		return self.__combine(pos_list) #call combine function and return the result as a list of strings
 
 
 
 
-def common_nuc(nuc_list, greedy=False):
-	"""
-	This function takes a list of lists and finds all degenerate symbols that represent
-	at least one nucleotide from each of the lists.
-	The variable "greedy" determines whether the algorithm is greedy or not.
+	def common_nuc(nuc_list, greedy=False):
+		"""
+		This function takes a list of lists and finds all degenerate symbols that represent
+		at least one nucleotide from each of the lists.
+		The variable "greedy" determines whether the algorithm is greedy or not.
 
-	With greedy=False
-	An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
-	T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
+		With greedy=False
+		An example input is: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']].
+		T and C are both present in all lists, therefore, both 'T' and 'C' are acceptable returned as ['T', 'C'].
 
-	With greedy=False
-	Another example input is: [['G'], ['T'], ['T']].
-	In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T).
+		With greedy=False
+		Another example input is: [['G'], ['T'], ['T']].
+		In this case either G or T is present in all lists, therefore the only acceptable output is ['K'] (ambiguous nucleotide for G and T).
 
 
-	With greedy=True
-	For the input: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']]
-	The greedy output includes all degenerate nucleotides that contain the desired regular nucleotides:
-	['C', 'T', 'Y', 'K', 'M', 'S', 'W', 'H', 'V', 'D', 'B', 'N']
+		With greedy=True
+		For the input: [['T', 'C', 'A', 'G'], ['T', 'C'], ['T', 'C']]
+		The greedy output includes all degenerate nucleotides that contain the desired regular nucleotides:
+		['C', 'T', 'Y', 'K', 'M', 'S', 'W', 'H', 'V', 'D', 'B', 'N']
 
-	With greedy=True
-	For the input: [['G'], ['T'], ['T']]
-	The greedy output is: ['K', 'D', 'B', 'N']
-	"""
-	nuc_list = listupper(nuc_list)
-	output = []
+		With greedy=True
+		For the input: [['G'], ['T'], ['T']]
+		The greedy output is: ['K', 'D', 'B', 'N']
+		"""
+		nuc_list = listupper(nuc_list)
+		output = []
 
-	if all(['A' in s for s in nuc_list]): output.append('A')
-	if all(['G' in s for s in nuc_list]): output.append('G')
-	if all(['C' in s for s in nuc_list]): output.append('C')
-	if all(['T' in s for s in nuc_list]): output.append('T')
-	if greedy is False and len(output)>0: return output
+		if all(['A' in s for s in nuc_list]): output.append('A')
+		if all(['G' in s for s in nuc_list]): output.append('G')
+		if all(['C' in s for s in nuc_list]): output.append('C')
+		if all(['T' in s for s in nuc_list]): output.append('T')
+		if greedy is False and len(output)>0: return output
 
-	if all(['C' in s or 'T' in s for s in nuc_list]): output.append('Y')
-	if all(['G' in s or 'T' in s for s in nuc_list]): output.append('K')
-	if all(['A' in s or 'C' in s for s in nuc_list]): output.append('M')
-	if all(['C' in s or 'G' in s for s in nuc_list]): output.append('S')
-	if all(['A' in s or 'T' in s for s in nuc_list]): output.append('W')
-	if all(['A' in s or 'G' in s for s in nuc_list]): output.append('R')
-	if greedy is False and len(output)>0: return output
+		if all(['C' in s or 'T' in s for s in nuc_list]): output.append('Y')
+		if all(['G' in s or 'T' in s for s in nuc_list]): output.append('K')
+		if all(['A' in s or 'C' in s for s in nuc_list]): output.append('M')
+		if all(['C' in s or 'G' in s for s in nuc_list]): output.append('S')
+		if all(['A' in s or 'T' in s for s in nuc_list]): output.append('W')
+		if all(['A' in s or 'G' in s for s in nuc_list]): output.append('R')
+		if greedy is False and len(output)>0: return output
 
-	if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]): output.append('H')
-	if all(['C' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('V')
-	if all(['T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('D')
-	if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]): output.append('B')
-	if greedy is False and len(output)>0: return output
+		if all(['C' in s or 'T' in s or 'A' in s for s in nuc_list]): output.append('H')
+		if all(['C' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('V')
+		if all(['T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('D')
+		if all(['C' in s or 'T' in s or 'G' in s for s in nuc_list]): output.append('B')
+		if greedy is False and len(output)>0: return output
 
-	if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('N')
-	return output
+		if all(['C' in s or 'T' in s or 'A' in s or 'G' in s for s in nuc_list]): output.append('N')
+		return output
 
 
 class DNA(_NucleotideBaseClass):
@@ -970,7 +865,7 @@ class Protein(_BioSeq):
 		The input is a protein sequence as a string.
 		The output is a list of codons (with ambigous bases) that describe that protein.
 		For some amino acids there will be two possible ambigous codons.
-		Run the combine() function to convert the list to all possible dna sequences.
+		Run the __combine() function to convert the list to all possible dna sequences.
 		'''
 
 		#### This one needs attention! #########
@@ -1293,7 +1188,50 @@ class CodonTable(object):
 
 
 
+class FreqTable(object):
 
+	def __init__(self):
+		pass
+
+	def make_codon_freq_table(self, file):
+		'''
+		Input is a file path.
+		Counts the usage of each codon in a FASTA file of DNA sequences.
+		Then converts that as codon usage per 1000 codons.
+		Good for generating codon tables.
+		Output is a dictionary of codon frequencies per 1000 codons and the total number in brackets.
+		'''
+
+		num_table = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0,
+					'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0,
+					'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0,
+					'GUG': 0, 'UAU': 0, 'UAC': 0, 'UAA': 0, 'UAG': 0,
+					'CAU': 0, 'CAC': 0, 'CAA': 0, 'CAG': 0, 'AAU': 0,
+					'AAC': 0, 'AAA': 0, 'AAG': 0, 'GAU': 0, 'GAC': 0,
+					'GAA': 0, 'GAG': 0, 'UCU': 0, 'UCC': 0, 'UCA': 0,
+					'UCG': 0, 'CCU': 0, 'CCC': 0, 'CCA': 0, 'CCG': 0,
+					'ACU': 0, 'ACC': 0, 'ACA': 0, 'ACG': 0, 'GCU': 0,
+					'GCC': 0, 'GCA': 0, 'GCG': 0, 'UGU': 0, 'UGC': 0,
+					'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0,
+					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
+					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
+		records = fasta.parseFile(file)
+		for record in records:
+			cds = record[1]
+			codons = count_codons(cds)
+			for key in list(codons.keys()):
+				num_table[key] += codons[key]
+
+		#sum codons
+		sum = 0.0
+		for key in list(num_table.keys()):
+			sum += num_table[key]
+
+		#divide each by the sum and multiply by 1000
+		freq_table = {}
+		for key in list(num_table.keys()):
+			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
+		return freq_table
 
 ############### Identity functions ##########################
 
