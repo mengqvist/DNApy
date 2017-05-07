@@ -434,7 +434,6 @@ class _NucleotideBaseClass(_BioSeq):
 			mass_vals ={'A':347.2, 'C':323.2, 'G':363.2, 'U':324.2}
 		 else:
 			mass_vals = {'A':331.2, 'C':307.2, 'G':347.2, 'T':322.2}
-
 		 return sum([mass_vals[base.upper()] for base in self.sequence])
 
 
@@ -698,25 +697,6 @@ class Protein(_BioSeq):
 		self._mytype = 'Protein'
 
 
-	def get_codons(self, AA, table=1, separate=False):
-		'''
-		Get the codons for a specified AA. Returns a list of strings.
-		The variable table specifies which codon table should be used.
-		table defaults to the standard codon table 1
-		The separate variable determines whether codons for one amino acid with dissimilar first two nucleotides should be seperated out.
-		For example if separate=False the codons for L are 	['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'].
-		If separate=True they are split up as L = ['TTA', 'TTG'] and L2 = ['CTT', 'CTC', 'CTA', 'CTG']
-		'''
-		AA = AA.upper()
-	#	if separate is False: #what the heck is this if clause for?? Can I remove it?
-		assert len(AA) == 1, 'Error, function takes a single amino acid as input'
-		assert AA in self.alphabet, 'Error, %s is not a valid amino acid' % str(AA)
-
-		codons = CodonTable(table).get_codons(separate)
-
-		return codons[AA]
-
-
 	def one_to_three(self, one_letter):
 		'''
 		Convert a one letter code amino acid to a three letter code.
@@ -807,41 +787,22 @@ class Protein(_BioSeq):
 		return one_to_three(full_to_one(full))
 
 
-	def count_aa(self, seq):
+	def count_aa(self):
 		'''
 		Count occurrences of all amino acids in sequence.
 		The X character for unknown amino acid is allowed.
 		Return as dictionary.
 		'''
-		seq = seq.upper()
-		assert all([s in 'XIVLFCMAGTWSYPHEQDNKR*' for s in seq]) is True, 'Error, unknown amino acids %s in sequence: %s' % (str([s for s in seq if s not in 'XIVLFCMAGTWSYPHEQDNKR*']), seq)
-
-		AA = {'I':seq.count('I'),
-		'V':seq.count('V'),
-		'L':seq.count('L'),
-		'F':seq.count('F'),
-		'C':seq.count('C'),
-		'M':seq.count('M'),
-		'A':seq.count('A'),
-		'G':seq.count('G'),
-		'T':seq.count('T'),
-		'W':seq.count('W'),
-		'S':seq.count('S'),
-		'Y':seq.count('Y'),
-		'P':seq.count('P'),
-		'H':seq.count('H'),
-		'E':seq.count('E'),
-		'Q':seq.count('Q'),
-		'D':seq.count('D'),
-		'N':seq.count('N'),
-		'K':seq.count('K'),
-		'R':seq.count('R'),
-		'*':seq.count('*'),
-		'X':seq.count('X')}
-		return AA
+		aa_count = {'I':0, 'V':0, 'L':0, 'F':0,
+		'C':0, 'M':0, 'A':0, 'G':0,
+		'T':0, 'W':0, 'S':0, 'Y':0,
+		'P':0, 'H':0, 'E':0, 'Q':0,
+		'D':0, 'N':0, 'K':0, 'R':0,
+		'*':0, 'X':0}
+		return [aa_count[s] += 1 for s in self.sequence.upper()]
 
 
-	def reverse_translate(self, prot_seq, table=1):
+	def reverse_translate(self, table=1, freq_table=None):
 		'''
 		Reverse translates protein sequence to DNA sequence using the specified codon table.
 		For each amino acid the DNA codon is chosen randomly from those that encode the specified amino acid.
@@ -851,13 +812,16 @@ class Protein(_BioSeq):
 		Output is a DNA sequence as a string.
 		table defaults to the standard codon table 1
 		'''
-		assert type(prot_seq) is str, 'Error, the input must be a string containing amino acids in single letter code.'
-		dna_seq = []
+		rna_seq = []
 		for AA in prot_seq:
-			possible = self.get_codons(AA, table=table, separate=False)
-			dna_seq.append(random.choice(possible))
+			possible = CodonTable(table).get_codons(separate=False)[AA]
+			if freq_table is None:
+				rna_seq.append(random.choice(possible))
+			else:
+				raise NotImplementedError
+				#use frequency table to weight probability of codon selection
 
-		return RNA(''.join(dna_seq))
+		return RNA(''.join(rna_seq))
 
 
 	def reverse_translate_ambiguous(self, table=1):
@@ -871,16 +835,16 @@ class Protein(_BioSeq):
 
 		#### This one needs attention! #########
 
-		dnalist = []
+		rnalist = []
 		for aa in self.sequence:
-			dnalist.append(self.get_codons(aa, table=table, separate=False))
-		return dnalist
+			rnalist.append(CodonTable(table).get_codons(separate=False)[AA])
+		return rnalist
 
 
 	def mass(self):
 		"""
 		"""
-		amino_acids = {'A':89, 'R':174,
+		mass_vals = {'A':89, 'R':174,
 			 'N':132, 'D':133,
 			 'C':121, 'Q':146,
 			 'E':147, 'G':75,
@@ -889,9 +853,9 @@ class Protein(_BioSeq):
 			 'M':149, 'F':165,
 			 'P':115, 'S':105,
 			 'T:'119, 'W':204,
-			 'Y':181, 'V':117}
-
-		 ## fix this ##
+			 'Y':181, 'V':117,
+			 '*':0, 'X':110} #110 is the average amino acid weight
+		 return sum([mass_vals[aa.upper()] for aa in self.sequence])
 
 
 
@@ -1178,7 +1142,7 @@ class CodonTable(object):
 		codons = self.get_codons()
 		print(('start = %s' %codons['start']))
 		print(('stop  = %s' %codons['stop']))
-		for aa in 'FLSYCWPHERIMTNKVADQG*':
+		for aa in self.alphabet:
 			print(('%s     = %s' % (aa, codons[aa])))
 
 
@@ -1194,7 +1158,7 @@ class FreqTable(object):
 	def __init__(self):
 		pass
 
-	def make_codon_freq_table(self, file):
+	def make_codon_freq_table(self, fasta_file):
 		'''
 		Input is a file path.
 		Counts the usage of each codon in a FASTA file of DNA sequences.
@@ -1216,7 +1180,7 @@ class FreqTable(object):
 					'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0,
 					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
 					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
-		records = fasta.parseFile(file)
+		records = fasta.parseFile(fasta_file)
 		for record in records:
 			cds = record[1]
 			codons = count_codons(cds)
@@ -1224,14 +1188,14 @@ class FreqTable(object):
 				num_table[key] += codons[key]
 
 		#sum codons
-		sum = 0.0
+		codon_sum = 0.0
 		for key in list(num_table.keys()):
-			sum += num_table[key]
+			codon_sum += num_table[key]
 
 		#divide each by the sum and multiply by 1000
 		freq_table = {}
 		for key in list(num_table.keys()):
-			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/sum), num_table[key]) #ouput is following format: freq/thousand(number)
+			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/codon_sum), num_table[key]) #ouput is following format: freq/thousand(number)
 		return freq_table
 
 ############### Identity functions ##########################
