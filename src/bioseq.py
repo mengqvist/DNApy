@@ -29,7 +29,6 @@
 #Get source code at: https://github.com/mengqvist/DNApy
 #
 
-from resources import fasta
 import string
 import random
 from functools import reduce
@@ -317,8 +316,7 @@ class _BioSeq(str):
 class _NucleotideBaseClass(_BioSeq):
 
 	def __init__(self, sequence, alphabet):
-		self.alphabet = 'atcgATCG'
-		_BioSeq.__init__(self, sequence, alphabet)
+		_BioSeq.__init__(self, sequence, alphabet=alphabet)
 
 
 	def reverse(self):
@@ -432,9 +430,9 @@ class _NucleotideBaseClass(_BioSeq):
 		"""
 		if 'u' in self.alphabet:
 			mass_vals ={'A':347.2, 'C':323.2, 'G':363.2, 'U':324.2}
-		 else:
+		else:
 			mass_vals = {'A':331.2, 'C':307.2, 'G':347.2, 'T':322.2}
-		 return sum([mass_vals[base.upper()] for base in self.sequence])
+		return sum([mass_vals[base.upper()] for base in self.sequence])
 
 
 	def count_bases(self):
@@ -447,7 +445,9 @@ class _NucleotideBaseClass(_BioSeq):
 			'R':0, 'Y':0, 'W':0, 'S':0,
 			'M':0, 'K':0, 'H':0, 'B':0,
 			'P':0, 'H':0, 'V':0, 'D':0, 'N':0}
-		return [base_count[s] += 1 for s in self.sequence.upper()]
+		for base in self.sequence.upper():
+			base_count[base] += 1
+		return base_count
 
 
 	def count_codons(self):
@@ -489,8 +489,7 @@ class _NucleotideBaseClass(_BioSeq):
 class _AmbiguousNucleotideBaseClass(_BioSeq):
 
 	def __init__(self, sequence, alphabet):
-		self.alphabet = 'atcgATCG'
-		_BioSeq.__init__(self, sequence, alphabet)
+		_BioSeq.__init__(self, sequence, alphabet=alphabet)
 
 
 	def __combine(self, input_list, max_total=50000):
@@ -661,39 +660,34 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 class DNA(_NucleotideBaseClass):
 
 	def __init__(self, sequence):
-		self.alphabet = 'atcgATCG'
-		_NucleotideBaseClass.__init__(self, sequence, alphabet)
+		_NucleotideBaseClass.__init__(self, sequence, alphabet='atcgATCG')
 		self._mytype = 'DNA'
 
 
 class ambDNA(_AmbiguousNucleotideBaseClass):
 
 	def __init__(self, sequence):
-		self.alphabet = 'gatcrywsmkhbvdnGATCRYWSMKHBVDN'
-		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet)
+		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet='gatcrywsmkhbvdnGATCRYWSMKHBVDN')
 		self._mytype = 'ambDNA'
 
 
 class RNA(_NucleotideBaseClass):
 
 	def __init__(self, sequence):
-		self.alphabet = 'aucgAUCG'
-		_NucleotideBaseClass.__init__(self, sequence)
+		_NucleotideBaseClass.__init__(self, sequence, alphabet='aucgAUCG')
 		self._mytype = 'RNA'
 
 
 class ambRNA(_AmbiguousNucleotideBaseClass):
 
 	def __init__(self, sequence):
-		self.alphabet = 'gaucrywsmkhbvdnGAUCRYWSMKHBVDN'
-		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet)
+		_AmbiguousNucleotideBaseClass.__init__(self, sequence, alphabet='gaucrywsmkhbvdnGAUCRYWSMKHBVDN')
 		self._mytype = 'ambRNA'
 
 
 class Protein(_BioSeq):
 	def __init__(self, sequence):
-		self.alphabet = 'flsycwpherimtnkvadqgxFLSYCWPHERIMTNKVADQG*X'
-		_BioSeq.__init__(self, sequence)
+		_BioSeq.__init__(self, sequence, alphabet='flsycwpherimtnkvadqgxFLSYCWPHERIMTNKVADQG*X')
 		self._mytype = 'Protein'
 
 
@@ -799,7 +793,9 @@ class Protein(_BioSeq):
 		'P':0, 'H':0, 'E':0, 'Q':0,
 		'D':0, 'N':0, 'K':0, 'R':0,
 		'*':0, 'X':0}
-		return [aa_count[s] += 1 for s in self.sequence.upper()]
+		for aa in self.sequence.upper():
+			aa_count[aa] += 1
+		return aa_count
 
 
 	def reverse_translate(self, table=1, freq_table=None):
@@ -852,10 +848,10 @@ class Protein(_BioSeq):
 			 'L':131, 'K':146,
 			 'M':149, 'F':165,
 			 'P':115, 'S':105,
-			 'T:'119, 'W':204,
+			 'T':119, 'W':204,
 			 'Y':181, 'V':117,
 			 '*':0, 'X':110} #110 is the average amino acid weight
-		 return sum([mass_vals[aa.upper()] for aa in self.sequence])
+		return sum([mass_vals[aa.upper()] for aa in self.sequence])
 
 
 
