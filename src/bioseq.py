@@ -32,16 +32,365 @@
 import string
 import random
 from functools import reduce
-
+import oligo_localizer
+import peptide_localizer
 
 #TODO
-#finish protein class
-#make freq table class and use it to compute/read codon frequency tables. Use that to assign codons in a probabalistic way when reverse-translating protein.
+#finish protein class, What is left?
+#use codon freq table to assign codons in a probabalistic way when reverse-translating protein.
 #finish ambDNA class
 #finish ambRNA class
 #finish codon class
 
 ## Sub-classing of the str class and modification of some of the methods ##
+
+
+
+
+
+	def mutate(self, mutationtype, mutationframe, mutation, silent=False):
+		'''Mutates a given amino acid or DNA base.
+			Mutationtype decides whether AA or DNA.
+			Mutationframe decides whether in a certain feture or in DNA.
+			Mutation is the actual mutation. This can be a list of mutations or a single mutation.
+			Amino acid mutations are in the format: D121E(GAG) were the leading letter connotates the amino acid already present at position.
+			The number is the amino acid number.
+			The trailing letter is the amino acid that one whishes to introduce at the position.
+			The three letters in the bracket is the codon which you wish to use to make the chosen mutation.
+			The leading letter and the codon (within brackets) are optional.
+			DNA mutataions are in the format: A234C
+			The first letter is the base present at the chosen position.
+			The numbers desgnate the chosen position.
+			The trailing letter dessignates the base you want at that position.
+			The leading letter is optional.
+			If the 'silent' variable is False, a feature marking the mutation will be added. If True, no feature will be made.
+			'''
+
+		#mutation input can be a single mutation or a list of mutations
+		if type(mutation) is list: #if it's a list, run the method on each of them
+			for mut in mutation:
+				self.mutate(mutationtype, mutationframe, mut)
+		else:
+			assert type(mutation) is str or type(mutation) is str, 'Error, input must be a string or unicode.'
+			mutation = mutation.upper()
+			if mutationframe == -1: #mutation frame of -1 means entire molecule
+				complement = False
+			else:
+				complement = self.get_feature_complement(mutationframe) #find whether feature is reverse-complement or not
+
+			if mutationtype == 'A': #if amino acid
+				leadingAA = ''
+				position = ''
+				trailingAA = ''
+				codon = ''
+
+				#make sure input has the right pattern
+				#matches the patterns '121E' or 'D121E' or '121E(GAA)' or 'D121E(GAA)'  (of course not explicitly, posotion, aa and codon can change)
+				regular_expression = re.compile(r'''^							#match beginning of string
+													[FLSYCWPHERIMTNKVADQG]? 	#zero or one occurances of amino acid
+													[1234567890]+				#one or more digits
+													[FLSYCWPHERIMTNKVADQG]{1}	#exactly one amino acid
+													([(][ATCG]{3}[)])?			#zero or one occurances of brackets with codon inside
+													$							#match end of string
+													''', re.VERBOSE)
+				assert regular_expression.match(mutation) != None, 'Error, the mutation %s is not a valid input.' % mutation
+
+
+				#assumes the pattern D121E(GAG) (with leading letter and trailing bracket with codon being optional)
+				for i in range(0,len(mutation)):
+					if i == 0 and mutation[i] in 'FLSYCWPHERIMTNKVADQG': #leading AA if any
+						leadingAA = mutation[i]
+					elif mutation[i].isdigit(): #for position
+						position += mutation[i]
+					elif mutation[i] in 'ATCG' and type(position) is int: #getting the codon in brackets
+						codon += mutation[i]
+					elif mutation[i] in 'FLSYCWPHERIMTNKVADQG': #trailing AA
+						trailingAA = mutation[i]
+						position = int(position) #important to convert only after the second AA has been found
+
+				#check that position does not exceed feature length
+				if mutationframe == -1: #-1 for entire molecule
+					length = len(self.GetDNA())/3
+				else:
+					length = len(self.GetFeatureDNA(mutationframe))/3
+				assert position <= length, 'Error, the actual length of feature is %s AA long and is shorter than the specified position %s.' % (str(length), str(position))
+
+				#check that the codon matches the specified amino acid
+				if codon == '':
+					#assign one...
+					codon = dna.GetCodons(trailingAA)[0]
+				assert trailingAA == dna.Translate(codon), 'Error, the specified codon %s does not encode the amino acid %s.' % (codon, trailingAA)
+
+				#make sure the position has the AA that is specified in the leading letter
+				global_position = self.FindAminoAcid(position, mutationframe) #get the global position (on enire dna) of the mutation
+				if complement is True:
+					positionAA = dna.TranslateRC(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
+				if complement is False or mutationframe == -1:
+					positionAA = dna.Translate(self.GetDNA(global_position[0][0], global_position[0][1])) #find the AA at that position
+				if leadingAA != '':
+					assert positionAA == leadingAA, 'Error, position %s has amino acid %s, and not %s as specified.' % (str(position),  positionAA, leadingAA)
+
+				#now make the mutation and add corresponding feature if the 'silent' variable is False
+				if complement is False or mutationframe == -1:
+					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', codon)
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+					print(('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon)))
+				elif complement is True:
+					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.reverse_complement(codon))
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note="%s%s%s(%s)"' % (positionAA, position, trailingAA, codon)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
+					print(('Mutation %s%s%s(%s) performed.' % (positionAA, position, trailingAA, codon)))
+				else:
+					raise ValueError
+
+
+			elif mutationtype == 'D': #if DNA
+				leadingnucleotide = ''
+				position = ''
+				trailingnucleotide = ''
+
+				#make sure input has the right pattern
+				#matches the patterns '325T' or 'A325T' (of course not explicitly, position and nucleotide can change)
+				regular_expression = re.compile(r'''^							#match beginning of string
+													[ATCG]? 					#zero or one occurances of nucleotide
+													[1234567890]+				#one or more digits
+													[ATCG]{1}					#exactly one nucleotide
+													$							#match end of string
+													''', re.VERBOSE)
+				assert regular_expression.match(mutation) != None, 'Error, the mutation %s is not a valid input.' % mutation
+
+
+				#assumes the pattern 'A325T' (with leading nucleotide being optional)
+				for i in range(0,len(mutation)):
+					if i == 0 and mutation[i] in 'ATCG': #leading base if any
+						leadingnucleotide = mutation[i]
+					elif mutation[i].isdigit(): #for position
+						position += mutation[i]
+					elif mutation[i] in 'ATCG': #trailing nucleotide
+						trailingnucleotide = mutation[i]
+						position = int(position) #important to convert only after the second nucleotide has been found
+
+				#check that position does not exceed feature length
+				if mutationframe == -1: #-1 for entire molecule
+					length = len(self.GetDNA())
+				else:
+					length = len(self.GetFeatureDNA(mutationframe))
+				assert position <= length, 'Error, the actual length of feature is %s nucleotides long and is shorter than the specified position %s.' % (str(length), str(position))
+
+				#make sure the position has the nucleotide that is specified in the leading letter
+				global_position = self.FindNucleotide(position, mutationframe) #get the global position (on enire dna) of the mutation
+				if complement is True:
+					positionnucleotide = dna.reverse_complement(self.GetDNA(global_position[0][0], global_position[0][1])).upper()
+				elif complement is False:
+					positionnucleotide = self.GetDNA(global_position[0][0], global_position[0][1]).upper()
+				if leadingnucleotide != '':
+					assert positionnucleotide == leadingnucleotide, 'Error, position %s has the nucleotide %s, and not %s as specified.' % (str(position),  positionnucleotide, leadingnucleotide)
+
+				#now make the mutation and add corresponding feature if the 'silent' variable is False
+				if complement is False or mutationframe == -1:
+					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', trailingnucleotide)
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=False, join=False, order=False)
+					print(('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide)))
+				elif complement is True:
+					self.changegbsequence(global_position[0][0], global_position[0][1], 'r', dna.reverse_complement(trailingnucleotide))
+					if silent is False: self.add_feature(key='modified_base', qualifiers=['/note=%s%s%s' % (positionnucleotide, position, trailingnucleotide)], location=['%s..%s' % (global_position[0][0], global_position[0][1])], complement=True, join=False, order=False)
+					print(('Mutation %s%s%s performed.' % (positionnucleotide, position, trailingnucleotide)))
+				else:
+					raise ValueError
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	def find_nuc(self, searchstring, searchframe=-1, searchRC=False):
+		'''Method for finding a certain DNA sequence. Degenerate codons are supported.
+		Searchstring should be a integer number or string of DNA characers.
+		searchRC is True or False and determines whether the reverse complement should also be searched.
+		Searchframe should be an index for a feature. -1 indicates search in entire genbank file
+		indeces >-1 are feature indeces'''
+
+
+		### Need to implement the searchRC variable
+
+		#fix the set_dna_selection functions here
+		assert type(searchstring) == str or type(searchstring) == str or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
+		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
+		#empty search string
+		if searchstring=='':
+			print('The searchstring is missing, please check your input')
+			return []
+
+		#searching for a position (by number)
+		elif type(searchstring) is int: #if search is numbers only
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			if searchframe == -1: #if index is -1, that means search in molecule
+				search_hits = [(int(searchstring), int(searchstring))]
+				return search_hits
+
+			else: #otherwise search in feature indicated by the index
+				feature = self.get_feature(searchframe)
+				locations = copy.deepcopy(feature['location']) #get list of all locations
+				cleaned_locations = []
+				for i in range(len(locations)): # remove all < > and such..
+					cleaned_locations.append(self.get_location(locations[i]))
+
+				gaps = [] #for storing gap sizes (between locations)
+				for i in range(0,len(cleaned_locations)-1):
+					gaps.append(cleaned_locations[i+1][0] - cleaned_locations[i][1]) #subtract end of last location from the beginnning of current
+
+				#now find where the searchstring is located
+				if complement == False:
+					for i in range(0,len(cleaned_locations)):
+						if i == 0:
+							start, finish = cleaned_locations[i]
+							searchstring += start-1
+						else:
+							start, finish = cleaned_locations[i]
+							searchstring += gaps[i-1]-1
+						if start<=searchstring<=finish: #if the chosen number is in the range of the current location
+							return [(searchstring,searchstring)]
+							break
+					print('No matches were found')
+					return []
+
+				elif complement == True:
+					cleaned_locations = cleaned_locations[::-1] #reverse location list
+					for i in range(len(cleaned_locations)):
+						cleaned_locations[i] = cleaned_locations[i][::-1]
+					gaps = gaps[::-1]
+					for i in range(0,len(cleaned_locations)):
+						if i == 0:
+							start, finish = cleaned_locations[i]
+							searchstring = -searchstring
+							searchstring += start+1
+						else:
+							start, finish = cleaned_locations[i]
+							searchstring -= gaps[i-1]-1
+
+						#is the chosen number is in the range of the current location
+						if start>=searchstring>=finish:
+							return [(searchstring,searchstring)]
+							break
+					return []
+
+		#searching for string, not numbers
+		else:
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			#need to test that the characters are valid
+			if searchframe == -1: #if index is -1, that means search in molecule
+				dna_seq = self.GetDNA()
+				search_hits = []
+				for match in oligo_localizer.match_oligo(dna_seq, searchstring):
+					search_hits.append((match[0], match[1]))
+				return search_hits
+
+			else:
+				#strategy is to find location of the sting inside the feature DNA and then to map those onto the whole molecule
+				DNA = self.GetFeatureDNA(searchframe)
+				search_hits = []
+				for match in oligo_localizer.match_oligo(DNA, searchstring):
+					search_hits.append((match[0], match[1]))
+
+				#now map them one by one to the whole molecule
+				re_mapped_search_hits = []
+				for i in range(len(search_hits)):
+					start = self.FindNucleotide(search_hits[i][0], searchframe)[0][0]
+					finish = self.FindNucleotide(search_hits[i][1], searchframe)[0][0]
+					re_mapped_search_hits.append((start,finish))
+
+				#if feature is on complement then I need to reverse the list of hits and the tuples inside
+				if complement == True:
+					re_mapped_search_hits = re_mapped_search_hits[::-1]
+					for i in range(len(re_mapped_search_hits)):
+						re_mapped_search_hits[i] = re_mapped_search_hits[i][::-1]
+				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######
+
+
+	def find_aa(self, searchstring, searchframe, searchRC=False):
+		'''Method for finding a certain protein sequence, or position, in the file. Degenerate codons are supported'''
+		assert type(searchstring) == str or type(searchstring) == str or type(searchstring) == int, 'Error, search takes a string of DNA or a string of numbers as input.'
+		assert type(searchframe) == int and -1<=searchframe<len(self.get_all_features()), 'Error, %s is not a valid argument for searchframe.' % str(searchframe)
+		assert type(searchRC) == bool, 'Error, searchRC must be True or False'
+
+
+		#empty search string
+		if searchstring=='':
+			print('The searchstring is missing, please check your input')
+			return []
+
+		#searching for a position (by number)
+		elif type(searchstring) is int: #if search is numbers only
+			#get the dna triplet positions for the amino acid
+			start = searchstring*3 -2
+			finish = searchstring*3
+			if searchframe == -1: #if index is -1, that means search in molecule
+				search_hits = [(start, finish)]
+				return search_hits
+
+			else: #otherwise search in feature indicated by the index
+				start = self.FindNucleotide(start, searchframe)[0][0]
+				finish = self.FindNucleotide(finish, searchframe)[0][0]
+
+				search_hits = [(start, finish)]
+				search_hits[0] = tuple(sorted(search_hits[0]))
+				return search_hits
+
+		#searching for an amino acid sequence
+		else:
+			#strategy is to find location of the sting inside the feature DNA and then to map those onto the whole molecule
+			complement = self.get_feature_complement(searchframe) # is feature complement or not
+			if searchframe == -1: #if index is -1, that means search in molecule
+				DNA = self.GetDNA()
+				protein = dna.Translate(DNA)
+
+				#find hits on protein level
+				search_hits = []
+				for match in peptide_localizer.match_peptide(protein, searchstring):
+					search_hits.append((match[0],match[1]))
+#				print('hits', search_hits)
+
+				#now map them one by one to the whole molecule
+				re_mapped_search_hits = []
+				for i in range(len(search_hits)):
+					start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+					finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2
+					re_mapped_search_hits.append((start,finish))
+#				print('re-mapped', re_mapped_search_hits)
+				return re_mapped_search_hits
+
+			else:
+				DNA = self.GetFeatureDNA(searchframe)
+				protein = dna.Translate(DNA)
+
+				search_hits = []
+				for match in peptide_localizer.match_peptide(protein, searchstring):
+					search_hits.append((match[0],match[1]))
+#				print('protein hits', search_hits)
+
+				#now map them one by one to the whole molecule
+				re_mapped_search_hits = []
+				for i in range(len(search_hits)):
+					if complement == False:
+						start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+						finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2
+					elif complement == True:
+						start = self.FindAminoAcid(search_hits[i][0], searchframe)[0][0]
+						finish = self.FindAminoAcid(search_hits[i][1], searchframe)[0][0]+2
+					re_mapped_search_hits.append((start,finish))
+#				print('re-mapped', re_mapped_search_hits)
+				return re_mapped_search_hits  ## need to fix this so that hits spanning a gap get correctly colored #######
+
+
+
 
 class _BioSeq(str):
 	"""
@@ -157,9 +506,10 @@ class _BioSeq(str):
 		"""
 		raise NotImplementedError
 
-	def lower(self):
+	def lower(self, start=None, end=None):
 		"""
 		"""
+		self.subsequence(start, end)
 		return type(self)(self.sequence.lower())
 
 	def lstrip(*arg):
@@ -235,9 +585,10 @@ class _BioSeq(str):
 		"""
 		raise NotImplementedError
 
-	def upper(self):
+	def upper(self, start=None, end=None):
 		"""
 		"""
+		self.subsequence(start, end)
 		return type(self)(self.sequence.lower())
 
 	def zfill(*arg):
@@ -268,16 +619,18 @@ class _BioSeq(str):
 
 	######################################
 
-	def length(self):
+	def length(self, start=None, end=None):
 		"""
 		"""
+		self.subsequence(start, end)
 		return length(self.sequence)
 
 
-	def randomize(self):
+	def randomize(self, start=None, end=None):
 		'''
 		Randomize a given DNA, RNA or protein sequence.
 		'''
+		self.subsequence(start, end)
 		seq = list(self.sequence)
 		output_list = []
 		while seq:
@@ -293,7 +646,6 @@ class _BioSeq(str):
 		The variable ambiguous (bool) determines whether the full set of ambiguous codons are used or not.
 		the variable silent determines whether an output is printed every time a non-DNA character is omitted.
 		'''
-
 		cleaned_seq = []
 		for char in self.sequence:
 			if char not in self.alphabet:
@@ -302,6 +654,42 @@ class _BioSeq(str):
 			else:
 				cleaned_seq += char
 		return type(self)(''.join(cleaned_seq))
+
+
+	def assert_section(self, start, end):
+		'''
+		Make sure sequence selection is ok
+		'''
+		assert (type(start) == int and type(end) == int), 'Function requires two integers.'
+		assert start <= end, 'Startingpoint must be before end'
+
+
+	def subsequence(self, start, end):
+		'''
+		Get sub-sequence of the current one.
+		'''
+		if start is None or end is None:
+			pass
+		else:
+			self.assert_selection(start, end)
+			self.sequence = self.sequence[start-1, end-1]
+
+
+	def delete(self, start, end):
+		'''Deletes portion of sequence'''
+		if start is None or end is None:
+			pass
+		else:
+			self.assert_selection(start, end)
+			self.sequence = self.sequence[1, start-1] + self.sequence[end-1, self.length()]
+
+
+	def insert(self, pos, seq):
+		'''
+		Insert sequence at specified position
+		'''
+		seq = type(self)(seq)
+		self.sequence = self.sequence[1, pos-1] + seq + self.sequence[pos-1, self.length()]
 
 
 	def type(self):
@@ -319,17 +707,19 @@ class _NucleotideBaseClass(_BioSeq):
 		_BioSeq.__init__(self, sequence, alphabet=alphabet)
 
 
-	def reverse(self):
+	def reverse(self, start=None, end=None):
 		"""
 		Returns the reverse of a DNA or RNA string.
 		"""
+		self.subsequence(start, end)
 		return type(self)(self.sequence[::-1])  #makes the reverse of the input string
 
 
-	def complement(self):
+	def complement(self, start=None, end=None):
 		"""
 		Returns the complement of a DNA or RNA string.
 		"""
+		self.subsequence(start, end)
 		if 'u' in self.alphabet:
 			transl = {'a':'u', 'u':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
 						'A':'U', 'U':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
@@ -340,17 +730,19 @@ class _NucleotideBaseClass(_BioSeq):
 		return type(self)(''.join(bases))
 
 
-	def reverse_complement(self):
+	def reverse_complement(self, start=None, end=None):
 		"""
 		Returns the reverse complement of a DNA or RNA string.
 		"""
+		self.subsequence(start, end)
 		return self.reverse().complement()
 
 
-	def transcribe(self):
+	def transcribe(self, start=None, end=None):
 		"""
 		Return RNA version of DNA
 		"""
+		self.subsequence(start, end)
 		transl = {'t':'u', 'T':'U'}
 
 		transcript = []
@@ -363,10 +755,11 @@ class _NucleotideBaseClass(_BioSeq):
 		return RNA(''.join(transcript))
 
 
-	def reverse_transcribe(self):
+	def reverse_transcribe(self, start=None, end=None):
 		"""
 		Return DNA version of RNA
 		"""
+		self.subsequence(start, end)
 		transl = {'u':'t', 'U':'T'}
 
 		transcript = []
@@ -379,12 +772,13 @@ class _NucleotideBaseClass(_BioSeq):
 		return DNA(''.join(transcript))
 
 
-	def translate(self, table=1):
+	def translate(self, table=1, start=None, end=None):
 		"""
 		Returns protein sequence from DNA or RNA string.
 		The table variable specifies which codon table should be used.
 		table defaults to the standard codon table 1
 		"""
+		self.subsequence(start, end)
 		codons = CodonTable(table).get_codons()
 		protein = []
 		transcript = self.sequence.upper().transcribe()
@@ -419,15 +813,17 @@ class _NucleotideBaseClass(_BioSeq):
 		return Protein(''.join(protein))
 
 
-	def translate_reverse_complement(self, table=1):
+	def translate_reverse_complement(self, table=1, start=None, end=None):
 		'''Translate the reverse complement of DNA'''
+		self.subsequence(start, end)
 		return self.reverse_complement().translate(table)
 
 
-	def mass(self):
+	def mass(self, start=None, end=None):
 		"""
 		Determine mass of single-stranded sequence in g/mol (da)
 		"""
+		self.subsequence(start, end)
 		if 'u' in self.alphabet:
 			mass_vals ={'A':347.2, 'C':323.2, 'G':363.2, 'U':324.2}
 		else:
@@ -435,12 +831,13 @@ class _NucleotideBaseClass(_BioSeq):
 		return sum([mass_vals[base.upper()] for base in self.sequence])
 
 
-	def count_bases(self):
+	def count_bases(self, start=None, end=None):
 		'''
 		Counts the number of different bases in a DNA sequence.
 		Input should be a string comprising dna bases. These can be a, t, c, g or any of the ambiguous bases.
 		Output is a dictionary with DNA base keys and integer values.
 		'''
+		self.subsequence(start, end)
 		base_count = {'G':0, 'A':0, 'T':0, 'C':0,
 			'R':0, 'Y':0, 'W':0, 'S':0,
 			'M':0, 'K':0, 'H':0, 'B':0,
@@ -450,13 +847,15 @@ class _NucleotideBaseClass(_BioSeq):
 		return base_count
 
 
-	def count_codons(self):
+	def count_codons(self, start=None, end=None):
 		'''
 		Counts codons in a DNA sequence.
 		Input should be a string comprising whole codons.
 		No ambiguous codons allowed.
 		Output is a dictionary with codon keys and integer values.
 		'''
+		self.subsequence(start, end)
+
 		assert len(self.sequence) % 3 == 0, 'Error, the sequence must be a string comprising whole codons.'
 
 		codons = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0,
@@ -499,7 +898,6 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 		max_total puts a limit on the maximum number of sequences that can be computed. The number tends to increase explosively....
 		The output is a generator with a list of the resulting sequences.
 		'''
-
 		#make sure the input will not result in too many sequences
 		list_of_nums = [len(x) for x in input_list]
 		total = reduce(lambda x, y: x*y, list_of_nums)
@@ -540,7 +938,6 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 		Example input is: ['A','T','C','G']. The output for that input is 'N'
 		'''
 		in_list = self.listupper(in_list)
-
 		if all([x in 'A' for x in in_list]):  output = 'A'
 		elif all([x in 'G' for x in in_list]): output = 'G'
 		elif all([x in 'C' for x in in_list]): output = 'C'
@@ -571,7 +968,6 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 		largelist = [x.upper() for x in largelist] #make the uppercase
 		for lst in largelist:
 			output.append(amb(lst))
-
 		return ''.join(output)
 
 
@@ -602,8 +998,6 @@ class _AmbiguousNucleotideBaseClass(_BioSeq):
 			elif 'N' == letter: pos_list.append(['C','T','A','G'])
 
 		return self.__combine(pos_list) #call combine function and return the result as a list of strings
-
-
 
 
 	def common_nuc(nuc_list, greedy=False):
@@ -691,10 +1085,11 @@ class Protein(_BioSeq):
 		self._mytype = 'Protein'
 
 
-	def one_to_three(self, one_letter):
+	def one_to_three(self, one_letter, start=None, end=None):
 		'''
 		Convert a one letter code amino acid to a three letter code.
 		'''
+		self.subsequence(start, end)
 		AA = {'I':'Ile', 'V':'Val',
 		'L':'Leu', 'F':'Phe',
 		'C':'Cys', 'M':'Met',
@@ -710,10 +1105,11 @@ class Protein(_BioSeq):
 		return AA[one_letter.upper()]
 
 
-	def three_to_one(self, three_letter):
+	def three_to_one(self, three_letter, start=None, end=None):
 		'''
 		Convert a three letter code amino acid to a one letter code.
 		'''
+		self.subsequence(start, end)
 		AA = {'ILE':'I', 'VAL':'V',
 		'LEU':'L', 'PHE':'F',
 		'CYS':'C', 'MET':'M',
@@ -729,10 +1125,11 @@ class Protein(_BioSeq):
 		return AA[three_letter.upper()]
 
 
-	def one_to_full(self, one_letter):
+	def one_to_full(self, one_letter, start=None, end=None):
 		'''
 		Convert one-letter amino acid code to full amino acid name.
 		'''
+		self.subsequence(start, end)
 		AA = {'F':'Phenylalanine', 'L':'Leucine',
 		'S':'Serine', 'Y':'Tyrosine',
 		'*':'Stop', 'C':'Cysteine',
@@ -748,10 +1145,11 @@ class Protein(_BioSeq):
 		return AA[one_letter.upper()]
 
 
-	def full_to_one(self, full):
+	def full_to_one(self, full, start=None, end=None):
 		'''
 		Convert full amino acid name to one-letter amino acid code.
 		'''
+		self.subsequence(start, end)
 		AA = {'phenylalanine':'F', 'leucine':'L',
 				'serine':'S', 'tyrosine':'Y',
 				'stop':'*', 'cysteine':'C',
@@ -767,26 +1165,29 @@ class Protein(_BioSeq):
 		return AA[full.lower()]
 
 
-	def three_to_full(self, three_letter):
+	def three_to_full(self, three_letter, start=None, end=None):
 		'''
 		Convert amino acid three letter code to full amino acid names.
 		'''
+		self.subsequence(start, end)
 		return one_to_full(three_to_one(three_letter))
 
 
-	def full_to_three(self, full):
+	def full_to_three(self, full, start=None, end=None):
 		'''
 		Convert full amino acid names to three letter code.
 		'''
+		self.subsequence(start, end)
 		return one_to_three(full_to_one(full))
 
 
-	def count_aa(self):
+	def count_aa(self, start=None, end=None):
 		'''
 		Count occurrences of all amino acids in sequence.
 		The X character for unknown amino acid is allowed.
 		Return as dictionary.
 		'''
+		self.subsequence(start, end)
 		aa_count = {'I':0, 'V':0, 'L':0, 'F':0,
 		'C':0, 'M':0, 'A':0, 'G':0,
 		'T':0, 'W':0, 'S':0, 'Y':0,
@@ -798,7 +1199,7 @@ class Protein(_BioSeq):
 		return aa_count
 
 
-	def reverse_translate(self, table=1, freq_table=None):
+	def reverse_translate(self, table=1, start=None, end=None, freq_table=None):
 		'''
 		Reverse translates protein sequence to DNA sequence using the specified codon table.
 		For each amino acid the DNA codon is chosen randomly from those that encode the specified amino acid.
@@ -808,6 +1209,7 @@ class Protein(_BioSeq):
 		Output is a DNA sequence as a string.
 		table defaults to the standard codon table 1
 		'''
+		self.subsequence(start, end)
 		rna_seq = []
 		for AA in prot_seq:
 			possible = CodonTable(table).get_codons(separate=False)[AA]
@@ -820,7 +1222,7 @@ class Protein(_BioSeq):
 		return RNA(''.join(rna_seq))
 
 
-	def reverse_translate_ambiguous(self, table=1):
+	def reverse_translate_ambiguous(self, start=None, end=None, table=1):
 		'''
 		Translate protein to RNA.
 		The input is a protein sequence as a string.
@@ -828,7 +1230,7 @@ class Protein(_BioSeq):
 		For some amino acids there will be two possible ambigous codons.
 		Run the __combine() function to convert the list to all possible dna sequences.
 		'''
-
+		self.subsequence(start, end)
 		#### This one needs attention! #########
 
 		rnalist = []
@@ -837,9 +1239,10 @@ class Protein(_BioSeq):
 		return rnalist
 
 
-	def mass(self):
+	def mass(self, start=None, end=None):
 		"""
 		"""
+		self.subsequence(start, end)
 		mass_vals = {'A':89, 'R':174,
 			 'N':132, 'D':133,
 			 'C':121, 'Q':146,
@@ -1069,7 +1472,7 @@ class CodonTable(object):
 				raise Error('"%s" is not a valid amino acid' % aa)
 
 			if s != '-': #if the codon is start
-				codons['start'].append(codon)
+				codons['start'].append(RNA(codon))
 
 		self.codons = codons
 
@@ -1144,55 +1547,7 @@ class CodonTable(object):
 
 
 
-######################
-######################
 
-
-
-class FreqTable(object):
-
-	def __init__(self):
-		pass
-
-	def make_codon_freq_table(self, fasta_file):
-		'''
-		Input is a file path.
-		Counts the usage of each codon in a FASTA file of DNA sequences.
-		Then converts that as codon usage per 1000 codons.
-		Good for generating codon tables.
-		Output is a dictionary of codon frequencies per 1000 codons and the total number in brackets.
-		'''
-
-		num_table = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0,
-					'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0,
-					'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0,
-					'GUG': 0, 'UAU': 0, 'UAC': 0, 'UAA': 0, 'UAG': 0,
-					'CAU': 0, 'CAC': 0, 'CAA': 0, 'CAG': 0, 'AAU': 0,
-					'AAC': 0, 'AAA': 0, 'AAG': 0, 'GAU': 0, 'GAC': 0,
-					'GAA': 0, 'GAG': 0, 'UCU': 0, 'UCC': 0, 'UCA': 0,
-					'UCG': 0, 'CCU': 0, 'CCC': 0, 'CCA': 0, 'CCG': 0,
-					'ACU': 0, 'ACC': 0, 'ACA': 0, 'ACG': 0, 'GCU': 0,
-					'GCC': 0, 'GCA': 0, 'GCG': 0, 'UGU': 0, 'UGC': 0,
-					'UGA': 0, 'UGG': 0, 'CGU': 0, 'CGC': 0, 'CGA': 0,
-					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
-					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
-		records = fasta.parseFile(fasta_file)
-		for record in records:
-			cds = record[1]
-			codons = count_codons(cds)
-			for key in list(codons.keys()):
-				num_table[key] += codons[key]
-
-		#sum codons
-		codon_sum = 0.0
-		for key in list(num_table.keys()):
-			codon_sum += num_table[key]
-
-		#divide each by the sum and multiply by 1000
-		freq_table = {}
-		for key in list(num_table.keys()):
-			freq_table[key] = '%s(%s)' % (1000*(num_table[key]/codon_sum), num_table[key]) #ouput is following format: freq/thousand(number)
-		return freq_table
 
 ############### Identity functions ##########################
 
