@@ -456,7 +456,8 @@ class _BioSeq(str):
 		valid_chars = [s for s in sequence if s in self.alphabet]
 		diff = len(sequence) - len(valid_chars)
 		if diff != 0:
-			print('%s characters were non-compliant with %s and were removed from sequence' % (diff, self.alphabet))
+			non_valid_chars = set([s for s in sequence if s not in self.alphabet])
+			print('The characters "%s" were non-compliant with %s and were removed from sequence' % (', '.join(list(non_valid_chars)), self.alphabet))
 		self.sequence = ''.join(valid_chars)
 
 	### Re-define builtins for string ###
@@ -589,7 +590,7 @@ class _BioSeq(str):
 		"""
 		"""
 		self.subsequence(start, end)
-		return type(self)(self.sequence.lower())
+		return type(self)(self.sequence.upper())
 
 	def zfill(*arg):
 		"""
@@ -1211,7 +1212,7 @@ class Protein(_BioSeq):
 		'''
 		self.subsequence(start, end)
 		rna_seq = []
-		for AA in prot_seq:
+		for AA in self.sequence:
 			possible = CodonTable(table).get_codons(separate=False)[AA]
 			if freq_table is None:
 				rna_seq.append(random.choice(possible))
@@ -1465,6 +1466,7 @@ class CodonTable(object):
 		codons = {'start':[], 'F':[], 'L':[], 'S':[], 'Y':[], 'C':[], 'W':[], 'P':[], 'H':[], 'E':[], 'R':[], 'I':[], 'M':[], 'T':[], 'N':[], 'K':[], 'V':[], 'A':[], 'D':[], 'Q':[], 'G':[], '*':[]}
 		for aa, s, b1, b2, b3 in zip(AAs, Starts, Base1, Base2, Base3):
 			codon = b1+b2+b3
+			codon = codon.replace('T', 'U')
 
 			if aa in 'FLSYCWPHERIMTNKVADQG*':
 				codons[aa].append(codon)
