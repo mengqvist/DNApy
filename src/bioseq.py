@@ -47,7 +47,6 @@ import peptide_localizer
 
 
 
-
 	def mutate(self, mutationtype, mutationframe, mutation, silent=False):
 		'''Mutates a given amino acid or DNA base.
 			Mutationtype decides whether AA or DNA.
@@ -510,8 +509,8 @@ class _BioSeq(str):
 	def lower(self, start=None, end=None):
 		"""
 		"""
-		self.subsequence(start, end)
-		return type(self)(self.sequence.lower())
+		sequence = self.subsequence(start, end)
+		return type(self)(sequence.lower())
 
 	def lstrip(*arg):
 		"""
@@ -589,8 +588,8 @@ class _BioSeq(str):
 	def upper(self, start=None, end=None):
 		"""
 		"""
-		self.subsequence(start, end)
-		return type(self)(self.sequence.upper())
+		sequence = self.subsequence(start, end)
+		return type(self)(sequence.upper())
 
 	def zfill(*arg):
 		"""
@@ -598,8 +597,21 @@ class _BioSeq(str):
 		raise NotImplementedError
 
 
+	def startswith(self, string, start=None, end=None):
+		"""
+		"""
+		sequence = self.subsequence(start, end)
+		return str(sequence).startswith(str(string))
+
+
+	def endswith(self, string, start=None, end=None):
+		"""
+		"""
+		sequence = self.subsequence(start, end)
+		return str(sequence).endswith(str(string))
+
+
 	## Unmodified methods ##
-	#endswith
 	#find
 	#index
 	#isalnum
@@ -615,7 +627,6 @@ class _BioSeq(str):
 	#isupper
 	#rfind
 	#rindex
-	#startswith
 
 
 	######################################
@@ -623,16 +634,16 @@ class _BioSeq(str):
 	def length(self, start=None, end=None):
 		"""
 		"""
-		self.subsequence(start, end)
-		return length(self.sequence)
+		sequence = self.subsequence(start, end)
+		return len(sequence)
 
 
 	def randomize(self, start=None, end=None):
 		'''
 		Randomize a given DNA, RNA or protein sequence.
 		'''
-		self.subsequence(start, end)
-		seq = list(self.sequence)
+		sequence = self.subsequence(start, end)
+		seq = list(sequence)
 		output_list = []
 		while seq:
 			char = random.choice(seq)
@@ -669,11 +680,23 @@ class _BioSeq(str):
 		'''
 		Get sub-sequence of the current one.
 		'''
-		if start is None or end is None:
-			pass
-		else:
+		if start is None and end is None:
+			return self.sequence
+
+		elif start is None and end is not None:
+			assert end <= len(self.sequence)
+			return self.sequence[:end-1]
+
+		elif start is not None and end is None:
+			assert 0 < start <= len(self.sequence)
+			return self.sequence[start-1:]
+
+		elif start is not None and end is not None:
 			self.assert_selection(start, end)
-			self.sequence = self.sequence[start-1, end-1]
+			return self.sequence[start-1:end-1]
+
+		else:
+			raise ValueError
 
 
 	def delete(self, start, end):
@@ -712,22 +735,22 @@ class _NucleotideBaseClass(_BioSeq):
 		"""
 		Returns the reverse of a DNA or RNA string.
 		"""
-		self.subsequence(start, end)
-		return type(self)(self.sequence[::-1])  #makes the reverse of the input string
+		sequence = self.subsequence(start, end)
+		return type(self)(sequence[::-1])  #makes the reverse of the input string
 
 
 	def complement(self, start=None, end=None):
 		"""
 		Returns the complement of a DNA or RNA string.
 		"""
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		if 'u' in self.alphabet:
 			transl = {'a':'u', 'u':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
 						'A':'U', 'U':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
 		else:
 			transl = {'a':'t', 't':'a', 'c':'g', 'g':'c', 'y':'r', 'r':'y', 'w':'w', 's':'s', 'k':'m', 'm':'k', 'd':'h', 'v':'b', 'h':'d', 'b':'v', 'n':'n',
 						'A':'T', 'T':'A', 'C':'G', 'G':'C', 'Y':'R', 'R':'Y', 'W':'W', 'S':'S', 'K':'M', 'M':'K', 'D':'H', 'V':'B', 'H':'D', 'B':'V', 'N':'N'}
-		bases = [transl[base] for base in self.sequence]
+		bases = [transl[base] for base in sequence]
 		return type(self)(''.join(bases))
 
 
@@ -735,19 +758,18 @@ class _NucleotideBaseClass(_BioSeq):
 		"""
 		Returns the reverse complement of a DNA or RNA string.
 		"""
-		self.subsequence(start, end)
-		return self.reverse().complement()
+		return self.reverse(start, end).complement()
 
 
 	def transcribe(self, start=None, end=None):
 		"""
 		Return RNA version of DNA
 		"""
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		transl = {'t':'u', 'T':'U'}
 
 		transcript = []
-		for base in self.sequence:
+		for base in sequence:
 			if base in ['T', 't']:
 				transcript.append(transl[base])
 			else:
@@ -760,11 +782,11 @@ class _NucleotideBaseClass(_BioSeq):
 		"""
 		Return DNA version of RNA
 		"""
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		transl = {'u':'t', 'U':'T'}
 
 		transcript = []
-		for base in self.sequence:
+		for base in sequence:
 			if base in ['U', 'u']:
 				transcript.append(transl[base])
 			else:
@@ -773,16 +795,15 @@ class _NucleotideBaseClass(_BioSeq):
 		return DNA(''.join(transcript))
 
 
-	def translate(self, table=1, start=None, end=None):
+	def translate(self, start=None, end=None, table=1):
 		"""
 		Returns protein sequence from DNA or RNA string.
 		The table variable specifies which codon table should be used.
 		table defaults to the standard codon table 1
 		"""
-		self.subsequence(start, end)
 		codons = CodonTable(table).get_codons()
 		protein = []
-		transcript = self.sequence.upper().transcribe()
+		transcript = self.transcribe(start, end).upper()
 
 		for i in range(0, len(transcript), 3):
 			codon = transcript[i:(i+3)]
@@ -816,20 +837,19 @@ class _NucleotideBaseClass(_BioSeq):
 
 	def translate_reverse_complement(self, table=1, start=None, end=None):
 		'''Translate the reverse complement of DNA'''
-		self.subsequence(start, end)
-		return self.reverse_complement().translate(table)
+		return self.reverse_complement(start, end).translate(table)
 
 
 	def mass(self, start=None, end=None):
 		"""
 		Determine mass of single-stranded sequence in g/mol (da)
 		"""
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		if 'u' in self.alphabet:
 			mass_vals ={'A':347.2, 'C':323.2, 'G':363.2, 'U':324.2}
 		else:
 			mass_vals = {'A':331.2, 'C':307.2, 'G':347.2, 'T':322.2}
-		return sum([mass_vals[base.upper()] for base in self.sequence])
+		return sum([mass_vals[base.upper()] for base in sequence])
 
 
 	def count_bases(self, start=None, end=None):
@@ -838,12 +858,12 @@ class _NucleotideBaseClass(_BioSeq):
 		Input should be a string comprising dna bases. These can be a, t, c, g or any of the ambiguous bases.
 		Output is a dictionary with DNA base keys and integer values.
 		'''
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		base_count = {'G':0, 'A':0, 'T':0, 'C':0,
 			'R':0, 'Y':0, 'W':0, 'S':0,
 			'M':0, 'K':0, 'H':0, 'B':0,
 			'P':0, 'H':0, 'V':0, 'D':0, 'N':0}
-		for base in self.sequence.upper():
+		for base in sequence.upper():
 			base_count[base] += 1
 		return base_count
 
@@ -855,10 +875,6 @@ class _NucleotideBaseClass(_BioSeq):
 		No ambiguous codons allowed.
 		Output is a dictionary with codon keys and integer values.
 		'''
-		self.subsequence(start, end)
-
-		assert len(self.sequence) % 3 == 0, 'Error, the sequence must be a string comprising whole codons.'
-
 		codons = {'UUU': 0, 'UUC': 0, 'UUA': 0, 'UUG': 0, 'CUU': 0,
 					'CUC': 0, 'CUA': 0, 'CUG': 0, 'AUU': 0, 'AUC': 0,
 					'AUA': 0, 'AUG': 0, 'GUU': 0, 'GUC': 0, 'GUA': 0,
@@ -873,9 +889,10 @@ class _NucleotideBaseClass(_BioSeq):
 					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
 					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
 
-		seq = self.sequence.upper().translate()
+		sequence = self.sequence.upper().translate(start, end)
+		assert len(sequence) % 3 == 0, 'Error, the sequence must be a string comprising whole codons.'
 		for i in range(0, len(seq), 3):
-			codon = seq[i:i+3]
+			codon = sequence[i:i+3]
 			if codon in list(codons.keys()):
 				codons[codon] += 1
 			else:
@@ -1090,7 +1107,6 @@ class Protein(_BioSeq):
 		'''
 		Convert a one letter code amino acid to a three letter code.
 		'''
-		self.subsequence(start, end)
 		AA = {'I':'Ile', 'V':'Val',
 		'L':'Leu', 'F':'Phe',
 		'C':'Cys', 'M':'Met',
@@ -1110,7 +1126,6 @@ class Protein(_BioSeq):
 		'''
 		Convert a three letter code amino acid to a one letter code.
 		'''
-		self.subsequence(start, end)
 		AA = {'ILE':'I', 'VAL':'V',
 		'LEU':'L', 'PHE':'F',
 		'CYS':'C', 'MET':'M',
@@ -1130,7 +1145,6 @@ class Protein(_BioSeq):
 		'''
 		Convert one-letter amino acid code to full amino acid name.
 		'''
-		self.subsequence(start, end)
 		AA = {'F':'Phenylalanine', 'L':'Leucine',
 		'S':'Serine', 'Y':'Tyrosine',
 		'*':'Stop', 'C':'Cysteine',
@@ -1150,7 +1164,6 @@ class Protein(_BioSeq):
 		'''
 		Convert full amino acid name to one-letter amino acid code.
 		'''
-		self.subsequence(start, end)
 		AA = {'phenylalanine':'F', 'leucine':'L',
 				'serine':'S', 'tyrosine':'Y',
 				'stop':'*', 'cysteine':'C',
@@ -1170,7 +1183,6 @@ class Protein(_BioSeq):
 		'''
 		Convert amino acid three letter code to full amino acid names.
 		'''
-		self.subsequence(start, end)
 		return one_to_full(three_to_one(three_letter))
 
 
@@ -1178,7 +1190,6 @@ class Protein(_BioSeq):
 		'''
 		Convert full amino acid names to three letter code.
 		'''
-		self.subsequence(start, end)
 		return one_to_three(full_to_one(full))
 
 
@@ -1188,14 +1199,14 @@ class Protein(_BioSeq):
 		The X character for unknown amino acid is allowed.
 		Return as dictionary.
 		'''
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		aa_count = {'I':0, 'V':0, 'L':0, 'F':0,
 		'C':0, 'M':0, 'A':0, 'G':0,
 		'T':0, 'W':0, 'S':0, 'Y':0,
 		'P':0, 'H':0, 'E':0, 'Q':0,
 		'D':0, 'N':0, 'K':0, 'R':0,
 		'*':0, 'X':0}
-		for aa in self.sequence.upper():
+		for aa in sequence.upper():
 			aa_count[aa] += 1
 		return aa_count
 
@@ -1210,9 +1221,9 @@ class Protein(_BioSeq):
 		Output is a DNA sequence as a string.
 		table defaults to the standard codon table 1
 		'''
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		rna_seq = []
-		for AA in self.sequence:
+		for AA in sequence:
 			possible = CodonTable(table).get_codons(separate=False)[AA]
 			if freq_table is None:
 				rna_seq.append(random.choice(possible))
@@ -1231,11 +1242,11 @@ class Protein(_BioSeq):
 		For some amino acids there will be two possible ambigous codons.
 		Run the __combine() function to convert the list to all possible dna sequences.
 		'''
-		self.subsequence(start, end)
+		sequence = self.subsequence(start, end)
 		#### This one needs attention! #########
 
 		rnalist = []
-		for aa in self.sequence:
+		for aa in sequence:
 			rnalist.append(CodonTable(table).get_codons(separate=False)[AA])
 		return rnalist
 
@@ -1243,7 +1254,7 @@ class Protein(_BioSeq):
 	def mass(self, start=None, end=None):
 		"""
 		"""
-		self.subsequence(start, end)
+		self.sequence = self.subsequence(start, end)
 		mass_vals = {'A':89, 'R':174,
 			 'N':132, 'D':133,
 			 'C':121, 'Q':146,
@@ -1255,7 +1266,7 @@ class Protein(_BioSeq):
 			 'T':119, 'W':204,
 			 'Y':181, 'V':117,
 			 '*':0, 'X':110} #110 is the average amino acid weight
-		return sum([mass_vals[aa.upper()] for aa in self.sequence])
+		return sum([mass_vals[aa.upper()] for aa in sequence])
 
 
 
@@ -1475,7 +1486,6 @@ class CodonTable(object):
 
 			if s != '-': #if the codon is start
 				codons['start'].append(RNA(codon))
-
 		self.codons = codons
 
 	######## API intended for use #########
