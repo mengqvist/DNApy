@@ -23,15 +23,15 @@ if not version:
 with io.open('README.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
-with io.open('HISTORY.md', 'r', encoding='utf-8') as f:
-    history = f.read()
+#with io.open('HISTORY.md', 'r', encoding='utf-8') as f:
+#    history = f.read()
 
 
 setup(name='DNApy',
         version=version,
         license='GPL3',
         description=desc,
-        long_description=readme + '\n\n' + history,
+        #long_description=readme + '\n\n' + history,
         keywords='DNA plasmid',
         packages=find_packages(),
         entry_points={
