@@ -34,7 +34,7 @@ from dnapy.resources import bioseq
 import re
 
 
-def read_fasta(iterator):
+def read_fasta(iterator, seqtype=None):
 	"""
 	Function for iterating over lines to identify what constitutes the header
 	and the entire sequence that goes with it.
@@ -48,11 +48,20 @@ def read_fasta(iterator):
 			header, seq = line, []
 		else:
 			seq.append(line)
+
 	if header is not None:
-		yield (header, ''.join(seq))
+		if seqtype == 'dna':
+			yield (header, bioseq.DNA(''.join(seq)))
+		elif seqtype == 'rna':
+			yield (header, bioseq.RNA(''.join(seq)))
+		elif seqtype == 'protein':
+			yield (header, bioseq.Protein(''.join(seq)))
+		elif seqtype == 'None':
+			#shoudl guess type here
+			raise ValueError, 'Cannot guess sequence type, specify "dna", "rna", or "protein"''
 
 
-def parse_string(string):
+def parse_string(string, seqtype=None):
 	"""
 	Function for parsing a string containing fasta sequences.
 	The input is a string containing all the fasta records.
@@ -62,7 +71,7 @@ def parse_string(string):
 	return read_fasta(f)
 
 
-def parse_file(filepath):
+def parse_file(filepath, seqtype=None):
 	"""
 	Function for parsing a file containing fasta sequences.
 	The input is the absolute filepath including the filename (as a string).

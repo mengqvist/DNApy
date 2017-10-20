@@ -546,9 +546,14 @@ class gbobject(object):
 
 	def clean_clutter(self):
 		'''Method for removing ApE- and Vector NTI-specific codes in the qualifiers.'''
+
+		#what about geneous?
+
 		deletionlist = []
 		for i in range(len(self.gbfile['features'])):
 			for n in range(len(self.gbfile['features'][i]['qualifiers'])):
+
+				#should change this to remove anything that is a non-standard qualifier
 				if 'ApEinfo' in self.gbfile['features'][i]['qualifiers'][n] or 'vntifkey' in self.gbfile['features'][i]['qualifiers'][n] :
 					deletionlist.append((i, n))
 #				elif ''\'' in self.gbfile['features'][i]['qualifiers'][n]:

@@ -36,11 +36,14 @@ from functools import reduce
 #import peptide_localizer
 
 #TODO
-#finish protein class, What is left?
+#finish protein class.
+	#Fix the code_one, code_full_code_three to they work with self.sequence
+	#Fix so that the protein sequence can work with all three of these formats (for all functions)
 #use codon freq table to assign codons in a probabalistic way when reverse-translating protein.
 #finish ambDNA class
 #finish ambRNA class
 #finish codon class
+#add mutate and search (modify the standard methods???)
 
 ## Sub-classing of the str class and modification of some of the methods ##
 
@@ -1103,10 +1106,12 @@ class Protein(_BioSeq):
 		self._mytype = 'Protein'
 
 
-	def one_to_three(self, one_letter, start=None, end=None):
+	def code_three(self, one_letter, start=None, end=None):
 		'''
 		Convert a one letter code amino acid to a three letter code.
 		'''
+
+
 		AA = {'I':'Ile', 'V':'Val',
 		'L':'Leu', 'F':'Phe',
 		'C':'Cys', 'M':'Met',
@@ -1122,10 +1127,12 @@ class Protein(_BioSeq):
 		return AA[one_letter.upper()]
 
 
-	def three_to_one(self, three_letter, start=None, end=None):
+	def code_one(self, three_letter, start=None, end=None):
 		'''
 		Convert a three letter code amino acid to a one letter code.
 		'''
+		sequence = self.sequence
+
 		AA = {'ILE':'I', 'VAL':'V',
 		'LEU':'L', 'PHE':'F',
 		'CYS':'C', 'MET':'M',
@@ -1141,7 +1148,7 @@ class Protein(_BioSeq):
 		return AA[three_letter.upper()]
 
 
-	def one_to_full(self, one_letter, start=None, end=None):
+	def code_full(self, one_letter, start=None, end=None):
 		'''
 		Convert one-letter amino acid code to full amino acid name.
 		'''
