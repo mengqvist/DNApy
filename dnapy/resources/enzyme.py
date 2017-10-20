@@ -41,11 +41,10 @@
 
 
 
-from base_class import DNApyBaseClass
-import wx
+#import wx
 import re
 import string
-import genbank
+from dnapy.resources import genbank
 import math
 import collections
 

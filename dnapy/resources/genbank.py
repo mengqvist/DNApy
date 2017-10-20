@@ -39,14 +39,14 @@
 #add a function that checks that everything is ok. I.e. that it conforms to the genbank format.
 #make changes to how qualifiers are parsed. For example /qualifier=xyz, the '=' is not always there...
 
-#import bioseq
+from dnapy.resources import bioseq
 import copy
 #import pyperclip
 import re
 import sys
 #import wx	# for richCopy
 #import json	# for richCopy
-#import enzyme
+from dnapy.resources import enzyme
 
 
 #the feature class is not currently used.
@@ -131,20 +131,72 @@ class Feature(object):
 		return self.complement
 
 	def SetComplement(self, newcomplement):
-		'''Takes a boolean and sets whtehr feature is on complement strand or not.'''
+		'''Takes a boolean and sets whether feature is on complement strand or not.'''
 		assert type(newcomplement) == bool, 'Error, %s is not a boolean.' % str(newcomplement)
 		self.complement = newcomplement
 
+
+class headerobject(object):
+	"""Class to store and modify the header data"""
+	def __init__(self):
+		pass
+
+
+class multigbobject(object):
+	"""Class for dealing with multi-entry genbank files (separated by (//). It generates a list of genbank objects"""
+	def __init__(self, filepath):
+		self.gb_collection = []
+		self.openfile(filepath)
+
+	def __getitem__(self, index):
+		return self.gb_collection[index]
+
+	def __len__(self):
+		return len(self.gb_collection)
+
+
+	def openfile(self, f):
+		'''
+		Function opens a file.
+		'''
+		#filepath is a string, presumably a path the the file to be read
+		if hasattr(f, 'read') is False:
+			with open(f, 'r') as f:
+				record = []
+				for line in f:
+					try:
+						line = line.decode("utf-8")
+					except:
+						pass
+					record.append(line)
+					if line.startswith('//'):
+						self.gb_collection.append(gbobject())
+						self.gb_collection[-1].readgb(record)
+						record = []
+
+		#filepath is a file handle, send it straight
+		else:
+			record = []
+			for line in f:
+				try:
+					line = line.decode("utf-8")
+				except:
+					pass
+				record.append(line)
+				if line.startswith('//'):
+					self.gb_collection.append(gbobject())
+					self.gb_collection[-1].readgb(record)
+					record = []
 
 
 class gbobject(object):
 	"""Class that reads a genbank file (.gb) and has functions to edit its features and DNA sequence"""
 	def __init__(self, filepath = None):
 		self.clipboard = {}
-		self.clipboard['dna'] = ''
+		self.clipboard['dna'] = '' # change this to store DNA in a temporary FASTA file
 		self.clipboard['features'] = []
 		self.featuretypes = ["modified_base", "variation", "enhancer", "promoter", "-35_signal", "-10_signal", "CAAT_signal", "TATA_signal", "RBS", "5'UTR", "CDS", "gene", "exon", "intron", "3'UTR", "terminator", "polyA_site", "rep_origin", "primer_bind", "protein_bind", "misc_binding", "mRNA", "prim_transcript", "precursor_RNA", "5'clip", "3'clip", "polyA_signal", "GC_signal", "attenuator", "misc_signal", "sig_peptide", "transit_peptide", "mat_peptide", "STS", "unsure", "conflict", "misc_difference", "old_sequence", "LTR", "repeat_region", "repeat_unit", "satellite", "mRNA", "rRNA", "tRNA", "scRNA", "snRNA", "snoRNA", "misc_RNA", "source", "misc_feature", "misc_binding", "misc_recomb", "misc_structure", "iDNA", "stem_loop", "D-loop", "C_region", "D_segment", "J_segment", "N_region", "S_region", "V_region", "V_segment"]
-
+		self.qulifiertypes = None
 
 		self.search_hits = []	# variable for storing a list of search hits
 
@@ -243,7 +295,6 @@ class gbobject(object):
 				line = line.decode("utf-8")
 			except:
 				pass
-
 
 			line = line.replace('\r', '') #important for removing linux \r newline character
 			#line = line.rstrip('\n')
@@ -672,15 +723,14 @@ class gbobject(object):
 
 		#make an operon class that can hold all the info for the operons?
 
-		## assuumes the CDSs are in order ##
-
+		## assumes the CDSs are in order ##
 		cds_data = self.get_all_cds()
 
 		all_operons = []
+		current_operon = [] # to represent the operon I'm currently building
 
-		current_operon = []
 		for cds in cds_data:
-			start, end, protein_id, orientation = cds
+			start, end, protein_id, orientation = cds # start, end, id and orientation of the most recent cds
 
 			if current_operon == []:
 				current_operon.append((start, end, protein_id, orientation))
@@ -688,15 +738,19 @@ class gbobject(object):
 			else:
 				#if it is still part of the same operon, add to it
 
+
+				last_gene_in_operon_end = current_operon[-1][1]
+				last_gene_in_operon_orientation = current_operon[-1][3]
+
 				#if the orientations are not the same, start new operon (if the same_orientation option is set to True)
-				if same_orientation is True and current_operon[-1][3] is not orientation:
+				if same_orientation is True and last_gene_in_operon_orientation is not orientation:
 					if len(current_operon) > 1:
 						all_operons.append(current_operon)
 					current_operon = [(start, end, protein_id, orientation)]
 
 				#is the end of the previous gene + max_dist within the start of the next gene?
 				#if so, add to the same operon
-				elif current_operon[-1][1] + max_dist >= start:
+				elif start - max_dist <= last_gene_in_operon_end:
 					current_operon.append((start, end, protein_id, orientation))
 
 				#if it is not, then add operon to data structure and start a new one with the present data
