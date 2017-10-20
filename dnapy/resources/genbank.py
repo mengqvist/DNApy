@@ -544,7 +544,7 @@ class gbobject(object):
 
 				if line[0:5] == 5*' ' and (line[5] in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ35') == True:
 					key = line[5:20].rstrip('\t\n\x0b\x0c\r ')
-					location = line[21:].rstrip('\t\n\x0b\x0c\r ')
+					location = line[21:].rstrip('\t\n\x0b\x0c\r ').split(':')[-1] #some files have feature names on the location line... Wierd. Have to parse out by splitting on :
 					feature["key"] = key
 					feature['location'], feature['complement'], feature['join'], feature['order'] = self.parse_location(location)
 
@@ -694,21 +694,20 @@ class gbobject(object):
 			if feature['qualifiers'] == []:
 				continue
 
-			index = self.get_feature_index(feature)
-			if self.get_feature_type(index) == 'CDS':
+			if feature['key'] == 'CDS':
 				#get the location
-				location = self.get_feature_location(index)
+				location = feature['location']
 				start, end = self.get_location(location)
 
 				#get the protein id
-				quals = self.get_qualifiers(index)
+				quals = feature['qualifiers']
 				for qual in quals:
 					if qual.startswith('/protein_id='):
 						protein_id = qual.lstrip('/protein_id=').strip('"')
 						break
 
 				#get orientation
-				complement = self.get_feature_complement(index)
+				complement = feature['complement']
 
 				#add to data structure
 				cds_data.append((start, end, protein_id, complement))
@@ -909,8 +908,13 @@ class gbobject(object):
 
 		start = entry[0].split('..')[0]
 		finish = entry[-1].split('..')[1]
-		return int(start.strip('>').strip('<')), int(finish.strip('>').strip('<'))
-
+		try:
+			start = int(start.strip('>').strip('<'))
+			finish = int(finish.strip('>').strip('<'))
+			return start, finish
+		except:
+			print(entry)
+			raise ValueError
 
 	# def get_location(self, location):
 	# 	'''Takes a location entry and extracts the start and end numbers'''
