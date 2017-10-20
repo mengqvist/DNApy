@@ -18,7 +18,7 @@ Download repository and unzip. cd to the project base folder and execute the com
 pip3 install -e .
 ```
 
-## Sequence manipulations
+## Sequence manipulations (bioseq module)
 For all commands below, first do this:
 
 ```
@@ -43,14 +43,14 @@ x.reverse_complement()
 # Transcribe to RNA
 x.transcribe()
 
-# Transcribe the reverse-complement to RNA
-x.reverse_transcribe()
+# Transcribe the reverse complement to RNA
+x.transcribe_reverse_complement()
 
 # Translate to protein
 x.translate()
 
 # Translate reverse-complement to protein
-x.reverse_translate()
+x.translate_reverse_complement()
 
 # Randomize sequence
 x.randomize()
@@ -58,7 +58,7 @@ x.randomize()
 # Get molecular weight of sequence
 x.mass()
 
-# Count nucleotides in sequence
+# Count number of each of the nucleotides in sequence
 x.count_bases()
 
 # Count codons in sequence
@@ -69,12 +69,84 @@ x.count_codons()
 ```
 # Create RNA sequence object
 x = bioseq.RNA('AUGGGAUGGUAA')
+
+# Reverse sequence
+x.reverse()
+
+# Get complement of sequence
+x.complement()
+
+# Get reverse-complement of sequence
+x.reverse_complement()
+
+# Reverse-transcribe from RNA to DNA
+x.reverse_transcribe()
+
+# Reverse-transcribe reverse complement from RNA to DNA
+x.reverse_transcribe_reverse_complement()
+
+# Translate to protein
+x.translate()
+
+# Translate reverse-complement to protein
+x.translate_reverse_complement()
+
+# Randomize sequence
+x.randomize()
+
+# Get molecular weight of sequence
+x.mass()
+
+# Count number of each of the nucleotides in sequence
+x.count_bases()
+
+# Count codons in sequence
+x.count_codons()
 ```
 
 
 ```
 # Create Protein sequence object
 x = bioseq.Protein('MGW*')
+
+#
+x.code_one()
+
+#
+x.code_three()
+
+#
+x.code_full()
+
+# Count how many of each of the amino acids there are in the sequence
+x.count_aa()
+
+# Reverse translate to RNA using randomly chosen codon
+x.reverse_translate()
+
+#
+x.reverse_translate_ambiguous()
+
+# Get molecular weight of sidechains
+x.sidechain_mass()
+
+# Get molecular weight of entire protein
+x.mass()
+
+# Get hydropathy for entire protein
+x.hydropathy()
+
+# Get hydrophobicity for entire protein
+x.hydrophobicity()
+
 ```
 
 A description regarding what else one can do with these is forthcoming.
+
+
+## Genbank file manipulations
+# here
+
+
+## Parse fasta files (fasta module)
+# here

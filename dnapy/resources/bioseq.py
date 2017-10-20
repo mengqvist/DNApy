@@ -781,6 +781,11 @@ class _NucleotideBaseClass(_BioSeq):
 		return RNA(''.join(transcript))
 
 
+	def transcribe_reverse_complement(self, start=None, end=None):
+		'''Return RNA version of DNA, from the reverse-complement'''
+		return self.reverse_complement(start, end).transcribe()
+
+
 	def reverse_transcribe(self, start=None, end=None):
 		"""
 		Return DNA version of RNA
@@ -796,6 +801,25 @@ class _NucleotideBaseClass(_BioSeq):
 				transcript.append(base)
 
 		return DNA(''.join(transcript))
+
+
+
+	def reverse_transcribe_reverse_complement(self, start=None, end=None):
+		"""
+		Return DNA version of RNA
+		"""
+		sequence = self.subsequence(start, end).reverse_complement()
+		transl = {'u':'t', 'U':'T'}
+
+		transcript = []
+		for base in sequence:
+			if base in ['U', 'u']:
+				transcript.append(transl[base])
+			else:
+				transcript.append(base)
+
+		return DNA(''.join(transcript))
+
 
 
 	def translate(self, start=None, end=None, table=1):
