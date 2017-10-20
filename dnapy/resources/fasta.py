@@ -30,13 +30,13 @@
 #
 
 
-import bioseq
+from dnapy.resources import bioseq
 import re
 
 
 def read_fasta(iterator):
 	"""
-	Funciton for iterating over lines to identify what constitutes the header
+	Function for iterating over lines to identify what constitutes the header
 	and the entire sequence that goes with it.
 	"""
 	header, seq = None, []
@@ -58,7 +58,7 @@ def parse_string(string):
 	The input is a string containing all the fasta records.
 	The parsed data is returned as id, sequence tuples in a generator.
 	"""
-	f = (xex for x in re.split('\n', string))
+	f = (x for x in re.split('\n', string))
 	return read_fasta(f)
 
 

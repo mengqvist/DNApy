@@ -39,14 +39,14 @@
 #add a function that checks that everything is ok. I.e. that it conforms to the genbank format.
 #make changes to how qualifiers are parsed. For example /qualifier=xyz, the '=' is not always there...
 
-import bioseq
+#import bioseq
 import copy
-import pyperclip
+#import pyperclip
 import re
 import sys
 #import wx	# for richCopy
 #import json	# for richCopy
-import enzyme
+#import enzyme
 
 
 #the feature class is not currently used.
@@ -183,11 +183,11 @@ class gbobject(object):
 
 		## compile regular expressions used for parsing ##
 		self._re_locus = re.compile(r'''
-				LOCUS \s+? ([a-zA-Z0-9:=_-]+?) \s+?												#match name
-				([0-9]+?)[ ](?:bp|aa) \s+														#match length
-				((?:ss-|ds-|ms-)*(?:NA|DNA|RNA|tRNA|rRNA|mRNA|uRNA))* \s+						#match type, zero or one time
-				(linear|circular)* \s+															#match topology, zero or one time
-				(PRI|ROD|MAM|VRT|INV|PLN|BCT|VRL|PHG|SYN|UNA|EST|PAT|STS|GSS|HTG|HTC|ENV)* \s+  #match division, zero or one time
+				LOCUS\s+([a-zA-Z0-9:=_\-\.]+)\s+											#match name
+				([0-9]+?)\s(?:bp|aa)\s+														#match length
+				((?:ss-|ds-|ms-)*(?:NA|DNA|RNA|tRNA|rRNA|mRNA|uRNA))*\s+						#match type, zero or one time
+				(linear|circular)*\s*															#match topology, zero or one time
+				(PRI|ROD|MAM|VRT|INV|PLN|BCT|VRL|PHG|SYN|UNA|EST|PAT|STS|GSS|HTG|HTC|ENV)*\s+  #match division, zero or one time
 				([0-9]{2}-(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC){1}-[0-9]{4})*		#match date, zero or one time
 				''', re.VERBOSE)
 
@@ -210,21 +210,26 @@ class gbobject(object):
 
 
 		# enzymes
-		self.restrictionEnzymes = enzyme.initRestriction(self)
+		#self.restrictionEnzymes = enzyme.initRestriction(self)
 
 
 ###############################
 
-	def opengb(self, filepath):
+	def opengb(self, f):
 		'''
 		Function opens a genbank file.
 		'''
-		assert type(filepath) == str or type(filepath) == str , "Error opening genbank file. Filepath is not a string: %s" % str(filepath)
-		self.fileName = filepath.split('/')[-1] #update the fileName variable
+		#filepath is a string, presumably a path the the file to be read
+		if hasattr(f, 'read') is False:
+			with open(f) as infile:
+				self.fileName = f.split('/')[-1] #update the fileName variable
+				self.readgb(infile)
 
-		#open it and read line by line (very memory efficient)
-		with open(filepath) as infile:
-			self.readgb(infile)
+		#filepath is a file handle, send it straight
+		else:
+			self.fileName = None
+			self.readgb(f)
+
 
 
 	def readgb(self, infile):
@@ -234,12 +239,20 @@ class gbobject(object):
 
 		line_list = [] #for collecting the dna
 		for line in infile:
-			line = line.replace('\r', '') #important for removing linux \r newline character
-#			print('line: ',line)
-			if re.match('^[ \t\n]+$', line) or line == '': #get rid of blank lines
+			try:
+				line = line.decode("utf-8")
+			except:
 				pass
 
-			elif line[0] == ' ' and line[0:10] != '        1 ': #a line that starts with a space is a continuation of the previous line (and belongs to the previous keyword). I have to have a special case '        1 ' for where the DNA sequence starts.
+
+			line = line.replace('\r', '') #important for removing linux \r newline character
+			#line = line.rstrip('\n')
+#			print('line: ',line)
+			if re.match('^[ \t\n]+$', line) or line == '': #get rid of blank lines
+				continue
+
+
+			if line[0] == ' ' and line[0:10] != '        1 ': #a line that starts with a space is a continuation of the previous line (and belongs to the previous keyword). I have to have a special case '        1 ' for where the DNA sequence starts.
 				line_list.append(line)
 
 			elif (line[0] != ' ' or line[0:10] == '        1 ') and len(line_list) == 0: #a line that does not start with a space marks a new keyword
@@ -259,8 +272,12 @@ class gbobject(object):
 		Method for parsing a genbank line. The term line is used very flexibly and indicates all the lines belonging to a certain keyword.
 		It matches certain keywords to the beginning of the line and parses accordingly.
 		'''
+
 		if 'LOCUS' in line[0:12]:
 			#LOCUS A short mnemonic name for the entry, chosen to suggest the sequence's definition. Mandatory keyword/exactly one record.
+
+			#print(type(line))
+			#print(repr(line))
 
 			#match line with re
 			m = re.match(self._re_locus, line)
@@ -421,7 +438,6 @@ class gbobject(object):
 			#sometimes I get a \t inside there. I don't know why. This is a temporary fix.
 			self.gbfile['dna'] = "".join(self.gbfile['dna'].split())
 
-
 		elif 'CONTIG' in line[0:12]:
 			#This linetype provides information about how individual sequence
 			#records can be combined to form larger-scale biological objects, such as
@@ -430,6 +446,9 @@ class gbobject(object):
 			#numbers and basepair ranges of the underlying records which comprise the object.
 			#It is an alternative to providing a sequence.
 			self.gbfile['contig'] = ''.join(line[12:].split('\n')).strip()
+
+		elif line.startswith('//'): #last line in record
+			pass
 
 		else:
 			raise ValueError('Unparsed line: "%s" in record %s' % (line, self.gbfile['locus']['name']))
@@ -607,7 +626,94 @@ class gbobject(object):
 
 ##### Get and Set methods #####
 
+	def get_all_cds(self):
+		'''
+		Get positions, orientations and identities of all coding sequences for a genbank file object
+		'''
+		#get the coding sequences
+		cds_data = []
+		for feature in self.get_all_features():
 
+			#skip features that have no qualifiers
+			if feature['qualifiers'] == []:
+				continue
+
+			index = self.get_feature_index(feature)
+			if self.get_feature_type(index) == 'CDS':
+				#get the location
+				location = self.get_feature_location(index)
+				start, end = self.get_location(location)
+
+				#get the protein id
+				quals = self.get_qualifiers(index)
+				for qual in quals:
+					if qual.startswith('/protein_id='):
+						protein_id = qual.lstrip('/protein_id=').strip('"')
+						break
+
+				#get orientation
+				complement = self.get_feature_complement(index)
+
+				#add to data structure
+				cds_data.append((start, end, protein_id, complement))
+
+		return cds_data
+
+
+
+
+	def predict_operons(self, max_dist=100, same_orientation=True):
+		'''Take CDS data from an organism and assemble putative operons from these'''
+
+		#make an operon class that can hold all the info for the operons?
+
+		## assuumes the CDSs are in order ##
+
+		cds_data = self.get_all_cds()
+
+		all_operons = []
+
+		current_operon = []
+		for cds in cds_data:
+			start, end, protein_id, orientation = cds
+
+			if current_operon == []:
+				current_operon.append((start, end, protein_id, orientation))
+
+			else:
+				#if it is still part of the same operon, add to it
+
+				#if the orientations are not the same, start new operon (if the same_orientation option is set to True)
+				if same_orientation is True and current_operon[-1][3] is not orientation:
+					if len(current_operon) > 1:
+						all_operons.append(current_operon)
+					current_operon = [(start, end, protein_id, orientation)]
+
+				#is the end of the previous gene + max_dist within the start of the next gene?
+				#if so, add to the same operon
+				elif current_operon[-1][1] + max_dist >= start:
+					current_operon.append((start, end, protein_id, orientation))
+
+				#if it is not, then add operon to data structure and start a new one with the present data
+				else:
+					if len(current_operon) > 1:
+						all_operons.append(current_operon)
+					current_operon = [(start, end, protein_id, orientation)]
+
+		#add the last one
+		if len(current_operon) > 1:
+			all_operons.append(current_operon)
+
+		return all_operons
+
+		# ## make operon sets
+		# operons_sets = []
+		# for operon in all_operons:
+		# 	genes_in_operon = []
+		# 	for gene in operon:
+		# 		genes_in_operon.append(gene[2])
+		# 	operons_sets.append(set(genes_in_operon))
+		# return operons_sets
 
 
 	#Feature#
@@ -736,12 +842,31 @@ class gbobject(object):
 
 	def get_location(self, entry):
 		'''Returns start and end location for an entry of a location list'''
-		tempentry = ''
-		for n in range(len(entry)):
-			if entry[n] != '<' and entry[n] != '>':
-				tempentry += entry[n]
-		start, finish = tempentry.split('..')
-		return int(start), int(finish)
+		# tempentry = ''
+		# for n in range(len(entry)):
+		# 	if entry[n] != '<' and entry[n] != '>':
+		# 		tempentry += entry[n]
+		# start, finish = tempentry.split('..')
+
+		start = entry[0].split('..')[0]
+		finish = entry[-1].split('..')[1]
+		return int(start.strip('>').strip('<')), int(finish.strip('>').strip('<'))
+
+
+	# def get_location(self, location):
+	# 	'''Takes a location entry and extracts the start and end numbers'''
+	# 	#This needs a serious update to deal with more exotic arrangements
+	# 	templocation = ''
+	# 	for n in range(0,len(location)): #for each character
+	# 		if location[n] != '<' and location[n] != '>':
+	# 			templocation += location[n]
+	# 	try:
+	# 		start, finish = templocation.split('..')
+	# 	except:
+	# 		start = templocation
+	# 		finish = templocation
+	# 	return int(start), int(finish)
+
 
 	def GetFirstLastLocation(self, feature):
 		'''
@@ -1118,19 +1243,7 @@ class gbobject(object):
 
 
 
-	def get_location(self, location):
-		'''Takes a location entry and extracts the start and end numbers'''
-		#This needs a serious update to deal with more exotic arrangements
-		templocation = ''
-		for n in range(0,len(location)): #for each character
-			if location[n] != '<' and location[n] != '>':
-				templocation += location[n]
-		try:
-			start, finish = templocation.split('..')
-		except:
-			start = templocation
-			finish = templocation
-		return int(start), int(finish)
+
 
 
 	def get_all_feature_positions(self):

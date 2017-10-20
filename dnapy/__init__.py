@@ -24,6 +24,6 @@ SETTINGS_DIR = DEFAULT_SETTINGS_DIR
 RESOURCES_DIR = os.path.join(ROOT_DIR, "resources")
 
 GUI_DIR = os.path.join(ROOT_DIR, "gui")
-ICONS_DIR = os.path.join(GUI_DIR, "icon")
+#ICONS_DIR = os.path.join(GUI_DIR, "icon")
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
