@@ -682,7 +682,7 @@ class gbobject(object):
 
 ##### Get and Set methods #####
 
-	def get_all_cds(self):
+	def get_all_cds(self, qual_for_id='/protein_id='):
 		'''
 		Get positions, orientations and identities of all coding sequences for a genbank file object
 		'''
@@ -702,8 +702,8 @@ class gbobject(object):
 				#get the protein id
 				quals = feature['qualifiers']
 				for qual in quals:
-					if qual.startswith('/protein_id='):
-						protein_id = qual.lstrip('/protein_id=').strip('"')
+					if qual.startswith(qual_for_id):
+						protein_id = qual.lstrip(qual_for_id).strip('"')
 						break
 
 				#get orientation
@@ -717,13 +717,13 @@ class gbobject(object):
 
 
 
-	def predict_operons(self, max_dist=100, same_orientation=True):
+	def predict_operons(self, max_dist=100, same_orientation=True, qual_for_id='/protein_id='):
 		'''Take CDS data from an organism and assemble putative operons from these'''
 
 		#make an operon class that can hold all the info for the operons?
 
 		## assumes the CDSs are in order ##
-		cds_data = self.get_all_cds()
+		cds_data = self.get_all_cds(qual_for_id)
 
 		all_operons = []
 		current_operon = [] # to represent the operon I'm currently building
@@ -743,8 +743,7 @@ class gbobject(object):
 
 				#if the orientations are not the same, start new operon (if the same_orientation option is set to True)
 				if same_orientation is True and last_gene_in_operon_orientation is not orientation:
-					if len(current_operon) > 1:
-						all_operons.append(current_operon)
+					all_operons.append(current_operon)
 					current_operon = [(start, end, protein_id, orientation)]
 
 				#is the end of the previous gene + max_dist within the start of the next gene?
@@ -754,13 +753,11 @@ class gbobject(object):
 
 				#if it is not, then add operon to data structure and start a new one with the present data
 				else:
-					if len(current_operon) > 1:
-						all_operons.append(current_operon)
+					all_operons.append(current_operon)
 					current_operon = [(start, end, protein_id, orientation)]
 
 		#add the last one
-		if len(current_operon) > 1:
-			all_operons.append(current_operon)
+		all_operons.append(current_operon)
 
 		return all_operons
 
