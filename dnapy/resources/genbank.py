@@ -682,7 +682,7 @@ class gbobject(object):
 
 ##### Get and Set methods #####
 
-	def get_all_cds(self, qual_for_id='/protein_id='):
+	def get_all_cds(self, qual_for_id='/protein_id=', qual_for_uniprot_id='/db_xref="Uniprot/SPTREMBL:'):
 		'''
 		Get positions, orientations and identities of all coding sequences for a genbank file object
 		'''
@@ -700,61 +700,65 @@ class gbobject(object):
 				start, end = self.get_location(location)
 
 				#get the protein id
+				protein_id = None
+				uniprot_id = None
 				quals = feature['qualifiers']
 				for qual in quals:
 					if qual.startswith(qual_for_id):
 						protein_id = qual.lstrip(qual_for_id).strip('"')
-						break
+
+					elif qual.startswith(qual_for_uniprot_id):
+						uniprot_id = qual.lstrip(qual_for_uniprot_id).strip('"')
 
 				#get orientation
 				complement = feature['complement']
 
 				#add to data structure
-				cds_data.append((start, end, protein_id, complement))
+				cds_data.append((start, end, protein_id, uniprot_id, complement))
 
 		return cds_data
 
 
 
 
-	def predict_operons(self, max_dist=100, same_orientation=True, qual_for_id='/protein_id='):
+	def predict_operons(self, max_dist=100, same_orientation=True, qual_for_id='/protein_id=', qual_for_uniprot_id='/db_xref="Uniprot/SPTREMBL:'):
 		'''Take CDS data from an organism and assemble putative operons from these'''
 
 		#make an operon class that can hold all the info for the operons?
 
 		## assumes the CDSs are in order ##
-		cds_data = self.get_all_cds(qual_for_id)
+		cds_data = self.get_all_cds(qual_for_id, qual_for_uniprot_id)
 
 		all_operons = []
 		current_operon = [] # to represent the operon I'm currently building
 
 		for cds in cds_data:
-			start, end, protein_id, orientation = cds # start, end, id and orientation of the most recent cds
+			start, end, protein_id, uniprot_id, orientation = cds # start, end, id and orientation of the most recent cds
 
 			if current_operon == []:
-				current_operon.append((start, end, protein_id, orientation))
+				current_operon.append((start, end, protein_id, uniprot_id, orientation))
 
 			else:
 				#if it is still part of the same operon, add to it
 
 
 				last_gene_in_operon_end = current_operon[-1][1]
-				last_gene_in_operon_orientation = current_operon[-1][3]
+				last_gene_in_operon_orientation = current_operon[-1][4]
 
 				#if the orientations are not the same, start new operon (if the same_orientation option is set to True)
 				if same_orientation is True and last_gene_in_operon_orientation is not orientation:
 					all_operons.append(current_operon)
-					current_operon = [(start, end, protein_id, orientation)]
+					current_operon = [(start, end, protein_id, uniprot_id, orientation)]
 
 				#is the end of the previous gene + max_dist within the start of the next gene?
 				#if so, add to the same operon
 				elif start - max_dist <= last_gene_in_operon_end:
-					current_operon.append((start, end, protein_id, orientation))
+					current_operon.append((start, end, protein_id, uniprot_id, orientation))
 
 				#if it is not, then add operon to data structure and start a new one with the present data
 				else:
 					all_operons.append(current_operon)
-					current_operon = [(start, end, protein_id, orientation)]
+					current_operon = [(start, end, protein_id, uniprot_id, orientation)]
 
 		#add the last one
 		all_operons.append(current_operon)
