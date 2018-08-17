@@ -459,7 +459,8 @@ class _BioSeq(str):
 		diff = len(sequence) - len(valid_chars)
 		if diff != 0:
 			non_valid_chars = set([s for s in sequence if s not in self.alphabet])
-			print('The characters "%s" were non-compliant with %s and were removed from sequence' % (', '.join(list(non_valid_chars)), self.alphabet))
+			print('The characters "%s" are non-compliant with %s. Sequence object cannot be created.' % (', '.join(list(non_valid_chars)), self.alphabet))
+			raise ValueError
 		self.sequence = ''.join(valid_chars)
 
 	### Re-define builtins for string ###
@@ -822,7 +823,7 @@ class _NucleotideBaseClass(_BioSeq):
 
 
 
-	def translate(self, start=None, end=None, table=1):
+	def translate(self, table=1, start=None, end=None):
 		"""
 		Returns protein sequence from DNA or RNA string.
 		The table variable specifies which codon table should be used.
@@ -916,9 +917,11 @@ class _NucleotideBaseClass(_BioSeq):
 					'CGG': 0, 'AGU': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
 					'GGU': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
 
-		sequence = self.sequence.upper().translate(start, end)
+
+		sequence = self.transcribe(start, end)
+
 		assert len(sequence) % 3 == 0, 'Error, the sequence must be a string comprising whole codons.'
-		for i in range(0, len(seq), 3):
+		for i in range(0, len(sequence), 3):
 			codon = sequence[i:i+3]
 			if codon in list(codons.keys()):
 				codons[codon] += 1
@@ -1322,7 +1325,7 @@ class Protein(_BioSeq):
 		"""
 		"""
 		self.sequence = self.subsequence(start, end)
-		hyd_vals = {'A':1.8, 'R':-4.5,
+		hydbi_vals = {'A':1.8, 'R':-4.5,
 			 'N':-3.5, 'D':-3.5,
 			 'C':2.5, 'Q':-3.5,
 			 'E':-3.5, 'G':-0.4,
@@ -1333,14 +1336,14 @@ class Protein(_BioSeq):
 			 'T':-0.7, 'W':-0.9,
 			 'Y':-1.3, 'V':4.2,
 			 '*':0.0, 'X':0.0}
-		return sum([hyd_vals[aa.upper()] for aa in sequence])
+		return sum([hydbi_vals[aa.upper()] for aa in sequence])
 
 
 	def hydrophobicity(self, start=None, end=None):
 		"""
 		"""
 		self.sequence = self.subsequence(start, end)
-		hyd_vals = {'A':0.616, 'R':0.0,
+		hydpa_vals = {'A':0.616, 'R':0.0,
 			 'N':0.236, 'D':0.028,
 			 'C':0.68, 'Q':0.251,
 			 'E':0.043, 'G':0.501,
@@ -1351,10 +1354,13 @@ class Protein(_BioSeq):
 			 'T':0.45, 'W':0.878,
 			 'Y':0.88, 'V':0.825,
 			 '*':0.0, 'X':0.0}
-		return sum([hyd_vals[aa.upper()] for aa in sequence])
+		return sum([hydpa_vals[aa.upper()] for aa in sequence])
 
 
-
+	#def calculate ext coeff.
+	#	"""
+	#	Calculate theoretical extinction coefficient
+	#	"""
 
 
 
@@ -1568,7 +1574,7 @@ class CodonTable(object):
 			codon = codon.replace('T', 'U')
 
 			if aa in 'FLSYCWPHERIMTNKVADQG*':
-				codons[aa].append(codon)
+				codons[aa].append(RNA(codon))
 			else:
 				raise Error('"%s" is not a valid amino acid' % aa)
 
@@ -1648,6 +1654,10 @@ class CodonTable(object):
 
 
 
+#class UsageTable(object):
+#	'''
+#	Codon usage for an organism
+#	'''
 
 ############### Identity functions ##########################
 

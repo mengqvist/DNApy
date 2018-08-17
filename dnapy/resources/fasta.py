@@ -57,8 +57,9 @@ def read_fasta(iterator, seqtype=None):
 		elif seqtype == 'protein':
 			yield (header, bioseq.Protein(''.join(seq)))
 		elif seqtype == 'None':
-			#shoudl guess type here
-			raise ValueError, 'Cannot guess sequence type, specify "dna", "rna", or "protein"''
+			#should guess type here
+			print('Cannot guess sequence type, specify "dna", "rna", or "protein"')
+			raise ValueError
 
 
 def parse_string(string, seqtype=None):
@@ -86,35 +87,3 @@ def parse_file(filepath, seqtype=None):
 			yield record
 	else:
 		raise ValueError
-
-
-
-
-class FreqTable(object):
-
-	def __init__(self, fasta_file):
-		self.make_codon_freq_table(fasta_file)
-
-
-	def make_codon_freq_table(self, fasta_file):
-		'''
-		Input is a file path.
-		Counts the usage of each codon in a FASTA file of DNA sequences.
-		Then converts that as codon usage per 1000 codons.
-		Good for generating codon tables.
-		Output is a dictionary of codon frequencies per 1000 codons and the total number in brackets.
-		'''
-
-		records = fasta.parse_file(fasta_file)
-		for record in records:
-			cds = bioseq.DNA(record[1])
-			codons = cds.count_codons()
-
-		#sum codons
-		codon_sum = sum(codons.values())
-
-		#divide each by the sum and multiply by 1000
-		freq_table = {}
-		for key in list(codons.keys()):
-			freq_table[key] = '%s(%s)' % (1000*(codons[key]/codon_sum), codons[key]) #ouput is following format: freq/thousand(number)
-		self.table = freq_table
